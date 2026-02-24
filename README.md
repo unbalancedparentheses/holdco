@@ -17,11 +17,21 @@ python generate_readme.py
 
 Pydantic enforces constraints at data entry time (e.g. ownership must be 0-100).
 
+## Dashboard
+
+Live Streamlit dashboard with asset prices from Yahoo Finance:
+
+```
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+Shows corporate structure, live asset valuations, custodian details,
+and authorized persons for each holding.
+
 ## Planned
 
 - QuickBooks API integration for real-time financials per entity
-- Yahoo Finance integration for live asset price tracking
-- Streamlit dashboard with consolidated view across all entities
 
 ## Camiguin
 
