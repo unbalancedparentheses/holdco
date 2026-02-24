@@ -11,6 +11,21 @@ class Category(str, Enum):
     HOLDING = "Holding"
 
 
+class CustodianAccount(BaseModel):
+    bank: str
+    account_number: str | None = None
+    account_type: str | None = None
+    authorized_persons: list[str] = []
+
+
+class AssetHolding(BaseModel):
+    asset: str
+    ticker: str | None = None
+    quantity: float | None = None
+    unit: str | None = None
+    custodian: CustodianAccount | None = None
+
+
 class Company(BaseModel):
     name: str
     legal_name: str | None = None
@@ -21,6 +36,7 @@ class Company(BaseModel):
     shareholders: list[str] = []
     directors: list[str] = []
     lawyer_studio: str | None = None
+    holdings: list[AssetHolding] = []
 
     @field_validator("ownership_pct")
     @classmethod

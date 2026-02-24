@@ -60,8 +60,76 @@ def subsidiaries_table(subs: list[Company]) -> str:
     return "\n".join([header_line, separator] + data_lines)
 
 
+def holdings_table(company: Company) -> str | None:
+    if not company.holdings:
+        return None
+
+    headers = ["Asset", "Ticker", "Quantity", "Unit", "Custodian Bank", "Account Type", "Authorized Persons"]
+    rows: list[list[str]] = []
+    for h in company.holdings:
+        rows.append([
+            h.asset,
+            h.ticker or "",
+            str(h.quantity) if h.quantity is not None else "",
+            h.unit or "",
+            h.custodian.bank if h.custodian else "",
+            h.custodian.account_type or "" if h.custodian else "",
+            ", ".join(h.custodian.authorized_persons) if h.custodian else "",
+        ])
+
+    widths = [len(hdr) for hdr in headers]
+    for row in rows:
+        for i, cell in enumerate(row):
+            widths[i] = max(widths[i], len(cell))
+
+    header_line = "| " + " | ".join(hdr.ljust(w) for hdr, w in zip(headers, widths)) + " |"
+    separator = "|" + "|".join("-" * (w + 2) for w in widths) + "|"
+    data_lines = []
+    for row in rows:
+        line = "| " + " | ".join(cell.ljust(w) for cell, w in zip(row, widths)) + " |"
+        data_lines.append(line)
+
+    return "\n".join([header_line, separator] + data_lines)
+
+
+def render_holdings(companies: list[Company]) -> list[str]:
+    sections: list[str] = []
+    for c in companies:
+        table = holdings_table(c)
+        if table:
+            sections.append(f"#### {c.name} Holdings")
+            sections.append(table)
+    return sections
+
+
 def generate() -> str:
-    sections = ["# Ergodic"]
+    sections = [
+        "# Ergodic",
+        "\n".join([
+            "Corporate structure, asset holdings, and custody tracking for the Ergodic group.",
+            "",
+            "This README is auto-generated from typed Python data. Do not edit it directly.",
+            "Instead, edit `data.py` and run:",
+            "",
+            "```",
+            "python generate_readme.py",
+            "```",
+            "",
+            "## How it works",
+            "",
+            "- `models.py` — Pydantic models with validation (Company, Holding, AssetHolding, CustodianAccount)",
+            "- `data.py` — All corporate and asset data as typed Python objects",
+            "- `generate_readme.py` — Reads `data.py` and generates this README",
+            "",
+            "Pydantic enforces constraints at data entry time (e.g. ownership must be 0-100).",
+            "",
+            "## Planned",
+            "",
+            "- QuickBooks API integration for real-time financials per entity",
+            "- Yahoo Finance integration for live asset price tracking",
+            "- Streamlit dashboard with consolidated view across all entities",
+        ]),
+    ]
 
     for entity in entities:
         if isinstance(entity, Holding):
@@ -70,9 +138,18 @@ def generate() -> str:
             if entity.subsidiaries:
                 sections.append("### Subsidiaries")
                 sections.append(subsidiaries_table(entity.subsidiaries))
+                sections.extend(render_holdings(entity.subsidiaries))
+            holdings_section = holdings_table(entity)
+            if holdings_section:
+                sections.append(f"### {entity.name} Holdings")
+                sections.append(holdings_section)
         else:
             sections.append(f"## {entity.name}")
             sections.append(details_table(entity))
+            holdings_section = holdings_table(entity)
+            if holdings_section:
+                sections.append(f"### Holdings")
+                sections.append(holdings_section)
 
     return "\n\n".join(sections) + "\n"
 

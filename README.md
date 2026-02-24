@@ -1,5 +1,28 @@
 # Ergodic
 
+Corporate structure, asset holdings, and custody tracking for the Ergodic group.
+
+This README is auto-generated from typed Python data. Do not edit it directly.
+Instead, edit `data.py` and run:
+
+```
+python generate_readme.py
+```
+
+## How it works
+
+- `models.py` — Pydantic models with validation (Company, Holding, AssetHolding, CustodianAccount)
+- `data.py` — All corporate and asset data as typed Python objects
+- `generate_readme.py` — Reads `data.py` and generates this README
+
+Pydantic enforces constraints at data entry time (e.g. ownership must be 0-100).
+
+## Planned
+
+- QuickBooks API integration for real-time financials per entity
+- Yahoo Finance integration for live asset price tracking
+- Streamlit dashboard with consolidated view across all entities
+
 ## Camiguin
 
 | | |
@@ -38,6 +61,12 @@
 | Ōtoro                |            | Argentina | Craft    | 100%        |        |                             |               |
 | Palermo Wine Club    |            | Argentina | Craft    | 100%        |        |                             |               |
 | Best Eleven          |            | Argentina | Craft    | 100%        |        |                             |               |
+
+#### Foltrek Holdings
+
+| Asset | Ticker | Quantity | Unit | Custodian Bank | Account Type | Authorized Persons          |
+|-------|--------|----------|------|----------------|--------------|-----------------------------|
+| Gold  | XAUUSD |          |      | Pershing       |              | Juan Deal, Federico Carrone |
 
 ## Lambda SAS
 

@@ -1,4 +1,4 @@
-from models import Category, Company, Holding
+from models import AssetHolding, Category, Company, CustodianAccount, Holding
 
 camiguin = Holding(
     name="Camiguin",
@@ -7,7 +7,24 @@ camiguin = Holding(
     directors=["Martin Paulucci", "Nicolas Urman"],
     lawyer_studio="Briz",
     subsidiaries=[
-        Company(name="Foltrek", country="Uruguay", category=Category.CODE, ownership_pct=100, directors=["Juan Deal", "Federico Carrone"], lawyer_studio="PPV"),
+        Company(
+            name="Foltrek",
+            country="Uruguay",
+            category=Category.CODE,
+            ownership_pct=100,
+            directors=["Juan Deal", "Federico Carrone"],
+            lawyer_studio="PPV",
+            holdings=[
+                AssetHolding(
+                    asset="Gold",
+                    ticker="XAUUSD",
+                    custodian=CustodianAccount(
+                        bank="Pershing",
+                        authorized_persons=["Juan Deal", "Federico Carrone"],
+                    ),
+                ),
+            ],
+        ),
         Company(name="Lambda", country="Argentina", category=Category.CODE, ownership_pct=100),
         Company(name="Sur", country="Argentina", category=Category.CODE, ownership_pct=50),
         Company(name="FuzzingLabs", country="Argentina", category=Category.CODE, ownership_pct=100),
