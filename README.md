@@ -2,28 +2,29 @@
 
 | Entity                 | Legal Name | Country   | Category | Ownership % | Tax ID | Shareholders                                                 | Directors                      | Lawyer Studio |
 |------------------------|------------|-----------|----------|-------------|--------|--------------------------------------------------------------|--------------------------------|---------------|
-| Camiguin               |            | Spain     | Holding  |             |        |                                                              | Martin Paulucci, Nicolas Urman | Briz          |
-| └─ Foltrek             |            | Uruguay   | Holding  |             |        |                                                              | Juan Deal, Federico Carrone    | PPV           |
-| └─ Lambda              |            | Argentina | Code     |             |        |                                                              |                                |               |
-| └─ Sur                 |            | Argentina | Code     |             |        |                                                              |                                |               |
-| └─ FuzzingLabs         |            | Argentina | Code     |             |        |                                                              |                                |               |
-| └─ Aligned             |            | Argentina | Code     |             |        |                                                              |                                |               |
-| └─ Sovra               |            | Argentina | Code     |             |        |                                                              |                                |               |
-| └─ Restolia            |            | Argentina | Code     |             |        |                                                              |                                |               |
-| └─ 3MI Labs            |            | Argentina | Finance  |             |        |                                                              |                                |               |
-| └─ Ergodic Fund        |            | Argentina | Finance  |             |        |                                                              |                                |               |
-| └─ Pol Finance         |            | Argentina | Finance  |             |        |                                                              |                                |               |
-| └─ Levenue             |            | Argentina | Finance  |             |        |                                                              |                                |               |
-| └─ Cresium             |            | Argentina | Finance  |             |        |                                                              |                                |               |
-| └─ 421                 |            | Argentina | Culture  |             |        |                                                              |                                |               |
-| └─ Bellolandia         |            | Argentina | Culture  |             |        |                                                              |                                |               |
-| └─ LCB Game Studio     |            | Argentina | Culture  |             |        |                                                              |                                |               |
-| └─ Lambda Forge        |            | Argentina | Culture  |             |        |                                                              |                                |               |
-| └─ Arcademy            |            | Argentina | Culture  |             |        |                                                              |                                |               |
-| └─ Burgschneider       |            | Europe/US | Craft    |             |        |                                                              |                                |               |
-| └─ Laderas de los Andes |           | Argentina | Craft    |             |        |                                                              |                                |               |
-| └─ Fruto Cafe          |            | Argentina | Craft    |             |        |                                                              |                                |               |
-| └─ High Mobility       |            | Argentina | Craft    |             |        |                                                              |                                |               |
-| └─ Ōtoro               |            | Argentina | Craft    |             |        |                                                              |                                |               |
-| └─ Palermo Wine Club   |            | Argentina | Craft    |             |        |                                                              |                                |               |
-| Lambda SAS             |            | Argentina |          |             |        | Pablo Perello, Juan Mazzoni, Martina Cantaro, Matias Onorato | Pablo Perello                  | Croz          |
+| Camiguin               |            | Spain     | Holding  |             |        | Federico Carrone                                             | Martin Paulucci, Nicolas Urman | Briz          |
+| └─ Foltrek             |            | Uruguay   | Holding  | 100%        |        | Camiguin                                                     | Juan Deal, Federico Carrone    | PPV           |
+| └─ Lambda              |            | Argentina | Code     | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Sur                 |            | Argentina | Code     | 50%         |        | Camiguin                                                     |                                |               |
+| └─ FuzzingLabs         |            | Argentina | Code     | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Aligned             |            | Argentina | Code     | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Sovra               |            | Argentina | Code     | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Restolia            |            | Argentina | Code     | 100%        |        | Camiguin                                                     |                                |               |
+| └─ 3MI Labs            |            | Argentina | Finance  | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Ergodic Fund        |            | Argentina | Finance  | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Pol Finance         |            | Argentina | Finance  | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Levenue             |            | Argentina | Finance  | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Cresium             |            | Argentina | Finance  | 100%        |        | Camiguin                                                     |                                |               |
+| └─ 421                 |            | Argentina | Culture  | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Bellolandia         |            | Argentina | Culture  | 100%        |        | Camiguin                                                     |                                |               |
+| └─ LCB Game Studio     |            | Argentina | Culture  | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Lambda Forge        |            | Argentina | Culture  | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Arcademy            |            | Argentina | Culture  | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Burgschneider       |            | Europe/US | Craft    | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Laderas de los Andes |           | Argentina | Craft    | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Fruto Cafe          |            | Argentina | Craft    | 100%        |        | Camiguin                                                     |                                |               |
+| └─ High Mobility       |            | Argentina | Craft    | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Ōtoro               |            | Argentina | Craft    | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Palermo Wine Club   |            | Argentina | Craft    | 100%        |        | Camiguin                                                     |                                |               |
+| └─ Best Eleven         |            | Argentina | Craft    | 100%        |        | Camiguin                                                     |                                |               |
+| Lambda SAS             |            | Argentina |          | 100%        |        | Pablo Perello, Juan Mazzoni, Martina Cantaro, Matias Onorato | Pablo Perello                  | Croz          |
