@@ -2,32 +2,45 @@
 
 Corporate structure, asset holdings, and custody tracking for the Ergodic group.
 
-This README is auto-generated from typed Python data. Do not edit it directly.
-Instead, edit `data.py` and run:
+**26** entities across **4** countries.
+
+Code: 8 | Finance: 5 | Culture: 5 | Craft: 7 | Holding: 1
+
+---
+
+This README is auto-generated from the SQLite database. Do not edit it directly.
+Instead, edit via the admin panel and regenerate:
 
 ```
-python generate_readme.py
+streamlit run app.py      # admin panel + dashboard
+python generate_readme.py  # regenerate this file
 ```
 
-## How it works
+## Architecture
 
-- `models.py` — Pydantic models with validation (Company, Holding, AssetHolding, CustodianAccount)
-- `data.py` — All corporate and asset data as typed Python objects
-- `generate_readme.py` — Reads `data.py` and generates this README
+| File | Purpose |
+|---|---|
+| `models.py` | Pydantic models — Company, Holding, AssetHolding, CustodianAccount |
+| `db.py` | SQLite layer — CRUD operations, `get_entities()`, `export_json()` |
+| `app.py` | Streamlit dashboard + admin panel for managing data |
+| `yahoo.py` | Live asset prices from Yahoo Finance |
+| `generate_readme.py` | Reads the database and generates this README |
 
-Pydantic enforces constraints at data entry time (e.g. ownership must be 0-100).
+The `db` module exposes a Python API (`db.insert_company(...)`, `db.export_json()`, etc.)
+that AI agents or scripts can use directly.
 
 ## Dashboard
-
-Live Streamlit dashboard with asset prices from Yahoo Finance:
 
 ```
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Shows corporate structure, live asset valuations, custodian details,
-and authorized persons for each holding.
+**Dashboard tab**: corporate structure, live asset valuations, custodian details.
+
+**Companies tab**: add, edit, and delete companies and holdings.
+
+**Asset Holdings tab**: manage asset positions and custodian accounts.
 
 ## Planned
 
@@ -43,40 +56,55 @@ and authorized persons for each holding.
 | **Directors** | Martin Paulucci, Nicolas Urman |
 | **Lawyer Studio** | Briz |
 
-### Subsidiaries
+### Code (7)
 
-| Entity               | Legal Name | Country   | Category | Ownership % | Tax ID | Directors                   | Lawyer Studio |
-|----------------------|------------|-----------|----------|-------------|--------|-----------------------------|---------------|
-| Foltrek              |            | Uruguay   | Code     | 100%        |        | Juan Deal, Federico Carrone | PPV           |
-| Lambda               |            | Argentina | Code     | 100%        |        |                             |               |
-| Sur                  |            | Argentina | Code     | 50%         |        |                             |               |
-| FuzzingLabs          |            | Argentina | Code     | 100%        |        |                             |               |
-| Aligned              |            | Argentina | Code     | 100%        |        |                             |               |
-| Sovra                |            | Argentina | Code     | 100%        |        |                             |               |
-| Restolia             |            | Argentina | Code     | 100%        |        |                             |               |
-| 3MI Labs             |            | Argentina | Finance  | 100%        |        |                             |               |
-| Ergodic Fund         |            | Argentina | Finance  | 100%        |        |                             |               |
-| Pol Finance          |            | Argentina | Finance  | 100%        |        |                             |               |
-| Levenue              |            | Argentina | Finance  | 100%        |        |                             |               |
-| Cresium              |            | Argentina | Finance  | 100%        |        |                             |               |
-| 421                  |            | Argentina | Culture  | 100%        |        |                             |               |
-| Bellolandia          |            | Argentina | Culture  | 100%        |        |                             |               |
-| LCB Game Studio      |            | Argentina | Culture  | 100%        |        |                             |               |
-| Lambda Forge         |            | Argentina | Culture  | 100%        |        |                             |               |
-| Arcademy             |            | Argentina | Culture  | 100%        |        |                             |               |
-| Burgschneider        |            | Europe/US | Craft    | 100%        |        |                             |               |
-| Laderas de los Andes |            | Argentina | Craft    | 100%        |        |                             |               |
-| Fruto Cafe           |            | Argentina | Craft    | 100%        |        |                             |               |
-| High Mobility        |            | Argentina | Craft    | 100%        |        |                             |               |
-| Ōtoro                |            | Argentina | Craft    | 100%        |        |                             |               |
-| Palermo Wine Club    |            | Argentina | Craft    | 100%        |        |                             |               |
-| Best Eleven          |            | Argentina | Craft    | 100%        |        |                             |               |
+| Entity      | Country   | Ownership % | Directors                   | Lawyer Studio |
+|-------------|-----------|-------------|-----------------------------|---------------|
+| Foltrek     | Uruguay   | 100%        | Juan Deal, Federico Carrone | PPV           |
+| Lambda      | Argentina | 100%        |                             |               |
+| Sur         | Argentina | 50%         |                             |               |
+| FuzzingLabs | Argentina | 100%        |                             |               |
+| Aligned     | Argentina | 100%        |                             |               |
+| Sovra       | Argentina | 100%        |                             |               |
+| Restolia    | Argentina | 100%        |                             |               |
 
 #### Foltrek Holdings
 
-| Asset | Ticker | Quantity | Unit | Custodian Bank | Account Type | Authorized Persons          |
-|-------|--------|----------|------|----------------|--------------|-----------------------------|
-| Gold  | XAUUSD |          |      | Pershing       |              | Juan Deal, Federico Carrone |
+| Asset | Ticker | Custodian Bank | Authorized Persons          |
+|-------|--------|----------------|-----------------------------|
+| Gold  | XAUUSD | Pershing       | Juan Deal, Federico Carrone |
+
+### Finance (5)
+
+| Entity       | Country   | Ownership % |
+|--------------|-----------|-------------|
+| 3MI Labs     | Argentina | 100%        |
+| Ergodic Fund | Argentina | 100%        |
+| Pol Finance  | Argentina | 100%        |
+| Levenue      | Argentina | 100%        |
+| Cresium      | Argentina | 100%        |
+
+### Culture (5)
+
+| Entity          | Country   | Ownership % |
+|-----------------|-----------|-------------|
+| 421             | Argentina | 100%        |
+| Bellolandia     | Argentina | 100%        |
+| LCB Game Studio | Argentina | 100%        |
+| Lambda Forge    | Argentina | 100%        |
+| Arcademy        | Argentina | 100%        |
+
+### Craft (7)
+
+| Entity               | Country   | Ownership % |
+|----------------------|-----------|-------------|
+| Burgschneider        | Europe/US | 100%        |
+| Laderas de los Andes | Argentina | 100%        |
+| Fruto Cafe           | Argentina | 100%        |
+| High Mobility        | Argentina | 100%        |
+| Ōtoro                | Argentina | 100%        |
+| Palermo Wine Club    | Argentina | 100%        |
+| Best Eleven          | Argentina | 100%        |
 
 ## Lambda SAS
 
