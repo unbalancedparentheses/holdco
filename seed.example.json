@@ -20,8 +20,31 @@
       "shareholders": ["Jane Smith"],
       "directors": ["Jane Smith", "John Doe"],
       "subsidiaries": [
-        {"name": "Acme Tech", "country": "United States", "category": "Technology", "ownership_pct": 100},
-        {"name": "Acme Capital", "country": "United States", "category": "Finance", "ownership_pct": 100},
+        {
+          "name": "Acme Tech",
+          "country": "United States",
+          "category": "Technology",
+          "ownership_pct": 100,
+          "holdings": [
+            {"asset": "Bitcoin", "ticker": "BTC", "quantity": 2.5, "unit": "BTC", "currency": "USD"}
+          ]
+        },
+        {
+          "name": "Acme Capital",
+          "country": "United States",
+          "category": "Finance",
+          "ownership_pct": 100,
+          "holdings": [
+            {
+              "asset": "Gold",
+              "ticker": "XAUUSD",
+              "quantity": 50,
+              "unit": "oz",
+              "currency": "USD",
+              "custodian": {"bank": "First National Bank", "account_type": "Custody"}
+            }
+          ]
+        },
         {"name": "Acme Media", "country": "United Kingdom", "category": "Media", "ownership_pct": 75},
         {"name": "Acme Retail", "country": "Germany", "category": "Retail", "ownership_pct": 100}
       ]

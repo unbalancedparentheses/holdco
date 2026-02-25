@@ -121,7 +121,8 @@ db.export_json()
 
 ## API
 
-JSON API at `http://localhost:8000`:
+JSON API at `http://localhost:8000`. Interactive docs at
+[`/docs`](http://localhost:8000/docs) (Swagger UI).
 
 | Method | Path | Description |
 |---|---|---|

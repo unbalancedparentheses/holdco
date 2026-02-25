@@ -20,6 +20,31 @@ def load_seed_data() -> dict:
         return json.load(f)
 
 
+def _seed_holdings(company_name: str, holdings: list[dict]) -> None:
+    """Seed asset holdings (and optional custodian) for a company."""
+    company_id = db.get_company_id(company_name)
+    if not company_id:
+        return
+    for h in holdings:
+        ah_id = db.insert_asset_holding(
+            company_id=company_id,
+            asset=h["asset"],
+            ticker=h.get("ticker"),
+            quantity=h.get("quantity"),
+            unit=h.get("unit"),
+            currency=h.get("currency", "USD"),
+        )
+        custodian = h.get("custodian")
+        if custodian:
+            db.insert_custodian(
+                asset_holding_id=ah_id,
+                bank=custodian["bank"],
+                account_number=custodian.get("account_number"),
+                account_type=custodian.get("account_type"),
+                authorized_persons=custodian.get("authorized_persons"),
+            )
+
+
 def seed() -> None:
     db.init_db()
 
@@ -61,6 +86,10 @@ def seed() -> None:
         )
         total += 1
 
+        # Seed holdings on parent company
+        if company.get("holdings"):
+            _seed_holdings(company["name"], company["holdings"])
+
         for sub in company.get("subsidiaries", []):
             db.insert_company(
                 name=sub["name"],
@@ -79,29 +108,11 @@ def seed() -> None:
             )
             total += 1
 
+            # Seed holdings on subsidiary
+            if sub.get("holdings"):
+                _seed_holdings(sub["name"], sub["holdings"])
+
     print(f"Seeded {total} companies.")
-
-    # Seed custodians (if present in seed data)
-    for custodian in data.get("custodians", []):
-        company_id = db.get_company_id(custodian["company"])
-        if company_id:
-            ah_id = db.insert_asset_holding(
-                company_id=company_id,
-                asset=custodian.get("asset", ""),
-                ticker=custodian.get("ticker"),
-                quantity=custodian.get("quantity"),
-                unit=custodian.get("unit"),
-                currency=custodian.get("currency", "USD"),
-            )
-            if custodian.get("bank"):
-                db.insert_custodian(
-                    asset_holding_id=ah_id,
-                    bank=custodian["bank"],
-                    account_number=custodian.get("account_number"),
-                    account_type=custodian.get("account_type"),
-                    authorized_persons=custodian.get("authorized_persons"),
-                )
-
     print("Seed complete.")
 
 
