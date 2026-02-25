@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Holdco{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* FT-inspired palette: warm paper tones */
+      --bg: #fff1e5;
+      --surface: #ffffff;
+      --surface-alt: #f6e9d8;
+      --border: #e0d5c4;
+      --border-strong: #ccc1b2;
+      --text: #33302e;
+      --text-secondary: #66605c;
+      --text-muted: #999490;
+      --heading: #1a1817;
+      --accent: #0d7680;
+      --accent-dark: #0a5e66;
+      --accent-bg: #e6f3f4;
+      --pink: #990f3d;
+      --pink-bg: #fce4ec;
+      --green: #0a7b3e;
+      --green-bg: #e8f5e9;
+      --red: #cc0000;
+      --red-bg: #ffebee;
+      --amber: #f2a900;
+      --amber-bg: #fff8e1;
+      --wheat: #ffd8b1;
+
+      --serif: 'IBM Plex Serif', 'Georgia', serif;
+      --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: 'IBM Plex Mono', 'Menlo', monospace;
+
+      --radius: 3px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      font-size: 15px;
+    }
+
+    /* --- Masthead --- */
+    .masthead {
+      background: var(--heading);
+      color: #fff;
+      text-align: center;
+      padding: 0.625rem 2rem;
+      font-family: var(--sans);
+      font-size: 0.6875rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* --- Navigation --- */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      height: 3.25rem;
+    }
+    nav .brand {
+      font-family: var(--serif);
+      font-size: 1.375rem;
+      font-weight: 700;
+      color: var(--heading);
+      text-decoration: none;
+      letter-spacing: -0.01em;
+      margin-right: 2.5rem;
+    }
+    nav .links {
+      display: flex;
+      gap: 0;
+      height: 100%;
+    }
+    nav .links a {
+      display: flex;
+      align-items: center;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      padding: 0 1rem;
+      height: 100%;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+    }
+    nav .links a:hover {
+      color: var(--heading);
+      border-bottom-color: var(--border-strong);
+    }
+    nav .links a.active {
+      color: var(--heading);
+      border-bottom-color: var(--accent);
+    }
+
+    /* --- Container --- */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* --- Page header --- */
+    .page-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 4px solid var(--heading);
+    }
+    .page-header h1 {
+      font-family: var(--serif);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--heading);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .page-header .subtitle {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* --- Metrics row --- */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 768px) {
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+    .metric {
+      background: var(--surface);
+      padding: 1.25rem 1.5rem;
+    }
+    .metric .label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+    .metric .value {
+      font-family: var(--serif);
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: var(--heading);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    .metric .note {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* --- Sections --- */
+    .section {
+      margin-bottom: 2rem;
+    }
+    .section-title {
+      font-family: var(--serif);
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--heading);
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* --- Two columns --- */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 768px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    /* --- Card --- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    /* --- Tables --- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      padding: 0.625rem 1rem;
+      text-align: left;
+      border-bottom: 2px solid var(--border);
+      background: var(--surface);
+    }
+    td {
+      padding: 0.5rem 1rem;
+      font-size: 0.8125rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface-alt); }
+
+    /* Numeric table cells */
+    .num {
+      font-family: var(--mono);
+      font-size: 0.8125rem;
+      text-align: right;
+    }
+
+    /* --- Breakdown bars --- */
+    .breakdown {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .breakdown-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 2px solid var(--border);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+    .breakdown-row {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-label {
+      font-size: 0.8125rem;
+      color: var(--text);
+      min-width: 100px;
+      flex-shrink: 0;
+    }
+    .breakdown-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--surface-alt);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .breakdown-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+    .breakdown-val {
+      font-family: var(--mono);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--heading);
+      min-width: 1.5rem;
+      text-align: right;
+    }
+
+    /* --- Badges --- */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.125rem 0.5rem;
+      border-radius: 2px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .badge-insert { background: var(--green-bg); color: var(--green); }
+    .badge-update { background: var(--amber-bg); color: #b8860b; }
+    .badge-delete { background: var(--red-bg); color: var(--red); }
+    .badge-holding { background: var(--accent-bg); color: var(--accent); }
+    .badge-sub { background: var(--pink-bg); color: var(--pink); }
+
+    /* --- Entity tree --- */
+    .entity-name {
+      font-weight: 500;
+      color: var(--heading);
+    }
+    .entity-indent {
+      padding-left: 1.5rem;
+      position: relative;
+    }
+    .entity-indent::before {
+      content: '\2514';
+      position: absolute;
+      left: 0.5rem;
+      color: var(--border-strong);
+      font-size: 0.75rem;
+    }
+
+    /* --- Empty state --- */
+    .empty {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+    .empty a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .empty a:hover { text-decoration: underline; }
+
+    /* --- Footer --- */
+    .footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="masthead">Holdco &mdash; Holding Company Management</div>
+  <nav>
+    <a href="/" class="brand">Holdco</a>
+    <div class="links">
+      <a href="/" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
+      <a href="/admin/">Admin</a>
+      <a href="/api/stats">API</a>
+    </div>
+  </nav>
+  <div class="container">
+    {% block content %}{% endblock %}
+    <div class="footer">
+      Holdco &mdash; Open source holding company management
+    </div>
+  </div>
+</body>
+</html>

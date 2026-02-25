@@ -1,0 +1,148 @@
+{% extends "core/base.html" %}
+{% block title %}Dashboard — Holdco{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Corporate Overview</h1>
+  <p class="subtitle">Summary of holdings, subsidiaries, and recent activity</p>
+</div>
+
+<!-- Key metrics -->
+<div class="metrics">
+  <div class="metric">
+    <div class="label">Total Entities</div>
+    <div class="value">{{ total_companies }}</div>
+    <div class="note">Across all jurisdictions</div>
+  </div>
+  <div class="metric">
+    <div class="label">Subsidiaries</div>
+    <div class="value">{{ total_subsidiaries }}</div>
+    <div class="note">Under holding companies</div>
+  </div>
+  <div class="metric">
+    <div class="label">Asset Holdings</div>
+    <div class="value">{{ total_holdings }}</div>
+    <div class="note">Tracked positions</div>
+  </div>
+  <div class="metric">
+    <div class="label">Bank Accounts</div>
+    <div class="value">{{ total_bank_accounts }}</div>
+    <div class="note">Operating &amp; custody</div>
+  </div>
+</div>
+
+<!-- Breakdowns -->
+<div class="two-col">
+  <div>
+    <div class="section-title">By Category</div>
+    <div class="breakdown">
+      {% for cat, count in by_category.items %}
+      <div class="breakdown-row">
+        <span class="breakdown-label">{{ cat }}</span>
+        <div class="breakdown-bar">
+          <div class="breakdown-fill" style="width: {% widthratio count total_companies 100 %}%"></div>
+        </div>
+        <span class="breakdown-val">{{ count }}</span>
+      </div>
+      {% empty %}
+      <div class="empty">No categories yet</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="section-title">By Jurisdiction</div>
+    <div class="breakdown">
+      {% for country, count in by_country.items %}
+      <div class="breakdown-row">
+        <span class="breakdown-label">{{ country }}</span>
+        <div class="breakdown-bar">
+          <div class="breakdown-fill" style="width: {% widthratio count total_companies 100 %}%"></div>
+        </div>
+        <span class="breakdown-val">{{ count }}</span>
+      </div>
+      {% empty %}
+      <div class="empty">No data</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Entity structure -->
+<div class="section">
+  <div class="section-title">Corporate Structure</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Entity</th>
+          <th>Jurisdiction</th>
+          <th>Category</th>
+          <th>Type</th>
+          <th class="num">Ownership</th>
+          <th class="num">Subsidiaries</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for company in top_level %}
+        <tr>
+          <td><span class="entity-name">{{ company.name }}</span></td>
+          <td>{{ company.country }}</td>
+          <td>{{ company.category }}</td>
+          <td>
+            {% if company.is_holding %}
+            <span class="badge badge-holding">Holding</span>
+            {% else %}
+            <span class="badge badge-sub">Company</span>
+            {% endif %}
+          </td>
+          <td class="num">&mdash;</td>
+          <td class="num">{{ company.subsidiaries.count }}</td>
+        </tr>
+        {% for sub in company.subsidiaries.all %}
+        <tr>
+          <td class="entity-indent"><span class="entity-name">{{ sub.name }}</span></td>
+          <td>{{ sub.country }}</td>
+          <td>{{ sub.category }}</td>
+          <td><span class="badge badge-sub">Subsidiary</span></td>
+          <td class="num">{{ sub.ownership_pct|default:"—" }}%</td>
+          <td class="num">&mdash;</td>
+        </tr>
+        {% endfor %}
+        {% empty %}
+        <tr><td colspan="6" class="empty">No companies yet. <a href="/admin/core/company/add/">Create one</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="section">
+  <div class="section-title">Recent Activity</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 140px;">Timestamp</th>
+          <th style="width: 80px;">Action</th>
+          <th style="width: 150px;">Table</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in recent_audit %}
+        <tr>
+          <td style="font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted);">{{ entry.timestamp|date:"Y-m-d H:i" }}</td>
+          <td>
+            <span class="badge badge-{{ entry.action }}">{{ entry.action }}</span>
+          </td>
+          <td style="font-family: var(--mono); font-size: 0.75rem;">{{ entry.table_name }}</td>
+          <td style="color: var(--text-secondary); max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ entry.details|truncatechars:80 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty">No activity recorded yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

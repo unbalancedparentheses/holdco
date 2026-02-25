@@ -36,8 +36,8 @@ def get_price(ticker: str, record: bool = False) -> float | None:
                 price = float(hist["Close"].iloc[-1])
 
         if price is not None and record:
-            import db
-            db.record_price(ticker, price)
+            from core.models import PriceHistory
+            PriceHistory.objects.create(ticker=ticker, price=price)
 
         return price
     except Exception:

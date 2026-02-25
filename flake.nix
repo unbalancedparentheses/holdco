@@ -14,13 +14,12 @@
         pythonPkgs = python.pkgs;
 
         pythonEnv = python.withPackages (ps: with ps; [
+          django_5
+          djangorestframework
           pydantic
           yfinance
-          streamlit
-          fastapi
-          uvicorn
           pytest
-          httpx
+          pytest-django
         ]);
       in
       {
@@ -28,15 +27,15 @@
           buildInputs = [ pythonEnv ];
           shellHook = ''
             echo "Holdco dev shell — Python ${python.version}"
-            echo "  streamlit run app.py    # dashboard"
-            echo "  uvicorn api:app         # API"
-            echo "  python seed.py          # seed demo data"
+            echo "  python manage.py runserver    # web + API + admin"
+            echo "  python manage.py seed         # seed demo data"
+            echo "  pytest core/tests/ -v         # run tests"
           '';
         };
 
         packages.default = pkgs.writeShellScriptBin "holdco" ''
           export PATH="${pythonEnv}/bin:$PATH"
-          exec ${pythonEnv}/bin/streamlit run ${./app.py} --server.address 0.0.0.0 "$@"
+          exec ${pythonEnv}/bin/python ${./manage.py} runserver 0.0.0.0:8000 "$@"
         '';
       }
     );

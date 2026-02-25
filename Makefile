@@ -1,21 +1,21 @@
-.PHONY: test seed run-dashboard run-api report clean
+.PHONY: test seed migrate run clean createsuperuser
 
 test:
-	pytest tests/ -v
+	pytest core/tests/ -v
 
 seed:
-	python seed.py
+	python manage.py seed
 
-run-dashboard:
-	streamlit run app.py
+migrate:
+	python manage.py makemigrations core
+	python manage.py migrate
 
-run-api:
-	uvicorn api:app --reload
+run:
+	python manage.py runserver
 
-report:
-	python generate_readme.py
+createsuperuser:
+	python manage.py createsuperuser
 
 clean:
 	rm -f holdco.db
-	rm -f REPORT.md
 	find . -type d -name __pycache__ -exec rm -rf {} +

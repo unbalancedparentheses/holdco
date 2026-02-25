@@ -8,9 +8,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 RUN mkdir -p /app/data
+RUN python manage.py collectstatic --noinput 2>/dev/null || true
 
 ENV HOLDCO_DB=/app/data/holdco.db
 
-EXPOSE 8501 8000
+EXPOSE 8000
 
-CMD ["streamlit", "run", "app.py", "--server.address", "0.0.0.0"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

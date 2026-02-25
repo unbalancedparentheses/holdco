@@ -1,8 +1,8 @@
 __pycache__/
 *.pyc
-.streamlit/
 *.db
 seed.json
 REPORT.md
 data/
 .pytest_cache/
+staticfiles/
