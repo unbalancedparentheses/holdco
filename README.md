@@ -173,6 +173,11 @@ JSON API at `http://localhost:8000`. Full endpoint list:
 - [ ] Automated database backups (scheduled SQLite snapshots)
 - [ ] Data import/export from CSV/Excel
 - [ ] Real-time WebSocket updates for collaborative use
+- [ ] Multi-tenant support (manage multiple holding groups)
+- [ ] Custom fields per entity (user-defined attributes)
+- [ ] Bulk operations (mass update categories, countries, etc.)
+- [ ] Approval workflows (require sign-off for entity changes)
+- [ ] Natural language query interface ("show me all companies in Germany")
 
 ### Corporate Structure & Governance
 
@@ -189,6 +194,7 @@ JSON API at `http://localhost:8000`. Full endpoint list:
 - [ ] Beneficial ownership registry (UBO tracking for transparency laws)
 - [ ] Corporate secretary workflows (annual returns, registered agent)
 - [ ] Entity relationship mapping for regulatory disclosures
+- [ ] Historical ownership timeline (track ownership changes over time)
 
 ### Financial Operations
 
@@ -210,6 +216,10 @@ JSON API at `http://localhost:8000`. Full endpoint list:
 - [ ] Entity cost center analysis (overhead per subsidiary)
 - [ ] Scenario modeling (what-if restructuring analysis)
 - [ ] Bank feed integration (Plaid/Open Banking)
+- [ ] Recurring transaction templates (regular dividends, management fees)
+- [ ] Currency hedging recommendations based on FX exposure
+- [ ] Automated valuation models (DCF, comparables) per subsidiary
+- [ ] AI-powered anomaly detection on financials (unusual expenses, revenue drops)
 
 ### Asset Management & Portfolio
 
@@ -256,6 +266,11 @@ JSON API at `http://localhost:8000`. Full endpoint list:
 - [ ] Quarterly board report generator (PDF/HTML)
 - [ ] Customizable dashboard widgets
 - [ ] Export to Excel/CSV for all tables
+- [ ] Investor portal (read-only view for shareholders)
+- [ ] Email digest (weekly summary of changes, upcoming deadlines)
+- [ ] PDF generation for board packages
+- [ ] Comparison reports (year-over-year, entity-vs-entity)
+- [ ] Regulatory report templates (annual returns per jurisdiction)
 
 ### Integrations
 
@@ -269,6 +284,14 @@ JSON API at `http://localhost:8000`. Full endpoint list:
 - [ ] API key authentication
 - [ ] Row-level access control (per-entity permissions)
 - [ ] Two-factor authentication
+
+### Infrastructure
+
+- [ ] PostgreSQL support as alternative to SQLite
+- [ ] S3/MinIO for document storage backend
+- [ ] Prometheus metrics endpoint for monitoring
+- [ ] OpenTelemetry tracing
+- [ ] Terraform deployment templates
 
 ## License
 
