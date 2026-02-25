@@ -19,6 +19,8 @@
           streamlit
           fastapi
           uvicorn
+          pytest
+          httpx
         ]);
       in
       {

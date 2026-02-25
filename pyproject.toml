@@ -13,5 +13,11 @@ dependencies = [
     "uvicorn>=0.27",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "httpx>=0.27"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [project.scripts]
 holdco-seed = "seed:seed"

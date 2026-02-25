@@ -5,3 +5,4 @@ __pycache__/
 seed.json
 REPORT.md
 data/
+.pytest_cache/
