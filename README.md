@@ -89,7 +89,21 @@ Idempotent — skips if the database already has companies.
       "shareholders": ["Alice"],
       "directors": ["Alice", "Bob"],
       "subsidiaries": [
-        {"name": "Sub Inc", "country": "US", "category": "Technology", "ownership_pct": 100}
+        {
+          "name": "Sub Inc",
+          "country": "United States",
+          "category": "Technology",
+          "ownership_pct": 100,
+          "holdings": [
+            {
+              "asset": "Bitcoin",
+              "ticker": "BTC",
+              "quantity": 2.5,
+              "unit": "BTC",
+              "custodian": {"bank": "First National Bank", "account_type": "Custody"}
+            }
+          ]
+        }
       ]
     }
   ]
@@ -107,6 +121,10 @@ Idempotent — skips if the database already has companies.
 | `yahoo.py` | Live asset prices from Yahoo Finance with history tracking |
 | `generate_readme.py` | Reads the database and generates `REPORT.md` |
 | `seed.py` | First-run seed loader from JSON |
+| `pyproject.toml` | Python package metadata and dependencies |
+| `Dockerfile` | Container image (Python 3.12-slim) |
+| `docker-compose.yml` | Dashboard + API services with shared data volume |
+| `flake.nix` | Nix flake for reproducible dev shell and app package |
 
 The `db` module exposes a Python API that scripts and AI agents can use directly:
 
@@ -131,7 +149,8 @@ JSON API at `http://localhost:8000`. Interactive docs at
 | PUT/DELETE | `/companies/{id}` | Update or delete a company |
 | GET/POST | `/holdings` | List or create asset holdings |
 | DELETE | `/holdings/{id}` | Delete an asset holding |
-| POST/DELETE | `/custodians/{id}` | Create or delete custodian accounts |
+| POST | `/custodians` | Create a custodian account |
+| DELETE | `/custodians/{id}` | Delete a custodian account |
 | GET/POST | `/documents` | List or create documents |
 | DELETE | `/documents/{id}` | Delete a document |
 | GET/POST | `/tax-deadlines` | List or create tax deadlines |
