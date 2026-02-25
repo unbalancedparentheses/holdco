@@ -1,32 +1,87 @@
 # Holdco
 
-Open source holding company management. Track corporate structure, ownership,
-asset holdings, custody, documents, tax compliance, and financials across all
-your entities from a single dashboard.
+Open source holding company management system.
 
-Built for family offices, holding companies, and multi-entity groups that need
-a simple, self-hosted way to keep everything in one place.
+If you run a holding company, family office, or any multi-entity corporate
+group, you need to track which companies you own, how they relate to each
+other, what assets they hold, where those assets are custodied, what tax
+deadlines are coming up, and what the financials look like across the whole
+structure. Holdco does all of that in a single self-hosted application backed
+by SQLite.
 
-## Features
+There is no SaaS, no vendor lock-in, no subscription. You own your data.
+Everything runs locally or on your own server. The database file is a single
+`.db` file you can back up, copy, or move anywhere.
 
-- **Corporate structure** — hierarchical parent/subsidiary relationships with ownership percentages
-- **Asset holdings** — track positions with custodian accounts and multi-currency support
-- **Live prices** — real-time asset valuations from Yahoo Finance with price history charts
-- **Documents** — store contracts, articles of incorporation, and tax filings
-- **Tax calendar** — deadline tracking with overdue alerts per jurisdiction
-- **Financials** — revenue and expenses per entity and period with P&L aggregation
-- **Ownership diagrams** — auto-generated Mermaid flowcharts with category colors
-- **Audit log** — full change history of every database mutation
-- **REST API** — FastAPI JSON API with 27 endpoints for programmatic access
-- **Report generation** — auto-generated markdown report from database
-- **Configurable** — app name, categories, and settings managed via web admin panel
-- **Seed data** — bootstrap from JSON for quick setup
+## What It Does
+
+**Corporate structure management.** Model your entire holding company tree —
+parent companies, subsidiaries, ownership percentages, shareholders, directors,
+lawyers, tax IDs, and notes. Supports any depth of nesting. Automatically
+generates Mermaid ownership diagrams with color-coded categories.
+
+**Asset holdings and custody.** Track what each entity owns — stocks, crypto,
+gold, real estate, or any custom asset. Record quantities, tickers, currencies,
+and link each holding to a custodian account with bank name, account number,
+type, and authorized persons.
+
+**Live price tracking.** Fetches real-time prices from Yahoo Finance for any
+ticker (including BTC, ETH, gold, silver, and forex pairs). Records price
+history snapshots and shows 30-day price charts on the dashboard. Calculates
+total portfolio value in USD across all entities.
+
+**Document storage.** Attach contracts, articles of incorporation, tax filings,
+and agreements to any company. Track document type, URL/path, notes, and upload
+date.
+
+**Tax calendar.** Track tax filing deadlines per company and jurisdiction with
+status tracking (pending, in progress, completed). Dashboard shows overdue
+alerts and upcoming deadlines at a glance.
+
+**Financial tracking.** Record revenue and expenses per entity per period with
+multi-currency support. Dashboard aggregates totals and shows net P&L across
+the entire structure.
+
+**Audit log.** Every create, update, and delete operation across all tables is
+logged with timestamp, action, table name, record ID, and details.
+
+**REST API.** Full FastAPI JSON API with 27 endpoints for programmatic access.
+Auto-generated Swagger UI at `/docs`. Everything you can do in the dashboard
+you can do via the API.
+
+**Report generation.** Auto-generates a markdown report (`REPORT.md`) from the
+database with ownership diagrams, entity details grouped by category,
+financials, tax calendar, and documents. Your real data never touches
+version control.
+
+**Configurable via web.** App name, tagline, website, and categories are all
+managed through a Settings page in the admin panel. Categories have custom
+colors that flow through to Mermaid diagrams. No config files to edit.
+
+**Seed data.** Bootstrap a new instance from a JSON file. Ship your own
+`seed.json` (gitignored) or use the included `seed.example.json` with demo
+data. Idempotent — skips if the database already has data.
+
+## Requirements
+
+- **Python 3.12+**
+- **Dependencies** (installed via pip or Nix):
+  - [Streamlit](https://streamlit.io) >= 1.30 — dashboard and admin panel
+  - [FastAPI](https://fastapi.tiangolo.com) >= 0.110 — REST API
+  - [Uvicorn](https://www.uvicorn.org) >= 0.27 — ASGI server for FastAPI
+  - [Pydantic](https://docs.pydantic.dev) >= 2.0 — data validation and models
+  - [yfinance](https://github.com/ranaroussi/yfinance) >= 0.2 — Yahoo Finance price fetching
+- **No external database** — uses SQLite (bundled with Python)
+
+Or skip all of that and use **Docker** (only requires Docker and Docker Compose).
 
 ## Quickstart
 
 ### pip
 
 ```bash
+git clone https://github.com/unbalancedparentheses/holdco.git
+cd holdco
 pip install -r requirements.txt
 python seed.py                          # populate with demo data
 streamlit run app.py                    # dashboard at http://localhost:8501
@@ -36,14 +91,21 @@ uvicorn api:app --reload                # API at http://localhost:8000
 ### Docker
 
 ```bash
+git clone https://github.com/unbalancedparentheses/holdco.git
+cd holdco
 docker compose up
 # Dashboard: http://localhost:8501
 # API:       http://localhost:8000
 ```
 
+Both services share a `./data/` volume for the database. Data persists across
+restarts. Services have healthchecks and restart automatically.
+
 ### Nix
 
 ```bash
+git clone https://github.com/unbalancedparentheses/holdco.git
+cd holdco
 nix develop                             # enter dev shell with all deps
 python seed.py
 streamlit run app.py
@@ -54,13 +116,15 @@ streamlit run app.py
 All configuration lives in the database and is managed through the **Settings**
 page in the admin panel:
 
-- **App Name** — displayed in the dashboard title and API
-- **Tagline** — shown in generated reports
-- **Website** — included in generated reports
-- **Categories** — add, edit, or remove with custom colors for Mermaid diagrams
+- **App Name** — displayed in the dashboard title and API title
+- **Tagline** — shown in the header of generated reports
+- **Website** — linked in generated reports
+- **Categories** — define your own (e.g. Technology, Finance, Real Estate) with
+  custom hex colors that are used in Mermaid ownership diagrams
 
-No config files. The only environment variable is `HOLDCO_DB` (default: `holdco.db`)
-to set the database path.
+No config files to edit. The only environment variable is `HOLDCO_DB`
+(default: `holdco.db`) which sets the path to the SQLite database file. In
+Docker this is set to `/app/data/holdco.db` automatically.
 
 ## Seed Data
 
