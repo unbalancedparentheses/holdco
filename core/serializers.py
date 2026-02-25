@@ -1,3 +1,5 @@
+import math
+
 from rest_framework import serializers
 
 from core.models import (
@@ -18,6 +20,21 @@ from core.models import (
     TaxDeadline,
     Transaction,
 )
+
+
+class ValidateCompanyIdMixin:
+    def validate_company_id(self, value):
+        if not Company.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Company does not exist.")
+        return value
+
+
+class SafeFloatField(serializers.FloatField):
+    def to_internal_value(self, data):
+        value = super().to_internal_value(data)
+        if math.isnan(value) or math.isinf(value):
+            raise serializers.ValidationError("NaN and Infinity are not allowed.")
+        return value
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -45,6 +62,11 @@ class CompanyCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
         exclude = ("parent",)
+
+    def validate_parent_id(self, value):
+        if value is not None and not Company.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Parent company does not exist.")
+        return value
 
     def create(self, validated_data):
         parent_id = validated_data.pop("parent_id", None)
@@ -78,7 +100,7 @@ class AssetHoldingSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class AssetHoldingCreateSerializer(serializers.ModelSerializer):
+class AssetHoldingCreateSerializer(ValidateCompanyIdMixin, serializers.ModelSerializer):
     company_id = serializers.IntegerField()
 
     class Meta:
@@ -99,6 +121,11 @@ class CustodianAccountSerializer(serializers.ModelSerializer):
 class CustodianCreateSerializer(serializers.ModelSerializer):
     asset_holding_id = serializers.IntegerField()
 
+    def validate_asset_holding_id(self, value):
+        if not AssetHolding.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Asset holding does not exist.")
+        return value
+
     class Meta:
         model = CustodianAccount
         exclude = ("asset_holding",)
@@ -116,7 +143,7 @@ class DocumentSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class DocumentCreateSerializer(serializers.ModelSerializer):
+class DocumentCreateSerializer(ValidateCompanyIdMixin, serializers.ModelSerializer):
     company_id = serializers.IntegerField()
 
     class Meta:
@@ -136,7 +163,7 @@ class TaxDeadlineSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class TaxDeadlineCreateSerializer(serializers.ModelSerializer):
+class TaxDeadlineCreateSerializer(ValidateCompanyIdMixin, serializers.ModelSerializer):
     company_id = serializers.IntegerField()
 
     class Meta:
@@ -156,7 +183,7 @@ class FinancialSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class FinancialCreateSerializer(serializers.ModelSerializer):
+class FinancialCreateSerializer(ValidateCompanyIdMixin, serializers.ModelSerializer):
     company_id = serializers.IntegerField()
 
     class Meta:
@@ -176,7 +203,7 @@ class BankAccountSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class BankAccountCreateSerializer(serializers.ModelSerializer):
+class BankAccountCreateSerializer(ValidateCompanyIdMixin, serializers.ModelSerializer):
     company_id = serializers.IntegerField()
 
     class Meta:
@@ -196,9 +223,10 @@ class TransactionSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class TransactionCreateSerializer(serializers.ModelSerializer):
+class TransactionCreateSerializer(ValidateCompanyIdMixin, serializers.ModelSerializer):
     company_id = serializers.IntegerField()
     asset_holding_id = serializers.IntegerField(required=False, allow_null=True)
+    amount = SafeFloatField()
 
     class Meta:
         model = Transaction
@@ -220,7 +248,7 @@ class LiabilitySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class LiabilityCreateSerializer(serializers.ModelSerializer):
+class LiabilityCreateSerializer(ValidateCompanyIdMixin, serializers.ModelSerializer):
     company_id = serializers.IntegerField()
 
     class Meta:
@@ -240,7 +268,7 @@ class ServiceProviderSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class ServiceProviderCreateSerializer(serializers.ModelSerializer):
+class ServiceProviderCreateSerializer(ValidateCompanyIdMixin, serializers.ModelSerializer):
     company_id = serializers.IntegerField()
 
     class Meta:
@@ -260,7 +288,7 @@ class InsurancePolicySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class InsurancePolicyCreateSerializer(serializers.ModelSerializer):
+class InsurancePolicyCreateSerializer(ValidateCompanyIdMixin, serializers.ModelSerializer):
     company_id = serializers.IntegerField()
 
     class Meta:
@@ -280,7 +308,7 @@ class BoardMeetingSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class BoardMeetingCreateSerializer(serializers.ModelSerializer):
+class BoardMeetingCreateSerializer(ValidateCompanyIdMixin, serializers.ModelSerializer):
     company_id = serializers.IntegerField()
 
     class Meta:

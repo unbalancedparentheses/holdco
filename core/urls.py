@@ -65,8 +65,12 @@ urlpatterns = [
     # Prices
     path("prices/<str:ticker>", views.price_ticker),
 
+    # Portfolio
+    path("portfolio", views.portfolio_view),
+
     # Audit & Stats & Export
     path("audit-log", views.audit_log_list),
+    path("audit-log/stream", views.audit_log_stream),
     path("stats", views.stats_view),
     path("export", views.export_view),
     path("entities", views.entities_view),

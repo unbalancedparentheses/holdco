@@ -80,6 +80,14 @@ class Company(models.Model):
 
 
 class AssetHolding(models.Model):
+    ASSET_TYPE_CHOICES = [
+        ("equity", "Equity"),
+        ("crypto", "Crypto"),
+        ("commodity", "Commodity"),
+        ("real_estate", "Real Estate"),
+        ("private_equity", "Private Equity"),
+        ("other", "Other"),
+    ]
     company = models.ForeignKey(
         Company, on_delete=models.CASCADE, related_name="asset_holdings"
     )
@@ -88,6 +96,9 @@ class AssetHolding(models.Model):
     quantity = models.FloatField(null=True, blank=True)
     unit = models.CharField(max_length=50, blank=True, null=True)
     currency = models.CharField(max_length=10, default="USD")
+    asset_type = models.CharField(
+        max_length=20, choices=ASSET_TYPE_CHOICES, default="other"
+    )
 
     class Meta:
         ordering = ["id"]

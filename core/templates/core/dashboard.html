@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load humanize %}
 {% block title %}Corporate Overview — Holdco{% endblock %}
 {% block content %}
 
@@ -6,6 +7,35 @@
   <h1>Corporate Overview</h1>
   <p class="deck">Group structure, asset positions, financial obligations, and compliance status</p>
   <hr class="page-title-rule">
+</div>
+
+<!-- ===== Portfolio NAV ===== -->
+<div class="metrics-strip" style="border-bottom: 2px solid var(--ink, #1a1a1a); margin-bottom: 1.5rem; padding-bottom: 1rem;">
+  <div class="metric-cell">
+    <div class="metric-label">Net Asset Value</div>
+    <div class="metric-value">{{ portfolio.nav|floatformat:0|intcomma }}</div>
+    <div class="metric-note"><span class="ccy">{{ portfolio.currency }}</span></div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-label">Liquid</div>
+    <div class="metric-value">{{ portfolio.liquid|floatformat:0|intcomma }}</div>
+    <div class="metric-note">Bank balances</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-label">Marketable</div>
+    <div class="metric-value">{{ portfolio.marketable|floatformat:0|intcomma }}</div>
+    <div class="metric-note">Priced assets</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-label">Illiquid</div>
+    <div class="metric-value">{{ portfolio.illiquid|floatformat:0|intcomma }}</div>
+    <div class="metric-note">Manual valuations</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-label">Liabilities</div>
+    <div class="metric-value">{{ portfolio.liabilities|floatformat:0|intcomma }}</div>
+    <div class="metric-note">Active debt</div>
+  </div>
 </div>
 
 <!-- ===== Key metrics ===== -->
@@ -23,12 +53,12 @@
   <div class="metric-cell">
     <div class="metric-label">Bank Accounts</div>
     <div class="metric-value">{{ total_bank_accounts }}</div>
-    <div class="metric-note">{% for ccy, bal in balances_by_currency.items %}{{ bal|floatformat:0 }}<span class="ccy">{{ ccy }}</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}</div>
+    <div class="metric-note">{% for ccy, bal in balances_by_currency.items %}{{ bal|floatformat:0|intcomma }}<span class="ccy">{{ ccy }}</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}</div>
   </div>
   <div class="metric-cell">
     <div class="metric-label">Active Liabilities</div>
     <div class="metric-value">{{ total_liabilities }}</div>
-    <div class="metric-note">{% for ccy, amt in liability_by_currency.items %}{{ amt|floatformat:0 }}<span class="ccy">{{ ccy }}</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}</div>
+    <div class="metric-note">{% for ccy, amt in liability_by_currency.items %}{{ amt|floatformat:0|intcomma }}<span class="ccy">{{ ccy }}</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}</div>
   </div>
 </div>
 
@@ -141,10 +171,10 @@
           {% for txn in recent_transactions %}
           <tr>
             <td class="td-mono">{{ txn.date }}</td>
-            <td>{{ txn.company.name }}</td>
+            <td><a href="/company/{{ txn.company.id }}/" class="td-link">{{ txn.company.name }}</a></td>
             <td class="td-name">{{ txn.description|truncatechars:30 }}</td>
             <td><span class="tag tag-ink">{{ txn.transaction_type }}</span></td>
-            <td class="td-num">{{ txn.amount|floatformat:0 }}<span class="ccy">{{ txn.currency }}</span></td>
+            <td class="td-num">{{ txn.amount|floatformat:0|intcomma }}<span class="ccy">{{ txn.currency }}</span></td>
           </tr>
           {% empty %}
           <tr><td colspan="5" class="empty-state">No transactions</td></tr>
@@ -172,7 +202,7 @@
           {% for dl in upcoming_deadlines %}
           <tr>
             <td class="td-mono">{{ dl.due_date }}</td>
-            <td>{{ dl.company.name }}</td>
+            <td><a href="/company/{{ dl.company.id }}/" class="td-link">{{ dl.company.name }}</a></td>
             <td class="td-name">{{ dl.description|truncatechars:28 }}</td>
             <td>
               {% if dl.status == "pending" %}<span class="tag tag-lemon">Pending</span>
@@ -211,8 +241,8 @@
           <tr>
             <td class="td-name">{{ pol.policy_type }}</td>
             <td>{{ pol.provider }}</td>
-            <td>{{ pol.company.name }}</td>
-            <td class="td-num">{% if pol.coverage_amount %}{{ pol.coverage_amount|floatformat:0 }}<span class="ccy">{{ pol.currency }}</span>{% else %}&mdash;{% endif %}</td>
+            <td><a href="/company/{{ pol.company.id }}/" class="td-link">{{ pol.company.name }}</a></td>
+            <td class="td-num">{% if pol.coverage_amount %}{{ pol.coverage_amount|floatformat:0|intcomma }}<span class="ccy">{{ pol.currency }}</span>{% else %}&mdash;{% endif %}</td>
             <td class="td-mono">{{ pol.expiry_date|default:"&mdash;" }}</td>
           </tr>
           {% empty %}
@@ -241,7 +271,7 @@
           {% for mtg in upcoming_meetings %}
           <tr>
             <td class="td-mono">{{ mtg.scheduled_date }}</td>
-            <td>{{ mtg.company.name }}</td>
+            <td><a href="/company/{{ mtg.company.id }}/" class="td-link">{{ mtg.company.name }}</a></td>
             <td class="td-name">{{ mtg.meeting_type|title }}</td>
             <td>
               {% if mtg.status == "scheduled" %}<span class="tag tag-teal">Scheduled</span>
@@ -281,7 +311,7 @@
           <td class="td-name">{{ sp.name }}</td>
           <td><span class="tag tag-ink">{{ sp.role }}</span></td>
           <td>{{ sp.firm|default:"&mdash;" }}</td>
-          <td>{{ sp.company.name }}</td>
+          <td><a href="/company/{{ sp.company.id }}/" class="td-link">{{ sp.company.name }}</a></td>
           <td class="td-mono" style="font-size: 0.6875rem;">{{ sp.email|default:"" }}</td>
         </tr>
         {% endfor %}
@@ -291,10 +321,11 @@
 </div>
 {% endif %}
 
-<!-- ===== Audit trail ===== -->
+<!-- ===== Audit trail (live via SSE) ===== -->
 <div class="section">
   <div class="section-head">
     <h2>Audit Trail</h2>
+    <span class="count" id="audit-status">Live</span>
   </div>
   <div class="panel">
     <table>
@@ -306,7 +337,7 @@
           <th>Details</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="audit-tbody">
         {% for entry in recent_audit %}
         <tr>
           <td class="td-mono" style="color: var(--ink-faint);">{{ entry.timestamp|date:"Y-m-d H:i" }}</td>
@@ -320,11 +351,46 @@
           <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-light);">{{ entry.details|truncatechars:80 }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="4" class="empty-state">No activity recorded</td></tr>
+        <tr id="audit-empty"><td colspan="4" class="empty-state">No activity recorded</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+
+<script>
+(function() {
+  var tbody = document.getElementById("audit-tbody");
+  var statusEl = document.getElementById("audit-status");
+  var emptyRow = document.getElementById("audit-empty");
+  var actionTags = {
+    "insert": '<span class="tag tag-jade">Create</span>',
+    "update": '<span class="tag tag-lemon">Update</span>',
+    "delete": '<span class="tag tag-crimson">Delete</span>'
+  };
+
+  try {
+    var source = new EventSource("/api/audit-log/stream");
+    source.onmessage = function(e) {
+      var d = JSON.parse(e.data);
+      if (emptyRow) { emptyRow.remove(); emptyRow = null; }
+      var tr = document.createElement("tr");
+      var ts = d.timestamp.replace("T", " ").substring(0, 16);
+      var tag = actionTags[d.action] || '<span class="tag tag-ink">' + d.action + '</span>';
+      var details = d.details.length > 80 ? d.details.substring(0, 77) + "..." : d.details;
+      tr.innerHTML =
+        '<td class="td-mono" style="color: var(--ink-faint);">' + ts + '</td>' +
+        '<td>' + tag + '</td>' +
+        '<td class="td-mono">' + d.table_name + '</td>' +
+        '<td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-light);">' + details + '</td>';
+      tbody.insertBefore(tr, tbody.firstChild);
+      // Keep max 20 rows
+      while (tbody.children.length > 20) { tbody.removeChild(tbody.lastChild); }
+    };
+    source.onerror = function() { statusEl.textContent = "Reconnecting\u2026"; };
+    source.onopen = function() { statusEl.textContent = "Live"; };
+  } catch(err) {}
+})();
+</script>
 
 {% endblock %}

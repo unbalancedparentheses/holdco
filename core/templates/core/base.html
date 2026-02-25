@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Holdco{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%230d7680'/><text x='16' y='23' font-family='Georgia,serif' font-size='20' font-weight='700' fill='%23fff' text-anchor='middle'>H</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -23,7 +24,7 @@
       --ink-light: #707070;
       --ink-faint: #999999;
       --rule: #cec6b9;
-      --rule-light: #ded6c9;
+      --rule-light: #e8e0d3;
       --rule-heavy: #1a1a1a;
       --teal: #0d7680;
       --teal-light: #e6f3f4;
@@ -60,7 +61,6 @@
     .masthead {
       background: var(--ink);
       padding: 0.5rem 0;
-      text-align: center;
     }
     .masthead-inner {
       max-width: 1280px;
@@ -76,7 +76,7 @@
       font-weight: 600;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.5);
+      color: rgba(255,255,255,0.45);
     }
     .masthead-title {
       font-family: var(--display);
@@ -84,6 +84,11 @@
       font-weight: 600;
       color: #ffffff;
       letter-spacing: 0.02em;
+    }
+    .masthead-date {
+      font-family: var(--data);
+      font-size: 0.625rem;
+      color: rgba(255,255,255,0.4);
     }
 
     /* ---- Navigation ---- */
@@ -114,6 +119,7 @@
       display: flex;
       gap: 0;
       align-items: stretch;
+      flex: 1;
     }
     .nav-links a {
       display: flex;
@@ -133,6 +139,11 @@
     .nav-links a.active {
       color: var(--ink);
       border-bottom-color: var(--teal);
+    }
+    .nav-links .nav-admin {
+      margin-left: auto;
+      color: var(--ink-faint);
+      font-size: 0.75rem;
     }
 
     /* ---- Layout ---- */
@@ -208,26 +219,27 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 2rem;
-      margin-bottom: 2rem;
+      margin-bottom: 0;
     }
     .grid-3 {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 2rem;
-      margin-bottom: 2rem;
+      margin-bottom: 0;
     }
     @media (max-width: 900px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
     }
 
     /* ---- Section ---- */
-    .section { margin-bottom: 2.5rem; }
+    .section { margin-bottom: 2rem; }
     .section-head {
       display: flex;
       align-items: baseline;
       gap: 0.75rem;
+      padding-top: 0.5rem;
       padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--rule);
+      border-top: 3px solid var(--teal);
       margin-bottom: 0;
     }
     .section-head h2 {
@@ -247,8 +259,8 @@
     .panel {
       background: var(--white);
       border: 1px solid var(--rule);
+      border-top: none;
     }
-    .panel-flush { border-left: none; border-right: none; }
 
     /* ---- Data tables ---- */
     table {
@@ -263,7 +275,7 @@
       color: var(--ink-faint);
       padding: 0.625rem 0.875rem;
       text-align: left;
-      border-bottom: 2px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
       background: var(--white);
       white-space: nowrap;
     }
@@ -275,7 +287,7 @@
       vertical-align: baseline;
     }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: rgba(0,0,0,0.015); }
+    tbody tr:hover td { background: rgba(13,118,128,0.03); }
 
     .td-name {
       font-weight: 500;
@@ -321,7 +333,6 @@
     .tag-ink     { color: var(--ink-light); border-color: var(--rule);  background: var(--white); }
 
     /* ---- Breakdown list ---- */
-    .breakdown-list { }
     .bkd-row {
       display: flex;
       align-items: center;
@@ -337,15 +348,13 @@
     }
     .bkd-bar {
       flex: 1;
-      height: 3px;
+      height: 4px;
       background: var(--rule-light);
-      border-radius: 1.5px;
       overflow: hidden;
     }
     .bkd-fill {
       height: 100%;
       background: var(--teal);
-      border-radius: 1.5px;
     }
     .bkd-val {
       font-family: var(--data);
@@ -425,7 +434,6 @@
     .deck-link:hover { text-decoration: underline; }
 
     /* ---- Detail grid ---- */
-    .detail-grid { }
     .detail-row {
       display: flex;
       gap: 1rem;
@@ -483,6 +491,17 @@
       .metrics-strip { border: 1px solid #ddd; }
       .metric-cell { border-right-color: #ddd; }
     }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 600px) {
+      .masthead-inner { padding: 0 1rem; }
+      .nav-inner { padding: 0 1rem; }
+      .page { padding: 1rem; }
+      .masthead-label { display: none; }
+      .metrics-strip { grid-template-columns: 1fr 1fr; }
+      .metric-cell { border-right: none; border-bottom: 1px solid var(--rule); }
+      .metric-cell:last-child { border-bottom: none; }
+    }
   </style>
 </head>
 <body>
@@ -490,7 +509,7 @@
     <div class="masthead-inner">
       <span class="masthead-label">Portfolio Management</span>
       <span class="masthead-title">Holdco</span>
-      <span class="masthead-label">Open Source</span>
+      <span class="masthead-date">{% now "l, j F Y" %}</span>
     </div>
   </div>
   <div class="nav-bar">
@@ -498,11 +517,19 @@
       <a href="/" class="nav-brand">Holdco</a>
       <div class="nav-links">
         <a href="/" class="{% if request.path == '/' %}active{% endif %}">Overview</a>
-        <a href="/admin/core/company/">Companies</a>
-        <a href="/admin/core/assetholding/">Holdings</a>
-        <a href="/admin/core/bankaccount/">Accounts</a>
-        <a href="/admin/">Admin</a>
-        <a href="/api/entities">API</a>
+        <a href="/api/companies">Companies</a>
+        <a href="/api/holdings">Holdings</a>
+        <a href="/api/bank-accounts">Accounts</a>
+        <a href="/api/entities">Entities</a>
+        {% if user.is_authenticated %}
+          <span class="nav-admin" style="margin-left:auto; display:flex; align-items:center; gap:1rem;">
+            <span style="color:var(--ink-faint); font-size:0.75rem;">{{ user.email }}</span>
+            <a href="/accounts/logout/" style="color:var(--ink-faint); font-size:0.75rem; text-decoration:none;">Logout</a>
+            <a href="/admin/" style="color:var(--ink-faint); font-size:0.75rem; text-decoration:none;">Admin</a>
+          </span>
+        {% else %}
+          <a href="/accounts/login/" class="nav-admin" style="margin-left:auto;">Sign in</a>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -511,9 +538,9 @@
     <div class="footer">
       <span class="footer-text">Holdco &mdash; Open source holding company management</span>
       <div class="footer-links">
-        <a href="/admin/">Administration</a>
-        <a href="/api/stats">API</a>
+        <a href="/api/stats">Stats</a>
         <a href="/api/export">Export</a>
+        <a href="/admin/">Admin</a>
       </div>
     </div>
   </div>

@@ -1,5 +1,9 @@
+import json
+import time
+
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum
+from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -95,7 +99,7 @@ def company_detail(request, company_id):
             {"detail": "No fields to update"},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    company = Company.objects.get(id=company_id)
+    company = get_object_or_404(Company, id=company_id)
     ser = CompanyUpdateSerializer(company, data=fields, partial=True)
     ser.is_valid(raise_exception=True)
     ser.save()
@@ -478,6 +482,126 @@ def _build_export():
     }
 
 
+# --- Portfolio ---
+
+
+def _calculate_portfolio(companies=None, base_currency="USD"):
+    """Returns dict with liquid, marketable, illiquid, liabilities, nav."""
+    from yahoo import get_prices, get_fx_rate
+
+    if companies is None:
+        companies = Company.objects.all()
+
+    def _to_base(amount, currency):
+        if currency == base_currency:
+            return amount
+        rate = get_fx_rate(currency)
+        if rate is None:
+            return amount  # fallback: treat as 1:1
+        return amount * rate
+
+    # Liquid: sum all BankAccount balances, FX-converted
+    liquid = 0.0
+    for ba in BankAccount.objects.filter(company__in=companies):
+        liquid += _to_base(ba.balance, ba.currency)
+
+    # Marketable vs Illiquid holdings
+    marketable = 0.0
+    illiquid = 0.0
+    holdings = AssetHolding.objects.filter(company__in=companies)
+    tickers = [h.ticker for h in holdings if h.ticker]
+    prices = get_prices(tickers, record=True) if tickers else {}
+
+    by_asset_type = {}
+    per_company = {}
+
+    for h in holdings:
+        qty = h.quantity or 0
+        co_key = h.company_id
+        if co_key not in per_company:
+            per_company[co_key] = {
+                "company_name": h.company.name,
+                "liquid": 0.0, "marketable": 0.0, "illiquid": 0.0,
+            }
+
+        if h.ticker and h.ticker in prices and prices[h.ticker] is not None:
+            val = _to_base(qty * prices[h.ticker], h.currency)
+            marketable += val
+            per_company[co_key]["marketable"] += val
+        else:
+            val = _to_base(qty, h.currency)
+            illiquid += val
+            per_company[co_key]["illiquid"] += val
+
+        by_asset_type.setdefault(h.asset_type, 0.0)
+        by_asset_type[h.asset_type] += val
+
+    # Add liquid to per_company
+    for ba in BankAccount.objects.filter(company__in=companies).select_related("company"):
+        co_key = ba.company_id
+        if co_key not in per_company:
+            per_company[co_key] = {
+                "company_name": ba.company.name,
+                "liquid": 0.0, "marketable": 0.0, "illiquid": 0.0,
+            }
+        per_company[co_key]["liquid"] += _to_base(ba.balance, ba.currency)
+
+    # Liabilities: sum active
+    total_liabilities = 0.0
+    for lia in Liability.objects.filter(company__in=companies, status="active"):
+        total_liabilities += _to_base(lia.principal, lia.currency)
+
+    nav = liquid + marketable + illiquid - total_liabilities
+
+    return {
+        "liquid": round(liquid, 2),
+        "marketable": round(marketable, 2),
+        "illiquid": round(illiquid, 2),
+        "liabilities": round(total_liabilities, 2),
+        "nav": round(nav, 2),
+        "currency": base_currency,
+        "by_asset_type": {k: round(v, 2) for k, v in by_asset_type.items()},
+        "per_company": {
+            str(k): {kk: round(vv, 2) if isinstance(vv, float) else vv for kk, vv in v.items()}
+            for k, v in per_company.items()
+        },
+    }
+
+
+@api_view(["GET"])
+def portfolio_view(request):
+    base = request.query_params.get("currency", "USD")
+    return Response(_calculate_portfolio(base_currency=base))
+
+
+# --- SSE Audit Log ---
+
+
+@login_required
+def audit_log_stream(request):
+    def event_generator():
+        last_id = AuditLog.objects.order_by("-id").values_list("id", flat=True).first() or 0
+        while True:
+            new = AuditLog.objects.filter(id__gt=last_id).order_by("id")
+            for entry in new:
+                last_id = entry.id
+                data = json.dumps({
+                    "id": entry.id,
+                    "timestamp": entry.timestamp.isoformat(),
+                    "action": entry.action,
+                    "table_name": entry.table_name,
+                    "record_id": entry.record_id,
+                    "details": entry.details or "",
+                })
+                yield f"data: {data}\n\n"
+            time.sleep(2)
+
+    response = StreamingHttpResponse(event_generator(), content_type="text/event-stream")
+    response["Cache-Control"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"
+    return response
+
+
 # --- Dashboard ---
 
 
@@ -534,6 +658,12 @@ def dashboard(request):
     # Service providers
     providers = ServiceProvider.objects.select_related("company").all()[:6]
 
+    # Portfolio summary (graceful fallback if Yahoo is unavailable)
+    try:
+        portfolio = _calculate_portfolio()
+    except Exception:
+        portfolio = {"liquid": 0, "marketable": 0, "illiquid": 0, "liabilities": 0, "nav": 0, "currency": "USD"}
+
     context = {
         "total_companies": total_companies,
         "total_subsidiaries": total_subsidiaries,
@@ -551,6 +681,7 @@ def dashboard(request):
         "upcoming_meetings": upcoming_meetings,
         "providers": providers,
         "recent_audit": AuditLog.objects.all()[:10],
+        "portfolio": portfolio,
     }
     return render(request, "core/dashboard.html", context)
 
@@ -587,9 +718,28 @@ def company_page(request, company_id):
         liability_by_currency.setdefault(lia.currency, 0)
         liability_by_currency[lia.currency] += lia.principal
 
+    # Annotate holdings with live prices
+    holdings = list(company.asset_holdings.all())
+    tickers = [h.ticker for h in holdings if h.ticker]
+    if tickers:
+        from yahoo import get_prices
+        try:
+            prices = get_prices(tickers, record=True)
+        except Exception:
+            prices = {}
+    else:
+        prices = {}
+    for h in holdings:
+        if h.ticker and h.ticker in prices and prices[h.ticker] is not None:
+            h.live_price = prices[h.ticker]
+            h.live_value = (h.quantity or 0) * prices[h.ticker]
+        else:
+            h.live_price = None
+            h.live_value = None
+
     context = {
         "company": company,
-        "holdings": company.asset_holdings.all(),
+        "holdings": holdings,
         "subsidiaries": company.subsidiaries.all(),
         "bank_accounts": company.bank_accounts.all(),
         "transactions": company.transactions.all()[:10],

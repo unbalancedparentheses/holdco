@@ -36,7 +36,7 @@ class SubsidiaryInline(TabularInline):
 class AssetHoldingInline(TabularInline):
     model = AssetHolding
     extra = 0
-    fields = ("asset", "ticker", "quantity", "unit", "currency")
+    fields = ("asset", "ticker", "quantity", "unit", "currency", "asset_type")
     show_change_link = True
 
 
@@ -125,8 +125,8 @@ class CompanyAdmin(ModelAdmin):
 
 @admin.register(AssetHolding)
 class AssetHoldingAdmin(ModelAdmin):
-    list_display = ("asset", "company", "ticker", "quantity", "unit", "currency")
-    list_filter = ("currency",)
+    list_display = ("asset", "company", "ticker", "quantity", "unit", "currency", "asset_type")
+    list_filter = ("currency", "asset_type")
     search_fields = ("asset", "ticker")
     inlines = [CustodianInline]
 

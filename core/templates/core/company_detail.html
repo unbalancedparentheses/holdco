@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load humanize %}
 {% block title %}{{ company.name }} — Holdco{% endblock %}
 {% block content %}
 
@@ -23,12 +24,12 @@
   <div class="metric-cell">
     <div class="metric-label">Bank Accounts</div>
     <div class="metric-value">{{ bank_accounts|length }}</div>
-    <div class="metric-note">{% for ccy, bal in balances_by_currency.items %}{{ bal|floatformat:0 }}<span class="ccy">{{ ccy }}</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}</div>
+    <div class="metric-note">{% for ccy, bal in balances_by_currency.items %}{{ bal|floatformat:0|intcomma }}<span class="ccy">{{ ccy }}</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}</div>
   </div>
   <div class="metric-cell">
     <div class="metric-label">Active Liabilities</div>
     <div class="metric-value">{{ total_active_liabilities }}</div>
-    <div class="metric-note">{% for ccy, amt in liability_by_currency.items %}{{ amt|floatformat:0 }}<span class="ccy">{{ ccy }}</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}</div>
+    <div class="metric-note">{% for ccy, amt in liability_by_currency.items %}{{ amt|floatformat:0|intcomma }}<span class="ccy">{{ ccy }}</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}</div>
   </div>
   <div class="metric-cell">
     <div class="metric-label">Subsidiaries</div>
@@ -161,8 +162,11 @@
         <thead>
           <tr>
             <th>Asset</th>
+            <th>Type</th>
             <th>Ticker</th>
             <th class="th-num">Quantity</th>
+            <th class="th-num">Price</th>
+            <th class="th-num">Value</th>
             <th>Custodian</th>
           </tr>
         </thead>
@@ -170,12 +174,15 @@
           {% for h in holdings %}
           <tr>
             <td class="td-name">{{ h.asset }}</td>
+            <td><span class="tag tag-ink">{{ h.asset_type }}</span></td>
             <td class="td-mono">{{ h.ticker|default:"&mdash;" }}</td>
             <td class="td-num">{% if h.quantity %}{{ h.quantity|floatformat:2 }}{% if h.unit %} <span class="ccy">{{ h.unit }}</span>{% endif %}{% else %}&mdash;{% endif %}</td>
+            <td class="td-num td-mono">{% if h.live_price %}{{ h.live_price|floatformat:2 }}{% else %}&mdash;{% endif %}</td>
+            <td class="td-num">{% if h.live_value %}{{ h.live_value|floatformat:0|intcomma }}<span class="ccy">{{ h.currency }}</span>{% else %}&mdash;{% endif %}</td>
             <td>{% if h.custodian %}{{ h.custodian.bank }}{% else %}<span class="td-muted">&mdash;</span>{% endif %}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" class="empty-state">No holdings</td></tr>
+          <tr><td colspan="7" class="empty-state">No holdings</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -202,7 +209,7 @@
           <tr>
             <td class="td-name">{{ ba.bank_name }}</td>
             <td><span class="tag tag-ink">{{ ba.account_type }}</span></td>
-            <td class="td-num">{{ ba.balance|floatformat:0 }}<span class="ccy">{{ ba.currency }}</span></td>
+            <td class="td-num">{{ ba.balance|floatformat:0|intcomma }}<span class="ccy">{{ ba.currency }}</span></td>
             <td class="td-mono" style="font-size: 0.6875rem;">{{ ba.iban|default:"&mdash;" }}</td>
           </tr>
           {% empty %}
@@ -238,7 +245,7 @@
           <td class="td-name">{{ txn.description|truncatechars:40 }}</td>
           <td><span class="tag tag-ink">{{ txn.transaction_type }}</span></td>
           <td>{{ txn.counterparty|default:"&mdash;" }}</td>
-          <td class="td-num">{{ txn.amount|floatformat:0 }}<span class="ccy">{{ txn.currency }}</span></td>
+          <td class="td-num">{{ txn.amount|floatformat:0|intcomma }}<span class="ccy">{{ txn.currency }}</span></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -269,7 +276,7 @@
           <tr>
             <td class="td-name">{{ lia.liability_type }}</td>
             <td>{{ lia.creditor }}</td>
-            <td class="td-num">{{ lia.principal|floatformat:0 }}<span class="ccy">{{ lia.currency }}</span></td>
+            <td class="td-num">{{ lia.principal|floatformat:0|intcomma }}<span class="ccy">{{ lia.currency }}</span></td>
             <td>
               {% if lia.status == "active" %}<span class="tag tag-teal">Active</span>
               {% elif lia.status == "paid" %}<span class="tag tag-jade">Paid</span>
@@ -341,7 +348,7 @@
           <tr>
             <td class="td-name">{{ pol.policy_type }}</td>
             <td>{{ pol.provider }}</td>
-            <td class="td-num">{% if pol.coverage_amount %}{{ pol.coverage_amount|floatformat:0 }}<span class="ccy">{{ pol.currency }}</span>{% else %}&mdash;{% endif %}</td>
+            <td class="td-num">{% if pol.coverage_amount %}{{ pol.coverage_amount|floatformat:0|intcomma }}<span class="ccy">{{ pol.currency }}</span>{% else %}&mdash;{% endif %}</td>
             <td class="td-mono">{{ pol.expiry_date|default:"&mdash;" }}</td>
           </tr>
           {% empty %}

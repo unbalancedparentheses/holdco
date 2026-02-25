@@ -50,6 +50,13 @@ def _safe_record_id(instance):
     return None
 
 
+def _safe_details(instance):
+    try:
+        return str(instance)
+    except Exception:
+        return f"{instance.__class__.__name__} pk={instance.pk}"
+
+
 @receiver(post_save)
 def audit_save(sender, instance, created, **kwargs):
     if sender not in _AUDITED_MODELS:
@@ -59,7 +66,7 @@ def audit_save(sender, instance, created, **kwargs):
         action=action,
         table_name=_table_name(instance),
         record_id=_safe_record_id(instance),
-        details=str(instance),
+        details=_safe_details(instance),
     )
 
 
@@ -71,5 +78,5 @@ def audit_delete(sender, instance, **kwargs):
         action="delete",
         table_name=_table_name(instance),
         record_id=_safe_record_id(instance),
-        details=str(instance),
+        details=_safe_details(instance),
     )

@@ -8,8 +8,8 @@ def client(db):
 
 
 @pytest.fixture
-def api_company(client):
-    r = client.post(
+def api_company(logged_in_client):
+    r = logged_in_client.post(
         "/api/companies",
         {"name": "Co", "country": "US", "category": "T"},
         content_type="application/json",
@@ -17,14 +17,37 @@ def api_company(client):
     return r.json()["id"]
 
 
-def test_list_companies_empty(client):
+# --- Unauthenticated access tests ---
+
+
+def test_dashboard_requires_login(client):
+    r = client.get("/")
+    assert r.status_code == 302
+    assert "/accounts/login/" in r.url
+
+
+def test_api_requires_login(client):
     r = client.get("/api/companies")
+    assert r.status_code == 403
+
+
+def test_company_detail_requires_login(client, db):
+    r = client.get("/company/1/")
+    assert r.status_code == 302
+    assert "/accounts/login/" in r.url
+
+
+# --- Authenticated tests ---
+
+
+def test_list_companies_empty(logged_in_client):
+    r = logged_in_client.get("/api/companies")
     assert r.status_code == 200
     assert r.json() == []
 
 
-def test_create_and_list_company(client):
-    r = client.post(
+def test_create_and_list_company(logged_in_client):
+    r = logged_in_client.post(
         "/api/companies",
         {
             "name": "Acme", "country": "US", "category": "Tech",
@@ -37,13 +60,13 @@ def test_create_and_list_company(client):
     assert r.status_code == 201
     assert r.json()["id"] is not None
 
-    r = client.get("/api/companies")
+    r = logged_in_client.get("/api/companies")
     assert len(r.json()) == 1
     assert r.json()[0]["name"] == "Acme"
 
 
-def test_update_company(client, api_company):
-    r = client.put(
+def test_update_company(logged_in_client, api_company):
+    r = logged_in_client.put(
         f"/api/companies/{api_company}",
         {"name": "Co2"},
         content_type="application/json",
@@ -51,12 +74,12 @@ def test_update_company(client, api_company):
     assert r.status_code == 200
     assert r.json()["ok"] is True
 
-    r = client.get("/api/companies")
+    r = logged_in_client.get("/api/companies")
     assert r.json()[0]["name"] == "Co2"
 
 
-def test_update_company_no_fields(client, api_company):
-    r = client.put(
+def test_update_company_no_fields(logged_in_client, api_company):
+    r = logged_in_client.put(
         f"/api/companies/{api_company}",
         {},
         content_type="application/json",
@@ -64,14 +87,14 @@ def test_update_company_no_fields(client, api_company):
     assert r.status_code == 400
 
 
-def test_delete_company(client, api_company):
-    r = client.delete(f"/api/companies/{api_company}")
+def test_delete_company(logged_in_client, api_company):
+    r = logged_in_client.delete(f"/api/companies/{api_company}")
     assert r.status_code == 200
-    assert client.get("/api/companies").json() == []
+    assert logged_in_client.get("/api/companies").json() == []
 
 
-def test_holdings_crud(client, api_company):
-    r = client.post(
+def test_holdings_crud(logged_in_client, api_company):
+    r = logged_in_client.post(
         "/api/holdings",
         {
             "company_id": api_company, "asset": "Bitcoin", "ticker": "BTC",
@@ -82,24 +105,24 @@ def test_holdings_crud(client, api_company):
     assert r.status_code == 201
     hid = r.json()["id"]
 
-    r = client.get("/api/holdings")
+    r = logged_in_client.get("/api/holdings")
     assert r.status_code == 200
     assert len(r.json()) == 1
     assert r.json()[0]["asset"] == "Bitcoin"
 
-    r = client.delete(f"/api/holdings/{hid}")
+    r = logged_in_client.delete(f"/api/holdings/{hid}")
     assert r.status_code == 200
-    assert client.get("/api/holdings").json() == []
+    assert logged_in_client.get("/api/holdings").json() == []
 
 
-def test_custodians_crud(client, api_company):
-    hid = client.post(
+def test_custodians_crud(logged_in_client, api_company):
+    hid = logged_in_client.post(
         "/api/holdings",
         {"company_id": api_company, "asset": "Gold"},
         content_type="application/json",
     ).json()["id"]
 
-    r = client.post(
+    r = logged_in_client.post(
         "/api/custodians",
         {
             "asset_holding_id": hid, "bank": "First Bank",
@@ -111,12 +134,12 @@ def test_custodians_crud(client, api_company):
     assert r.status_code == 201
     cust_id = r.json()["id"]
 
-    r = client.delete(f"/api/custodians/{cust_id}")
+    r = logged_in_client.delete(f"/api/custodians/{cust_id}")
     assert r.status_code == 200
 
 
-def test_documents_crud(client, api_company):
-    r = client.post(
+def test_documents_crud(logged_in_client, api_company):
+    r = logged_in_client.post(
         "/api/documents",
         {
             "company_id": api_company, "name": "Charter",
@@ -127,17 +150,17 @@ def test_documents_crud(client, api_company):
     assert r.status_code == 201
     did = r.json()["id"]
 
-    r = client.get("/api/documents")
+    r = logged_in_client.get("/api/documents")
     assert r.status_code == 200
     assert len(r.json()) == 1
 
-    r = client.delete(f"/api/documents/{did}")
+    r = logged_in_client.delete(f"/api/documents/{did}")
     assert r.status_code == 200
-    assert client.get("/api/documents").json() == []
+    assert logged_in_client.get("/api/documents").json() == []
 
 
-def test_tax_deadlines_crud(client, api_company):
-    r = client.post(
+def test_tax_deadlines_crud(logged_in_client, api_company):
+    r = logged_in_client.post(
         "/api/tax-deadlines",
         {
             "company_id": api_company, "jurisdiction": "US",
@@ -149,17 +172,17 @@ def test_tax_deadlines_crud(client, api_company):
     assert r.status_code == 201
     tid = r.json()["id"]
 
-    r = client.get("/api/tax-deadlines")
+    r = logged_in_client.get("/api/tax-deadlines")
     assert r.status_code == 200
     assert len(r.json()) == 1
 
-    r = client.delete(f"/api/tax-deadlines/{tid}")
+    r = logged_in_client.delete(f"/api/tax-deadlines/{tid}")
     assert r.status_code == 200
-    assert client.get("/api/tax-deadlines").json() == []
+    assert logged_in_client.get("/api/tax-deadlines").json() == []
 
 
-def test_financials_crud(client, api_company):
-    r = client.post(
+def test_financials_crud(logged_in_client, api_company):
+    r = logged_in_client.post(
         "/api/financials",
         {
             "company_id": api_company, "period": "2024-Q4",
@@ -171,17 +194,17 @@ def test_financials_crud(client, api_company):
     assert r.status_code == 201
     fid = r.json()["id"]
 
-    r = client.get("/api/financials")
+    r = logged_in_client.get("/api/financials")
     assert r.status_code == 200
     assert len(r.json()) == 1
 
-    r = client.delete(f"/api/financials/{fid}")
+    r = logged_in_client.delete(f"/api/financials/{fid}")
     assert r.status_code == 200
-    assert client.get("/api/financials").json() == []
+    assert logged_in_client.get("/api/financials").json() == []
 
 
-def test_categories_crud(client):
-    r = client.post(
+def test_categories_crud(logged_in_client):
+    r = logged_in_client.post(
         "/api/categories",
         {"name": "Tech", "color": "#aabbcc"},
         content_type="application/json",
@@ -189,34 +212,34 @@ def test_categories_crud(client):
     assert r.status_code == 201
     cat_id = r.json()["id"]
 
-    r = client.get("/api/categories")
+    r = logged_in_client.get("/api/categories")
     assert r.status_code == 200
     assert len(r.json()) == 1
     assert r.json()[0]["name"] == "Tech"
 
-    r = client.delete(f"/api/categories/{cat_id}")
+    r = logged_in_client.delete(f"/api/categories/{cat_id}")
     assert r.status_code == 200
-    assert client.get("/api/categories").json() == []
+    assert logged_in_client.get("/api/categories").json() == []
 
 
-def test_settings_crud(client):
-    r = client.get("/api/settings")
+def test_settings_crud(logged_in_client):
+    r = logged_in_client.get("/api/settings")
     assert r.status_code == 200
     assert r.json() == {}
 
-    r = client.put(
+    r = logged_in_client.put(
         "/api/settings/theme",
         {"value": "dark"},
         content_type="application/json",
     )
     assert r.status_code == 200
 
-    r = client.get("/api/settings")
+    r = logged_in_client.get("/api/settings")
     assert r.json() == {"theme": "dark"}
 
 
-def test_bank_accounts_crud(client, api_company):
-    r = client.post(
+def test_bank_accounts_crud(logged_in_client, api_company):
+    r = logged_in_client.post(
         "/api/bank-accounts",
         {
             "company_id": api_company, "bank_name": "Chase",
@@ -229,17 +252,17 @@ def test_bank_accounts_crud(client, api_company):
     assert r.status_code == 201
     aid = r.json()["id"]
 
-    r = client.get("/api/bank-accounts")
+    r = logged_in_client.get("/api/bank-accounts")
     assert r.status_code == 200
     assert len(r.json()) == 1
 
-    r = client.delete(f"/api/bank-accounts/{aid}")
+    r = logged_in_client.delete(f"/api/bank-accounts/{aid}")
     assert r.status_code == 200
-    assert client.get("/api/bank-accounts").json() == []
+    assert logged_in_client.get("/api/bank-accounts").json() == []
 
 
-def test_transactions_crud(client, api_company):
-    r = client.post(
+def test_transactions_crud(logged_in_client, api_company):
+    r = logged_in_client.post(
         "/api/transactions",
         {
             "company_id": api_company, "transaction_type": "dividend",
@@ -251,17 +274,17 @@ def test_transactions_crud(client, api_company):
     assert r.status_code == 201
     tid = r.json()["id"]
 
-    r = client.get("/api/transactions")
+    r = logged_in_client.get("/api/transactions")
     assert r.status_code == 200
     assert len(r.json()) == 1
 
-    r = client.delete(f"/api/transactions/{tid}")
+    r = logged_in_client.delete(f"/api/transactions/{tid}")
     assert r.status_code == 200
-    assert client.get("/api/transactions").json() == []
+    assert logged_in_client.get("/api/transactions").json() == []
 
 
-def test_liabilities_crud(client, api_company):
-    r = client.post(
+def test_liabilities_crud(logged_in_client, api_company):
+    r = logged_in_client.post(
         "/api/liabilities",
         {
             "company_id": api_company, "liability_type": "loan",
@@ -274,17 +297,17 @@ def test_liabilities_crud(client, api_company):
     assert r.status_code == 201
     lid = r.json()["id"]
 
-    r = client.get("/api/liabilities")
+    r = logged_in_client.get("/api/liabilities")
     assert r.status_code == 200
     assert len(r.json()) == 1
 
-    r = client.delete(f"/api/liabilities/{lid}")
+    r = logged_in_client.delete(f"/api/liabilities/{lid}")
     assert r.status_code == 200
-    assert client.get("/api/liabilities").json() == []
+    assert logged_in_client.get("/api/liabilities").json() == []
 
 
-def test_service_providers_crud(client, api_company):
-    r = client.post(
+def test_service_providers_crud(logged_in_client, api_company):
+    r = logged_in_client.post(
         "/api/service-providers",
         {
             "company_id": api_company, "role": "lawyer", "name": "Sarah",
@@ -295,17 +318,17 @@ def test_service_providers_crud(client, api_company):
     assert r.status_code == 201
     sid = r.json()["id"]
 
-    r = client.get("/api/service-providers")
+    r = logged_in_client.get("/api/service-providers")
     assert r.status_code == 200
     assert len(r.json()) == 1
 
-    r = client.delete(f"/api/service-providers/{sid}")
+    r = logged_in_client.delete(f"/api/service-providers/{sid}")
     assert r.status_code == 200
-    assert client.get("/api/service-providers").json() == []
+    assert logged_in_client.get("/api/service-providers").json() == []
 
 
-def test_insurance_policies_crud(client, api_company):
-    r = client.post(
+def test_insurance_policies_crud(logged_in_client, api_company):
+    r = logged_in_client.post(
         "/api/insurance-policies",
         {
             "company_id": api_company, "policy_type": "D&O", "provider": "AIG",
@@ -318,17 +341,17 @@ def test_insurance_policies_crud(client, api_company):
     assert r.status_code == 201
     pid = r.json()["id"]
 
-    r = client.get("/api/insurance-policies")
+    r = logged_in_client.get("/api/insurance-policies")
     assert r.status_code == 200
     assert len(r.json()) == 1
 
-    r = client.delete(f"/api/insurance-policies/{pid}")
+    r = logged_in_client.delete(f"/api/insurance-policies/{pid}")
     assert r.status_code == 200
-    assert client.get("/api/insurance-policies").json() == []
+    assert logged_in_client.get("/api/insurance-policies").json() == []
 
 
-def test_board_meetings_crud(client, api_company):
-    r = client.post(
+def test_board_meetings_crud(logged_in_client, api_company):
+    r = logged_in_client.post(
         "/api/board-meetings",
         {
             "company_id": api_company, "scheduled_date": "2025-03-15",
@@ -339,84 +362,84 @@ def test_board_meetings_crud(client, api_company):
     assert r.status_code == 201
     mid = r.json()["id"]
 
-    r = client.get("/api/board-meetings")
+    r = logged_in_client.get("/api/board-meetings")
     assert r.status_code == 200
     assert len(r.json()) == 1
 
-    r = client.delete(f"/api/board-meetings/{mid}")
+    r = logged_in_client.delete(f"/api/board-meetings/{mid}")
     assert r.status_code == 200
-    assert client.get("/api/board-meetings").json() == []
+    assert logged_in_client.get("/api/board-meetings").json() == []
 
 
-def test_audit_log(client):
-    client.post(
+def test_audit_log(logged_in_client):
+    logged_in_client.post(
         "/api/companies",
         {"name": "Co", "country": "US", "category": "T"},
         content_type="application/json",
     )
 
-    r = client.get("/api/audit-log")
+    r = logged_in_client.get("/api/audit-log")
     assert r.status_code == 200
     assert len(r.json()) >= 1
 
 
-def test_audit_log_limit(client):
+def test_audit_log_limit(logged_in_client):
     for i in range(5):
-        client.post(
+        logged_in_client.post(
             "/api/categories",
             {"name": f"cat_{i}"},
             content_type="application/json",
         )
 
-    r = client.get("/api/audit-log?limit=2")
+    r = logged_in_client.get("/api/audit-log?limit=2")
     assert r.status_code == 200
     assert len(r.json()) == 2
 
 
-def test_stats(client):
-    r = client.get("/api/stats")
+def test_stats(logged_in_client):
+    r = logged_in_client.get("/api/stats")
     assert r.status_code == 200
     data = r.json()
     assert "total_companies" in data
     assert "by_category" in data
 
 
-def test_export(client):
-    r = client.get("/api/export")
+def test_export(logged_in_client):
+    r = logged_in_client.get("/api/export")
     assert r.status_code == 200
     data = r.json()
     assert "entities" in data
     assert "documents" in data
 
 
-def test_entities(client):
-    client.post(
+def test_entities(logged_in_client):
+    logged_in_client.post(
         "/api/companies",
         {"name": "HoldCo", "country": "US", "category": "Holding", "is_holding": True},
         content_type="application/json",
     )
 
-    r = client.get("/api/entities")
+    r = logged_in_client.get("/api/entities")
     assert r.status_code == 200
     data = r.json()
     assert "entities" in data
 
 
-def test_dashboard_page(client):
-    r = client.get("/")
+def test_dashboard_page(logged_in_client):
+    r = logged_in_client.get("/")
     assert r.status_code == 200
     assert b"Corporate Overview" in r.content
 
 
 @pytest.mark.django_db
-def test_company_detail_page(client, api_company):
-    r = client.get(f"/company/{api_company}/")
+def test_company_detail_page(logged_in_client, api_company):
+    r = logged_in_client.get(f"/company/{api_company}/")
     assert r.status_code == 200
     assert b"Entity Details" in r.content
     assert b"Co" in r.content
 
 
 @pytest.mark.django_db
-def test_company_detail_page_404(client):
-    r = client.get("/company/99999/")
+def test_company_detail_page_404(logged_in_client):
+    r = logged_in_client.get("/company/99999/")
     assert r.status_code == 404
