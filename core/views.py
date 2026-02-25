@@ -1,9 +1,11 @@
+from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum
 from django.shortcuts import get_object_or_404, render
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from core.models import get_user_role
 from core.models import (
     AssetHolding,
     AuditLog,
@@ -53,6 +55,18 @@ from core.serializers import (
     TransactionCreateSerializer,
     TransactionSerializer,
 )
+
+
+# --- Current User ---
+
+
+@api_view(["GET"])
+def current_user_role(request):
+    return Response({
+        "username": request.user.username,
+        "email": request.user.email,
+        "role": get_user_role(request.user),
+    })
 
 
 # --- Companies ---
@@ -467,6 +481,7 @@ def _build_export():
 # --- Dashboard ---
 
 
+@login_required
 def dashboard(request):
     companies = Company.objects.all()
     top_level = companies.filter(parent__isnull=True).prefetch_related(
@@ -540,6 +555,7 @@ def dashboard(request):
     return render(request, "core/dashboard.html", context)
 
 
+@login_required
 def company_page(request, company_id):
     company = get_object_or_404(
         Company.objects.prefetch_related(

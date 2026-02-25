@@ -3,6 +3,9 @@ from django.urls import path
 from core import views
 
 urlpatterns = [
+    # Current user
+    path("me", views.current_user_role),
+
     # Companies
     path("companies", views.company_list),
     path("companies/<int:company_id>", views.company_detail),

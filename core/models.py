@@ -1,4 +1,30 @@
+from django.conf import settings
 from django.db import models
+
+
+class UserRole(models.Model):
+    ROLE_CHOICES = [
+        ("admin", "Admin"),
+        ("editor", "Editor"),
+        ("viewer", "Viewer"),
+    ]
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="role"
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="viewer")
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.user.username}: {self.role}"
+
+
+def get_user_role(user) -> str:
+    try:
+        return user.role.role
+    except UserRole.DoesNotExist:
+        return "viewer"
 
 
 class Category(models.Model):

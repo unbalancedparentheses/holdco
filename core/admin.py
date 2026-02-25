@@ -18,6 +18,7 @@ from core.models import (
     Setting,
     TaxDeadline,
     Transaction,
+    UserRole,
 )
 
 
@@ -227,3 +228,10 @@ class AuditLogAdmin(ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(UserRole)
+class UserRoleAdmin(ModelAdmin):
+    list_display = ("user", "role")
+    list_filter = ("role",)
+    search_fields = ("user__username", "user__email")
