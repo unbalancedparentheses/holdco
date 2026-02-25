@@ -26,6 +26,14 @@ def details_table(company: Company, is_holding: bool = False) -> str:
     if company.lawyer_studio:
         rows.append(("Lawyer Studio", company.lawyer_studio))
 
+    # Add notes/website from DB
+    db_row = db.get_company_by_name(company.name)
+    if db_row:
+        if db_row["website"]:
+            rows.append(("Website", db_row["website"]))
+        if db_row["notes"]:
+            rows.append(("Notes", db_row["notes"]))
+
     lines = ["| | |", "|---|---|"]
     for key, value in rows:
         lines.append(f"| **{key}** | {value} |")
@@ -34,14 +42,12 @@ def details_table(company: Company, is_holding: bool = False) -> str:
 
 def compact_table(headers: list[str], rows: list[list[str]]) -> str:
     """Build a markdown table, dropping columns that are empty in every row."""
-    # Find which columns have data
     has_data = [False] * len(headers)
     for row in rows:
         for i, cell in enumerate(row):
             if cell:
                 has_data[i] = True
 
-    # Filter to non-empty columns
     kept = [i for i, has in enumerate(has_data) if has]
     if not kept:
         return ""
@@ -132,6 +138,103 @@ def summary_section() -> str:
     return "\n".join(lines)
 
 
+def mermaid_ownership_diagram() -> str:
+    """Generate a mermaid flowchart of the corporate ownership tree."""
+    lines = ["```mermaid", "graph TD"]
+
+    all_companies = db.get_all_companies()
+    id_to_name: dict[int, str] = {}
+    for c in all_companies:
+        safe_name = c["name"].replace('"', "'")
+        node_id = f"c{c['id']}"
+        id_to_name[c["id"]] = node_id
+
+        if c["is_holding"]:
+            lines.append(f'    {node_id}["{safe_name}"]')
+        else:
+            lines.append(f'    {node_id}["{safe_name}"]')
+
+    # Add edges
+    for c in all_companies:
+        if c["parent_id"] and c["parent_id"] in id_to_name:
+            parent_node = id_to_name[c["parent_id"]]
+            child_node = id_to_name[c["id"]]
+            pct = f" {c['ownership_pct']}%" if c["ownership_pct"] is not None else ""
+            if pct:
+                lines.append(f"    {parent_node} -->|{pct}| {child_node}")
+            else:
+                lines.append(f"    {parent_node} --> {child_node}")
+
+    # Style holdings differently
+    for c in all_companies:
+        if c["is_holding"]:
+            lines.append(f"    style {id_to_name[c['id']]} fill:#e1f5fe,stroke:#0288d1,stroke-width:2px")
+
+    # Style categories
+    cat_colors = {
+        "Code": "fill:#e8f5e9,stroke:#388e3c",
+        "Finance": "fill:#fff3e0,stroke:#f57c00",
+        "Culture": "fill:#f3e5f5,stroke:#7b1fa2",
+        "Craft": "fill:#fce4ec,stroke:#c62828",
+    }
+    for c in all_companies:
+        if c["category"] in cat_colors and not c["is_holding"]:
+            lines.append(f"    style {id_to_name[c['id']]} {cat_colors[c['category']]}")
+
+    lines.append("```")
+    return "\n".join(lines)
+
+
+def documents_section() -> str | None:
+    docs = db.get_documents()
+    if not docs:
+        return None
+
+    headers = ["Company", "Document", "Type", "Link"]
+    rows = []
+    for d in docs:
+        link = f"[Link]({d['url']})" if d["url"] else ""
+        rows.append([d["company_name"], d["name"], d["doc_type"] or "", link])
+
+    return compact_table(headers, rows)
+
+
+def tax_deadlines_section() -> str | None:
+    deadlines = db.get_tax_deadlines()
+    if not deadlines:
+        return None
+
+    headers = ["Company", "Jurisdiction", "Description", "Due Date", "Status"]
+    rows = []
+    for t in deadlines:
+        rows.append([
+            t["company_name"], t["jurisdiction"], t["description"],
+            t["due_date"], t["status"] or "pending",
+        ])
+
+    return compact_table(headers, rows)
+
+
+def financials_section() -> str | None:
+    financials = db.get_financials()
+    if not financials:
+        return None
+
+    headers = ["Company", "Period", "Revenue", "Expenses", "Net", "Currency"]
+    rows = []
+    for f in financials:
+        net = (f["revenue"] or 0) - (f["expenses"] or 0)
+        rows.append([
+            f["company_name"], f["period"],
+            f"${f['revenue']:,.0f}" if f["revenue"] else "",
+            f"${f['expenses']:,.0f}" if f["expenses"] else "",
+            f"${net:,.0f}" if f["revenue"] or f["expenses"] else "",
+            f["currency"] or "USD",
+        ])
+
+    return compact_table(headers, rows)
+
+
 def generate() -> str:
     sections = [
         "# Ergodic",
@@ -149,46 +252,94 @@ def generate() -> str:
             "streamlit run app.py      # admin panel + dashboard",
             "python generate_readme.py  # regenerate this file",
             "```",
-            "",
-            "## Architecture",
-            "",
-            "| File | Purpose |",
-            "|---|---|",
-            "| `models.py` | Pydantic models — Company, Holding, AssetHolding, CustodianAccount |",
-            "| `db.py` | SQLite layer — CRUD operations, `get_entities()`, `export_json()` |",
-            "| `app.py` | Streamlit dashboard + admin panel for managing data |",
-            "| `yahoo.py` | Live asset prices from Yahoo Finance |",
-            "| `generate_readme.py` | Reads the database and generates this README |",
-            "",
-            "The `db` module exposes a Python API (`db.insert_company(...)`, `db.export_json()`, etc.)",
-            "that AI agents or scripts can use directly.",
-            "",
-            "## Dashboard",
-            "",
-            "```",
-            "pip install -r requirements.txt",
-            "streamlit run app.py",
-            "```",
-            "",
-            "**Dashboard tab**: corporate structure, live asset valuations, custodian details.",
-            "",
-            "**Companies tab**: add, edit, and delete companies and holdings.",
-            "",
-            "**Asset Holdings tab**: manage asset positions and custodian accounts.",
-            "",
-            "## Planned",
-            "",
-            "- QuickBooks API integration for real-time financials per entity",
         ]),
     ]
 
+    # Ownership diagram
+    sections.append("## Ownership Structure")
+    sections.append(mermaid_ownership_diagram())
+
+    # Architecture
+    sections.append("\n".join([
+        "## Architecture",
+        "",
+        "| File | Purpose |",
+        "|---|---|",
+        "| `models.py` | Pydantic models — Company, Holding, AssetHolding, CustodianAccount |",
+        "| `db.py` | SQLite layer — CRUD operations, `get_entities()`, `export_json()` |",
+        "| `app.py` | Streamlit dashboard + admin panel for managing data |",
+        "| `yahoo.py` | Live asset prices from Yahoo Finance with history tracking |",
+        "| `api.py` | FastAPI JSON API for programmatic access |",
+        "| `generate_readme.py` | Reads the database and generates this README |",
+        "",
+        "The `db` module exposes a Python API (`db.insert_company(...)`, `db.export_json()`, etc.)",
+        "that AI agents or scripts can use directly.",
+    ]))
+
+    # Dashboard
+    sections.append("\n".join([
+        "## Dashboard",
+        "",
+        "```",
+        "pip install -r requirements.txt",
+        "streamlit run app.py",
+        "```",
+        "",
+        "**Dashboard**: corporate structure, live asset valuations, category filters, price history charts.",
+        "",
+        "**Companies**: add, edit, and delete companies with notes, websites, and documents.",
+        "",
+        "**Asset Holdings**: manage asset positions, custodian accounts, multi-currency support.",
+        "",
+        "**Tax Calendar**: track filing deadlines and compliance status per jurisdiction.",
+        "",
+        "**Financials**: revenue and expenses per entity and period.",
+        "",
+        "**Audit Log**: full change history of all database mutations.",
+    ]))
+
+    # API
+    sections.append("\n".join([
+        "## API",
+        "",
+        "```",
+        "uvicorn api:app --reload",
+        "```",
+        "",
+        "JSON API at `http://localhost:8000`. Endpoints:",
+        "",
+        "| Method | Path | Description |",
+        "|---|---|---|",
+        "| GET | `/entities` | All entities with subsidiaries and holdings |",
+        "| GET | `/companies` | List all companies |",
+        "| POST | `/companies` | Create a company |",
+        "| PUT | `/companies/{id}` | Update a company |",
+        "| DELETE | `/companies/{id}` | Delete a company |",
+        "| GET | `/holdings` | List all asset holdings |",
+        "| POST | `/holdings` | Create an asset holding |",
+        "| DELETE | `/holdings/{id}` | Delete an asset holding |",
+        "| GET | `/documents` | List all documents |",
+        "| POST | `/documents` | Create a document |",
+        "| DELETE | `/documents/{id}` | Delete a document |",
+        "| GET | `/tax-deadlines` | List all tax deadlines |",
+        "| POST | `/tax-deadlines` | Create a tax deadline |",
+        "| DELETE | `/tax-deadlines/{id}` | Delete a tax deadline |",
+        "| GET | `/financials` | List all financials |",
+        "| POST | `/financials` | Create a financial record |",
+        "| DELETE | `/financials/{id}` | Delete a financial record |",
+        "| GET | `/prices/{ticker}` | Get live price + history |",
+        "| GET | `/audit-log` | View recent changes |",
+        "| GET | `/stats` | Summary statistics |",
+        "| GET | `/export` | Full JSON export |",
+    ]))
+
+    # Entity details
     for entity in entities:
         if isinstance(entity, Holding):
             sections.append(f"## {entity.name}")
             sections.append(details_table(entity, is_holding=True))
 
             if entity.subsidiaries:
-                # Group subsidiaries by category
                 by_category: dict[Category, list[Company]] = {}
                 for sub in entity.subsidiaries:
                     by_category.setdefault(sub.category, []).append(sub)
@@ -212,6 +363,52 @@ def generate() -> str:
             if holdings_section:
                 sections.append("### Holdings")
                 sections.append(holdings_section)
+
+    # Documents
+    docs_table = documents_section()
+    if docs_table:
+        sections.append("## Documents")
+        sections.append(docs_table)
+
+    # Tax Calendar
+    tax_table = tax_deadlines_section()
+    if tax_table:
+        sections.append("## Tax Calendar")
+        sections.append(tax_table)
+
+    # Financials
+    fin_table = financials_section()
+    if fin_table:
+        sections.append("## Financials")
+        sections.append(fin_table)
+
+    # Roadmap
+    sections.append("\n".join([
+        "## Roadmap",
+        "",
+        "- [x] SQLite database with full CRUD",
+        "- [x] Streamlit admin panel (companies, holdings, custodians)",
+        "- [x] Live asset prices from Yahoo Finance",
+        "- [x] Mermaid ownership structure diagram",
+        "- [x] Category-grouped subsidiaries in README",
+        "- [x] Company notes and website fields",
+        "- [x] Document storage (contracts, articles of incorporation)",
+        "- [x] Tax calendar with deadline tracking",
+        "- [x] P&L tracking (revenue/expenses per entity per period)",
+        "- [x] Price history tracking with snapshots",
+        "- [x] Multi-currency support for asset holdings",
+        "- [x] Audit log for all database changes",
+        "- [x] FastAPI JSON API for programmatic access",
+        "- [x] Auto-generated README with architecture docs",
+        "- [ ] QuickBooks API integration for real-time financials",
+        "- [ ] Automated tax deadline reminders (email/Slack)",
+        "- [ ] Multi-user authentication for admin panel",
+        "- [ ] Document upload to S3/cloud storage",
+        "- [ ] Portfolio performance over time charts",
+        "- [ ] Budget vs. actuals tracking",
+        "- [ ] Inter-company transaction tracking",
+        "- [ ] Dividend and distribution tracking",
+    ]))
 
     return "\n\n".join(sections) + "\n"
 

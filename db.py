@@ -1,4 +1,6 @@
+import json
 import sqlite3
+from datetime import date, datetime
 from pathlib import Path
 
 from models import AssetHolding, Category, Company, CustodianAccount, Holding
@@ -41,6 +43,8 @@ def init_db() -> None:
             shareholders TEXT,
             directors TEXT,
             lawyer_studio TEXT,
+            notes TEXT,
+            website TEXT,
             FOREIGN KEY (parent_id) REFERENCES companies(id) ON DELETE CASCADE
         );
 
@@ -51,6 +55,7 @@ def init_db() -> None:
             ticker TEXT,
             quantity REAL,
             unit TEXT,
+            currency TEXT DEFAULT 'USD',
             FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
         );
 
@@ -63,9 +68,79 @@ def init_db() -> None:
             authorized_persons TEXT,
             FOREIGN KEY (asset_holding_id) REFERENCES asset_holdings(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            doc_type TEXT,
+            url TEXT,
+            notes TEXT,
+            uploaded_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS tax_deadlines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            jurisdiction TEXT NOT NULL,
+            description TEXT NOT NULL,
+            due_date TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            notes TEXT,
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS financials (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            period TEXT NOT NULL,
+            revenue REAL DEFAULT 0,
+            expenses REAL DEFAULT 0,
+            currency TEXT DEFAULT 'USD',
+            notes TEXT,
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS price_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticker TEXT NOT NULL,
+            price REAL NOT NULL,
+            currency TEXT DEFAULT 'USD',
+            recorded_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT DEFAULT (datetime('now')),
+            action TEXT NOT NULL,
+            table_name TEXT NOT NULL,
+            record_id INTEGER,
+            details TEXT
+        );
     """)
+
+    # Add columns to existing tables if they don't exist yet (migration)
+    for col, default in [("notes", None), ("website", None)]:
+        try:
+            conn.execute(f"ALTER TABLE companies ADD COLUMN {col} TEXT")
+        except sqlite3.OperationalError:
+            pass
+
+    try:
+        conn.execute("ALTER TABLE asset_holdings ADD COLUMN currency TEXT DEFAULT 'USD'")
+    except sqlite3.OperationalError:
+        pass
+
     conn.commit()
     conn.close()
+
+
+def _log(conn: sqlite3.Connection, action: str, table_name: str, record_id: int | None, details: str | None = None) -> None:
+    conn.execute(
+        "INSERT INTO audit_log (action, table_name, record_id, details) VALUES (?, ?, ?, ?)",
+        (action, table_name, record_id, details),
+    )
 
 
 # --- Read ---
@@ -73,8 +148,6 @@ def init_db() -> None:
 
 def get_entities() -> list[Holding | Company]:
     conn = _conn()
-
-    # Fetch top-level entities (no parent)
     top_rows = conn.execute(
         "SELECT * FROM companies WHERE parent_id IS NULL ORDER BY id"
     ).fetchall()
@@ -169,23 +242,27 @@ def insert_company(
     shareholders: list[str] | None = None,
     directors: list[str] | None = None,
     lawyer_studio: str | None = None,
+    notes: str | None = None,
+    website: str | None = None,
 ) -> int:
     conn = _conn()
     cur = conn.execute(
         """INSERT INTO companies
            (name, legal_name, country, category, is_holding, parent_id,
-            ownership_pct, tax_id, shareholders, directors, lawyer_studio)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ownership_pct, tax_id, shareholders, directors, lawyer_studio,
+            notes, website)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             name, legal_name, country, category, int(is_holding), parent_id,
             ownership_pct, tax_id,
             _join_csv(shareholders or []),
             _join_csv(directors or []),
-            lawyer_studio,
+            lawyer_studio, notes, website,
         ),
     )
-    conn.commit()
     row_id = cur.lastrowid
+    _log(conn, "insert", "companies", row_id, f"name={name}")
+    conn.commit()
     conn.close()
     return row_id
 
@@ -201,7 +278,7 @@ def update_company(company_id: int, **kwargs) -> None:
     allowed = {
         "name", "legal_name", "country", "category", "is_holding",
         "parent_id", "ownership_pct", "tax_id", "shareholders",
-        "directors", "lawyer_studio",
+        "directors", "lawyer_studio", "notes", "website",
     }
     sets = []
     values = []
@@ -221,13 +298,16 @@ def update_company(company_id: int, **kwargs) -> None:
     values.append(company_id)
     conn = _conn()
     conn.execute(f"UPDATE companies SET {', '.join(sets)} WHERE id = ?", values)
+    _log(conn, "update", "companies", company_id, json.dumps({k: str(v) for k, v in kwargs.items()}))
     conn.commit()
     conn.close()
 
 
 def delete_company(company_id: int) -> None:
     conn = _conn()
+    row = conn.execute("SELECT name FROM companies WHERE id = ?", (company_id,)).fetchone()
     conn.execute("DELETE FROM companies WHERE id = ?", (company_id,))
+    _log(conn, "delete", "companies", company_id, f"name={row['name']}" if row else None)
     conn.commit()
     conn.close()
 
@@ -242,15 +322,17 @@ def insert_asset_holding(
     ticker: str | None = None,
     quantity: float | None = None,
     unit: str | None = None,
+    currency: str = "USD",
 ) -> int:
     conn = _conn()
     cur = conn.execute(
-        """INSERT INTO asset_holdings (company_id, asset, ticker, quantity, unit)
-           VALUES (?, ?, ?, ?, ?)""",
-        (company_id, asset, ticker, quantity, unit),
+        """INSERT INTO asset_holdings (company_id, asset, ticker, quantity, unit, currency)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (company_id, asset, ticker, quantity, unit, currency),
     )
-    conn.commit()
     row_id = cur.lastrowid
+    _log(conn, "insert", "asset_holdings", row_id, f"asset={asset}")
+    conn.commit()
     conn.close()
     return row_id
 
@@ -265,7 +347,7 @@ def get_asset_holdings(company_id: int) -> list[sqlite3.Row]:
 
 
 def update_asset_holding(holding_id: int, **kwargs) -> None:
-    allowed = {"asset", "ticker", "quantity", "unit", "company_id"}
+    allowed = {"asset", "ticker", "quantity", "unit", "company_id", "currency"}
     sets = []
     values = []
     for key, val in kwargs.items():
@@ -280,6 +362,7 @@ def update_asset_holding(holding_id: int, **kwargs) -> None:
     values.append(holding_id)
     conn = _conn()
     conn.execute(f"UPDATE asset_holdings SET {', '.join(sets)} WHERE id = ?", values)
+    _log(conn, "update", "asset_holdings", holding_id, json.dumps({k: str(v) for k, v in kwargs.items()}))
     conn.commit()
     conn.close()
 
@@ -287,6 +370,7 @@ def update_asset_holding(holding_id: int, **kwargs) -> None:
 def delete_asset_holding(holding_id: int) -> None:
     conn = _conn()
     conn.execute("DELETE FROM asset_holdings WHERE id = ?", (holding_id,))
+    _log(conn, "delete", "asset_holdings", holding_id)
     conn.commit()
     conn.close()
 
@@ -312,8 +396,9 @@ def insert_custodian(
             _join_csv(authorized_persons or []),
         ),
     )
-    conn.commit()
     row_id = cur.lastrowid
+    _log(conn, "insert", "custodian_accounts", row_id, f"bank={bank}")
+    conn.commit()
     conn.close()
     return row_id
 
@@ -336,6 +421,7 @@ def update_custodian(custodian_id: int, **kwargs) -> None:
     values.append(custodian_id)
     conn = _conn()
     conn.execute(f"UPDATE custodian_accounts SET {', '.join(sets)} WHERE id = ?", values)
+    _log(conn, "update", "custodian_accounts", custodian_id, json.dumps({k: str(v) for k, v in kwargs.items()}))
     conn.commit()
     conn.close()
 
@@ -343,8 +429,233 @@ def update_custodian(custodian_id: int, **kwargs) -> None:
 def delete_custodian(custodian_id: int) -> None:
     conn = _conn()
     conn.execute("DELETE FROM custodian_accounts WHERE id = ?", (custodian_id,))
+    _log(conn, "delete", "custodian_accounts", custodian_id)
     conn.commit()
     conn.close()
+
+
+# --- Documents CRUD ---
+
+
+def insert_document(
+    company_id: int,
+    name: str,
+    *,
+    doc_type: str | None = None,
+    url: str | None = None,
+    notes: str | None = None,
+) -> int:
+    conn = _conn()
+    cur = conn.execute(
+        "INSERT INTO documents (company_id, name, doc_type, url, notes) VALUES (?, ?, ?, ?, ?)",
+        (company_id, name, doc_type, url, notes),
+    )
+    row_id = cur.lastrowid
+    _log(conn, "insert", "documents", row_id, f"name={name}")
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def get_documents(company_id: int | None = None) -> list[sqlite3.Row]:
+    conn = _conn()
+    if company_id:
+        rows = conn.execute(
+            "SELECT d.*, c.name as company_name FROM documents d JOIN companies c ON d.company_id = c.id WHERE d.company_id = ? ORDER BY d.id",
+            (company_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT d.*, c.name as company_name FROM documents d JOIN companies c ON d.company_id = c.id ORDER BY d.id"
+        ).fetchall()
+    conn.close()
+    return rows
+
+
+def delete_document(doc_id: int) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+    _log(conn, "delete", "documents", doc_id)
+    conn.commit()
+    conn.close()
+
+
+# --- Tax Deadlines CRUD ---
+
+
+def insert_tax_deadline(
+    company_id: int,
+    jurisdiction: str,
+    description: str,
+    due_date: str,
+    *,
+    status: str = "pending",
+    notes: str | None = None,
+) -> int:
+    conn = _conn()
+    cur = conn.execute(
+        "INSERT INTO tax_deadlines (company_id, jurisdiction, description, due_date, status, notes) VALUES (?, ?, ?, ?, ?, ?)",
+        (company_id, jurisdiction, description, due_date, status, notes),
+    )
+    row_id = cur.lastrowid
+    _log(conn, "insert", "tax_deadlines", row_id, f"desc={description}")
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def get_tax_deadlines(company_id: int | None = None) -> list[sqlite3.Row]:
+    conn = _conn()
+    if company_id:
+        rows = conn.execute(
+            "SELECT t.*, c.name as company_name FROM tax_deadlines t JOIN companies c ON t.company_id = c.id WHERE t.company_id = ? ORDER BY t.due_date",
+            (company_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT t.*, c.name as company_name FROM tax_deadlines t JOIN companies c ON t.company_id = c.id ORDER BY t.due_date"
+        ).fetchall()
+    conn.close()
+    return rows
+
+
+def update_tax_deadline(deadline_id: int, **kwargs) -> None:
+    allowed = {"jurisdiction", "description", "due_date", "status", "notes", "company_id"}
+    sets = []
+    values = []
+    for key, val in kwargs.items():
+        if key not in allowed:
+            raise ValueError(f"Unknown field: {key}")
+        sets.append(f"{key} = ?")
+        values.append(val)
+    if not sets:
+        return
+    values.append(deadline_id)
+    conn = _conn()
+    conn.execute(f"UPDATE tax_deadlines SET {', '.join(sets)} WHERE id = ?", values)
+    _log(conn, "update", "tax_deadlines", deadline_id, json.dumps({k: str(v) for k, v in kwargs.items()}))
+    conn.commit()
+    conn.close()
+
+
+def delete_tax_deadline(deadline_id: int) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM tax_deadlines WHERE id = ?", (deadline_id,))
+    _log(conn, "delete", "tax_deadlines", deadline_id)
+    conn.commit()
+    conn.close()
+
+
+# --- Financials CRUD ---
+
+
+def insert_financial(
+    company_id: int,
+    period: str,
+    *,
+    revenue: float = 0,
+    expenses: float = 0,
+    currency: str = "USD",
+    notes: str | None = None,
+) -> int:
+    conn = _conn()
+    cur = conn.execute(
+        "INSERT INTO financials (company_id, period, revenue, expenses, currency, notes) VALUES (?, ?, ?, ?, ?, ?)",
+        (company_id, period, revenue, expenses, currency, notes),
+    )
+    row_id = cur.lastrowid
+    _log(conn, "insert", "financials", row_id, f"period={period}")
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def get_financials(company_id: int | None = None) -> list[sqlite3.Row]:
+    conn = _conn()
+    if company_id:
+        rows = conn.execute(
+            "SELECT f.*, c.name as company_name FROM financials f JOIN companies c ON f.company_id = c.id WHERE f.company_id = ? ORDER BY f.period DESC",
+            (company_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT f.*, c.name as company_name FROM financials f JOIN companies c ON f.company_id = c.id ORDER BY f.period DESC"
+        ).fetchall()
+    conn.close()
+    return rows
+
+
+def update_financial(financial_id: int, **kwargs) -> None:
+    allowed = {"period", "revenue", "expenses", "currency", "notes", "company_id"}
+    sets = []
+    values = []
+    for key, val in kwargs.items():
+        if key not in allowed:
+            raise ValueError(f"Unknown field: {key}")
+        sets.append(f"{key} = ?")
+        values.append(val)
+    if not sets:
+        return
+    values.append(financial_id)
+    conn = _conn()
+    conn.execute(f"UPDATE financials SET {', '.join(sets)} WHERE id = ?", values)
+    _log(conn, "update", "financials", financial_id, json.dumps({k: str(v) for k, v in kwargs.items()}))
+    conn.commit()
+    conn.close()
+
+
+def delete_financial(financial_id: int) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM financials WHERE id = ?", (financial_id,))
+    _log(conn, "delete", "financials", financial_id)
+    conn.commit()
+    conn.close()
+
+
+# --- Price History ---
+
+
+def record_price(ticker: str, price: float, currency: str = "USD") -> int:
+    conn = _conn()
+    cur = conn.execute(
+        "INSERT INTO price_history (ticker, price, currency) VALUES (?, ?, ?)",
+        (ticker, price, currency),
+    )
+    row_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def get_price_history(ticker: str, limit: int = 30) -> list[sqlite3.Row]:
+    conn = _conn()
+    rows = conn.execute(
+        "SELECT * FROM price_history WHERE ticker = ? ORDER BY recorded_at DESC LIMIT ?",
+        (ticker, limit),
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+def get_all_price_history(limit: int = 100) -> list[sqlite3.Row]:
+    conn = _conn()
+    rows = conn.execute(
+        "SELECT * FROM price_history ORDER BY recorded_at DESC LIMIT ?", (limit,)
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+# --- Audit Log ---
+
+
+def get_audit_log(limit: int = 50) -> list[sqlite3.Row]:
+    conn = _conn()
+    rows = conn.execute(
+        "SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT ?", (limit,)
+    ).fetchall()
+    conn.close()
+    return rows
 
 
 # --- Query helpers ---
@@ -397,7 +708,18 @@ def export_json() -> dict:
             for sub in d.get("subsidiaries", []):
                 sub["category"] = sub["category"].value if hasattr(sub["category"], "value") else sub["category"]
         result.append(d)
-    return {"entities": result}
+
+    # Include extra tables
+    docs = [dict(r) for r in get_documents()]
+    deadlines = [dict(r) for r in get_tax_deadlines()]
+    financials = [dict(r) for r in get_financials()]
+
+    return {
+        "entities": result,
+        "documents": docs,
+        "tax_deadlines": deadlines,
+        "financials": financials,
+    }
 
 
 def get_stats() -> dict:
@@ -421,6 +743,8 @@ def get_stats() -> dict:
 
     holdings_count = conn.execute("SELECT COUNT(*) FROM asset_holdings").fetchone()[0]
     custodians_count = conn.execute("SELECT COUNT(*) FROM custodian_accounts").fetchone()[0]
+    docs_count = conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+    deadlines_count = conn.execute("SELECT COUNT(*) FROM tax_deadlines").fetchone()[0]
 
     conn.close()
     return {
@@ -431,4 +755,6 @@ def get_stats() -> dict:
         "by_country": countries,
         "asset_holdings": holdings_count,
         "custodian_accounts": custodians_count,
+        "documents": docs_count,
+        "tax_deadlines": deadlines_count,
     }
