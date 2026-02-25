@@ -96,6 +96,74 @@ class SettingUpdate(BaseModel):
     value: str
 
 
+class BankAccountCreate(BaseModel):
+    company_id: int
+    bank_name: str
+    account_number: str | None = None
+    iban: str | None = None
+    swift: str | None = None
+    currency: str = "USD"
+    account_type: str = "operating"
+    balance: float = 0
+    authorized_signers: list[str] | None = None
+    notes: str | None = None
+
+
+class TransactionCreate(BaseModel):
+    company_id: int
+    transaction_type: str
+    description: str
+    amount: float
+    date: str
+    currency: str = "USD"
+    counterparty: str | None = None
+    asset_holding_id: int | None = None
+    notes: str | None = None
+
+
+class LiabilityCreate(BaseModel):
+    company_id: int
+    liability_type: str
+    creditor: str
+    principal: float
+    currency: str = "USD"
+    interest_rate: float | None = None
+    maturity_date: str | None = None
+    status: str = "active"
+    notes: str | None = None
+
+
+class ServiceProviderCreate(BaseModel):
+    company_id: int
+    role: str
+    name: str
+    firm: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    notes: str | None = None
+
+
+class InsurancePolicyCreate(BaseModel):
+    company_id: int
+    policy_type: str
+    provider: str
+    policy_number: str | None = None
+    coverage_amount: float | None = None
+    premium: float | None = None
+    currency: str = "USD"
+    start_date: str | None = None
+    expiry_date: str | None = None
+    notes: str | None = None
+
+
+class BoardMeetingCreate(BaseModel):
+    company_id: int
+    scheduled_date: str
+    meeting_type: str = "regular"
+    status: str = "scheduled"
+    notes: str | None = None
+
+
 # --- Entities ---
 
 
@@ -311,6 +379,188 @@ def get_settings():
 @app.put("/settings/{key}")
 def update_setting(key: str, body: SettingUpdate):
     db.set_setting(key, body.value)
+    return {"ok": True}
+
+
+# --- Bank Accounts ---
+
+
+@app.get("/bank-accounts")
+def list_bank_accounts():
+    rows = db.get_bank_accounts()
+    return [dict(r) for r in rows]
+
+
+@app.post("/bank-accounts", status_code=201)
+def create_bank_account(body: BankAccountCreate):
+    row_id = db.insert_bank_account(
+        company_id=body.company_id,
+        bank_name=body.bank_name,
+        account_number=body.account_number,
+        iban=body.iban,
+        swift=body.swift,
+        currency=body.currency,
+        account_type=body.account_type,
+        balance=body.balance,
+        authorized_signers=body.authorized_signers,
+        notes=body.notes,
+    )
+    return {"id": row_id}
+
+
+@app.delete("/bank-accounts/{account_id}")
+def delete_bank_account(account_id: int):
+    db.delete_bank_account(account_id)
+    return {"ok": True}
+
+
+# --- Transactions ---
+
+
+@app.get("/transactions")
+def list_transactions():
+    rows = db.get_transactions()
+    return [dict(r) for r in rows]
+
+
+@app.post("/transactions", status_code=201)
+def create_transaction(body: TransactionCreate):
+    row_id = db.insert_transaction(
+        company_id=body.company_id,
+        transaction_type=body.transaction_type,
+        description=body.description,
+        amount=body.amount,
+        date=body.date,
+        currency=body.currency,
+        counterparty=body.counterparty,
+        asset_holding_id=body.asset_holding_id,
+        notes=body.notes,
+    )
+    return {"id": row_id}
+
+
+@app.delete("/transactions/{transaction_id}")
+def delete_transaction(transaction_id: int):
+    db.delete_transaction(transaction_id)
+    return {"ok": True}
+
+
+# --- Liabilities ---
+
+
+@app.get("/liabilities")
+def list_liabilities():
+    rows = db.get_liabilities()
+    return [dict(r) for r in rows]
+
+
+@app.post("/liabilities", status_code=201)
+def create_liability(body: LiabilityCreate):
+    row_id = db.insert_liability(
+        company_id=body.company_id,
+        liability_type=body.liability_type,
+        creditor=body.creditor,
+        principal=body.principal,
+        currency=body.currency,
+        interest_rate=body.interest_rate,
+        maturity_date=body.maturity_date,
+        status=body.status,
+        notes=body.notes,
+    )
+    return {"id": row_id}
+
+
+@app.delete("/liabilities/{liability_id}")
+def delete_liability(liability_id: int):
+    db.delete_liability(liability_id)
+    return {"ok": True}
+
+
+# --- Service Providers ---
+
+
+@app.get("/service-providers")
+def list_service_providers():
+    rows = db.get_service_providers()
+    return [dict(r) for r in rows]
+
+
+@app.post("/service-providers", status_code=201)
+def create_service_provider(body: ServiceProviderCreate):
+    row_id = db.insert_service_provider(
+        company_id=body.company_id,
+        role=body.role,
+        name=body.name,
+        firm=body.firm,
+        email=body.email,
+        phone=body.phone,
+        notes=body.notes,
+    )
+    return {"id": row_id}
+
+
+@app.delete("/service-providers/{provider_id}")
+def delete_service_provider(provider_id: int):
+    db.delete_service_provider(provider_id)
+    return {"ok": True}
+
+
+# --- Insurance Policies ---
+
+
+@app.get("/insurance-policies")
+def list_insurance_policies():
+    rows = db.get_insurance_policies()
+    return [dict(r) for r in rows]
+
+
+@app.post("/insurance-policies", status_code=201)
+def create_insurance_policy(body: InsurancePolicyCreate):
+    row_id = db.insert_insurance_policy(
+        company_id=body.company_id,
+        policy_type=body.policy_type,
+        provider=body.provider,
+        policy_number=body.policy_number,
+        coverage_amount=body.coverage_amount,
+        premium=body.premium,
+        currency=body.currency,
+        start_date=body.start_date,
+        expiry_date=body.expiry_date,
+        notes=body.notes,
+    )
+    return {"id": row_id}
+
+
+@app.delete("/insurance-policies/{policy_id}")
+def delete_insurance_policy(policy_id: int):
+    db.delete_insurance_policy(policy_id)
+    return {"ok": True}
+
+
+# --- Board Meetings ---
+
+
+@app.get("/board-meetings")
+def list_board_meetings():
+    rows = db.get_board_meetings()
+    return [dict(r) for r in rows]
+
+
+@app.post("/board-meetings", status_code=201)
+def create_board_meeting(body: BoardMeetingCreate):
+    row_id = db.insert_board_meeting(
+        company_id=body.company_id,
+        scheduled_date=body.scheduled_date,
+        meeting_type=body.meeting_type,
+        status=body.status,
+        notes=body.notes,
+    )
+    return {"id": row_id}
+
+
+@app.delete("/board-meetings/{meeting_id}")
+def delete_board_meeting(meeting_id: int):
+    db.delete_board_meeting(meeting_id)
     return {"ok": True}
 
 

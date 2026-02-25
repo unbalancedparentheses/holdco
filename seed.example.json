@@ -49,5 +49,36 @@
         {"name": "Acme Retail", "country": "Germany", "category": "Retail", "ownership_pct": 100}
       ]
     }
+  ],
+  "bank_accounts": [
+    {"company": "Acme Holdings", "bank_name": "JPMorgan Chase", "account_number": "****4521", "currency": "USD", "account_type": "operating", "balance": 1250000, "authorized_signers": ["Jane Smith", "John Doe"]},
+    {"company": "Acme Capital", "bank_name": "First National Bank", "iban": "US12345678901234", "swift": "FNBKUS33", "currency": "USD", "account_type": "custody", "balance": 500000},
+    {"company": "Acme Tech", "bank_name": "Silicon Valley Bank", "currency": "USD", "account_type": "operating", "balance": 320000},
+    {"company": "Acme Retail", "bank_name": "Deutsche Bank", "iban": "DE89370400440532013000", "swift": "DEUTDEDB", "currency": "EUR", "account_type": "operating", "balance": 180000}
+  ],
+  "transactions": [
+    {"company": "Acme Holdings", "transaction_type": "dividend", "description": "Q4 2024 dividend from Acme Tech", "amount": 50000, "currency": "USD", "counterparty": "Acme Tech", "date": "2025-01-15"},
+    {"company": "Acme Capital", "transaction_type": "buy", "description": "Gold purchase - 10 oz", "amount": 23500, "currency": "USD", "counterparty": "Gold Dealer Inc", "date": "2025-01-20"},
+    {"company": "Acme Tech", "transaction_type": "fee", "description": "Cloud infrastructure - January", "amount": 8500, "currency": "USD", "counterparty": "AWS", "date": "2025-01-31"}
+  ],
+  "liabilities": [
+    {"company": "Acme Holdings", "liability_type": "bank_loan", "creditor": "JPMorgan Chase", "principal": 500000, "currency": "USD", "interest_rate": 5.5, "maturity_date": "2027-06-30", "status": "active"},
+    {"company": "Acme Retail", "liability_type": "lease", "creditor": "Berlin Properties GmbH", "principal": 120000, "currency": "EUR", "interest_rate": 3.2, "maturity_date": "2028-12-31", "status": "active"}
+  ],
+  "service_providers": [
+    {"company": "Acme Holdings", "role": "lawyer", "name": "Sarah Johnson", "firm": "Johnson & Partners LLP", "email": "sarah@jpartners.com", "phone": "+1-555-0100"},
+    {"company": "Acme Holdings", "role": "accountant", "name": "Michael Chen", "firm": "Chen Accounting", "email": "mchen@chenacct.com"},
+    {"company": "Acme Capital", "role": "auditor", "name": "Emily Brown", "firm": "Big Four Auditors", "email": "ebrown@bigfour.com"},
+    {"company": "Acme Retail", "role": "tax_advisor", "name": "Hans Mueller", "firm": "Mueller Steuerberatung", "email": "hans@mueller-tax.de"}
+  ],
+  "insurance_policies": [
+    {"company": "Acme Holdings", "policy_type": "directors_officers", "provider": "AIG", "policy_number": "DO-2025-001", "coverage_amount": 5000000, "premium": 25000, "currency": "USD", "start_date": "2025-01-01", "expiry_date": "2026-01-01"},
+    {"company": "Acme Tech", "policy_type": "cyber", "provider": "Chubb", "policy_number": "CY-2025-042", "coverage_amount": 2000000, "premium": 12000, "currency": "USD", "start_date": "2025-01-01", "expiry_date": "2026-01-01"},
+    {"company": "Acme Retail", "policy_type": "property", "provider": "Allianz", "policy_number": "PR-2025-DE-789", "coverage_amount": 1000000, "premium": 8000, "currency": "EUR", "start_date": "2025-03-01", "expiry_date": "2026-03-01"}
+  ],
+  "board_meetings": [
+    {"company": "Acme Holdings", "meeting_type": "annual", "scheduled_date": "2025-03-15", "status": "scheduled", "notes": "Annual general meeting - review 2024 results"},
+    {"company": "Acme Holdings", "meeting_type": "regular", "scheduled_date": "2025-06-15", "status": "scheduled"},
+    {"company": "Acme Tech", "meeting_type": "special", "scheduled_date": "2025-04-01", "status": "scheduled", "notes": "Review new product launch strategy"}
   ]
 }

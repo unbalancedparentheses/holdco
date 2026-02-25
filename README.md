@@ -42,10 +42,32 @@ alerts and upcoming deadlines at a glance.
 multi-currency support. Dashboard aggregates totals and shows net P&L across
 the entire structure.
 
+**Bank accounts.** Track bank accounts per entity — operating, savings, FX,
+custody, and escrow accounts. Record bank name, account number, IBAN, SWIFT/BIC,
+currency, balance, and authorized signers.
+
+**Transaction history.** Record buy/sell transactions, dividends, fees,
+distributions, and capital calls per entity. Track amount, currency,
+counterparty, date, and link to asset holdings.
+
+**Liabilities.** Track debt obligations per entity — bank loans, bonds, credit
+lines, leases, and intercompany loans. Record principal, interest rate, maturity
+date, and status.
+
+**Service providers.** Maintain a directory of lawyers, accountants, auditors,
+bankers, tax advisors, and registered agents per entity with contact details.
+
+**Insurance policies.** Track insurance coverage per entity — D&O, cyber,
+property, professional liability. Record policy numbers, coverage amounts,
+premiums, and expiry dates with renewal alerts.
+
+**Board meetings.** Schedule and track board meetings per entity — regular,
+special, annual, and extraordinary meetings with status tracking and notes.
+
 **Audit log.** Every create, update, and delete operation across all tables is
 logged with timestamp, action, table name, record ID, and details.
 
-**REST API.** Full FastAPI JSON API with 27 endpoints for programmatic access.
+**REST API.** Full FastAPI JSON API with 45 endpoints for programmatic access.
 Auto-generated Swagger UI at `/docs`. Everything you can do in the dashboard
 you can do via the API.
 
@@ -225,6 +247,18 @@ JSON API at `http://localhost:8000`. Interactive docs at
 | DELETE | `/categories/{id}` | Delete a category |
 | GET | `/settings` | Get all settings |
 | PUT | `/settings/{key}` | Update a setting |
+| GET/POST | `/bank-accounts` | List or create bank accounts |
+| DELETE | `/bank-accounts/{id}` | Delete a bank account |
+| GET/POST | `/transactions` | List or create transactions |
+| DELETE | `/transactions/{id}` | Delete a transaction |
+| GET/POST | `/liabilities` | List or create liabilities |
+| DELETE | `/liabilities/{id}` | Delete a liability |
+| GET/POST | `/service-providers` | List or create service providers |
+| DELETE | `/service-providers/{id}` | Delete a service provider |
+| GET/POST | `/insurance-policies` | List or create insurance policies |
+| DELETE | `/insurance-policies/{id}` | Delete an insurance policy |
+| GET/POST | `/board-meetings` | List or create board meetings |
+| DELETE | `/board-meetings/{id}` | Delete a board meeting |
 | GET | `/prices/{ticker}` | Live price + 30-day history |
 | GET | `/audit-log` | Recent changes |
 | GET | `/stats` | Summary statistics |
@@ -265,7 +299,7 @@ JSON API at `http://localhost:8000`. Interactive docs at
 - [x] Document storage (contracts, articles of incorporation)
 - [ ] Cap table management (equity rounds, dilution, SAFE/convertible notes)
 - [ ] Entity formation workflow (incorporation checklist per jurisdiction)
-- [ ] Board resolution tracking and minutes
+- [x] Board meeting schedule and tracking
 - [ ] Shareholder voting and resolution outcomes
 - [ ] Power of attorney and signing authority matrix (who can sign what for which entity)
 - [ ] Shareholder agreement management with expiry dates
@@ -273,7 +307,7 @@ JSON API at `http://localhost:8000`. Interactive docs at
 - [ ] Beneficial ownership registry (UBO tracking for transparency laws)
 - [ ] Corporate secretary workflows (annual returns, registered agent)
 - [ ] Historical ownership timeline (track ownership changes over time)
-- [ ] Service provider directory per entity (lawyer, accountant, auditor, banker, registered agent)
+- [x] Service provider directory per entity (lawyer, accountant, auditor, banker, registered agent)
 - [ ] Employee headcount and key personnel per subsidiary
 - [ ] Regulatory license and permit tracking per entity
 - [ ] KYC/AML compliance status per entity
@@ -287,19 +321,19 @@ JSON API at `http://localhost:8000`. Interactive docs at
 
 - [x] P&L tracking (revenue/expenses per entity per period)
 - [x] Multi-currency support for asset holdings
-- [ ] Bank accounts per entity (operating, savings, FX — bank, IBAN/SWIFT, currency, authorized signers)
-- [ ] Cash balances per account per currency
-- [ ] Credit facilities and credit lines
-- [ ] Buy/sell transaction history with cost basis and lot tracking
+- [x] Bank accounts per entity (operating, savings, FX — bank, IBAN/SWIFT, currency, authorized signers)
+- [x] Cash balances per account per currency
+- [x] Credit facilities and credit lines
+- [x] Buy/sell transaction history
 - [ ] Inter-company loans, transfers, and settlements
 - [ ] Dividend and distribution tracking (received and paid)
 - [ ] Management fee flows between entities
 - [ ] Capital contributions and distributions log
 - [ ] Tax payment tracking per entity per jurisdiction
-- [ ] External debt tracking (bank loans, bonds, credit facilities)
+- [x] External debt tracking (bank loans, bonds, credit facilities)
 - [ ] Loans receivable (money others owe you)
 - [ ] Accounts payable and receivable aging
-- [ ] Lease obligations tracking
+- [x] Lease obligations tracking
 - [ ] Cash flow tracking and forecasting
 - [ ] Consolidated financial statements across subsidiaries
 - [ ] Multi-currency consolidated NAV (net asset value)
@@ -352,8 +386,8 @@ JSON API at `http://localhost:8000`. Interactive docs at
 - [ ] Counterparty risk assessment
 - [ ] ESG reporting (environmental, social, governance scores per entity)
 - [ ] Data retention policies and GDPR compliance tools
-- [ ] Insurance claims tracking
-- [ ] Board meeting schedule and compliance calendar
+- [x] Insurance policy management
+- [x] Board meeting schedule and compliance calendar
 - [ ] Regulatory filing tracker per jurisdiction per entity
 
 ### Documents & Knowledge
@@ -362,7 +396,7 @@ JSON API at `http://localhost:8000`. Interactive docs at
 - [ ] Version history for documents
 - [ ] Contract expiry alerts and renewal tracking
 - [ ] Vendor and supplier contract management
-- [ ] Insurance policy tracking per entity (coverage, expiry, premiums, renewal dates)
+- [x] Insurance policy tracking per entity (coverage, expiry, premiums, renewal dates)
 - [ ] Tagging and categorization for document search
 - [ ] E-signature integration (DocuSign/HelloSign) for board resolutions
 - [ ] Document file storage (S3/MinIO upload, not just URL references)

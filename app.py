@@ -12,7 +12,7 @@ st.set_page_config(page_title=app_name, layout="wide")
 
 page = st.sidebar.radio(
     "Navigation",
-    ["Dashboard", "Companies", "Asset Holdings", "Documents", "Tax Calendar", "Financials", "Audit Log", "Settings"],
+    ["Dashboard", "Companies", "Asset Holdings", "Bank Accounts", "Transactions", "Liabilities", "Documents", "Tax Calendar", "Financials", "Service Providers", "Insurance", "Board Meetings", "Audit Log", "Settings"],
 )
 
 
@@ -695,6 +695,451 @@ def settings_page() -> None:
                 st.rerun()
 
 
+# --- Bank Accounts ---
+
+
+def bank_accounts_page() -> None:
+    st.title("Bank Accounts")
+
+    accounts = db.get_bank_accounts()
+
+    if accounts:
+        table_data = []
+        total_balance = 0.0
+        for a in accounts:
+            bal = a["balance"] or 0
+            total_balance += bal
+            table_data.append({
+                "ID": a["id"],
+                "Company": a["company_name"],
+                "Bank": a["bank_name"],
+                "Account #": a["account_number"] or "",
+                "IBAN": a["iban"] or "",
+                "SWIFT": a["swift"] or "",
+                "Currency": a["currency"] or "USD",
+                "Type": a["account_type"] or "",
+                "Balance": f"${bal:,.2f}",
+                "Authorized Signers": a["authorized_signers"] or "",
+            })
+
+        st.metric("Total Balance", f"${total_balance:,.2f}")
+        st.dataframe(table_data, use_container_width=True, hide_index=True)
+    else:
+        st.info("No bank accounts yet.")
+
+    companies = db.get_all_companies()
+    company_names = [c["name"] for c in companies]
+
+    st.subheader("Add Bank Account")
+    with st.form("add_bank_account", clear_on_submit=True):
+        company = st.selectbox("Company*", company_names)
+        bank_name = st.text_input("Bank Name*")
+        account_number = st.text_input("Account Number")
+        iban = st.text_input("IBAN")
+        swift = st.text_input("SWIFT/BIC")
+        currency = st.text_input("Currency", value="USD")
+        account_type = st.selectbox("Account Type", ["operating", "savings", "fx", "custody", "escrow"])
+        balance = st.number_input("Balance", value=0.0, format="%.2f")
+        authorized_signers = st.text_input("Authorized Signers (comma-separated)")
+        notes = st.text_area("Notes")
+
+        if st.form_submit_button("Add"):
+            if not bank_name:
+                st.error("Bank name is required.")
+            else:
+                cid = db.get_company_id(company)
+                db.insert_bank_account(
+                    company_id=cid,
+                    bank_name=bank_name,
+                    account_number=account_number or None,
+                    iban=iban or None,
+                    swift=swift or None,
+                    currency=currency or "USD",
+                    account_type=account_type,
+                    balance=balance,
+                    authorized_signers=[s.strip() for s in authorized_signers.split(",") if s.strip()] if authorized_signers else None,
+                    notes=notes or None,
+                )
+                st.success(f"Added account at {bank_name}")
+                st.rerun()
+
+    if accounts:
+        st.subheader("Delete Bank Account")
+        with st.form("delete_bank_account"):
+            acct_options = {f"{a['company_name']} — {a['bank_name']} ({a['account_type']}) (ID {a['id']})": a["id"] for a in accounts}
+            del_choice = st.selectbox("Select account to delete", list(acct_options.keys()))
+            confirm = st.checkbox("I confirm deletion")
+            if st.form_submit_button("Delete") and confirm:
+                db.delete_bank_account(acct_options[del_choice])
+                st.success("Deleted bank account")
+                st.rerun()
+
+
+# --- Transactions ---
+
+
+def transactions_page() -> None:
+    st.title("Transactions")
+
+    txns = db.get_transactions()
+
+    if txns:
+        table_data = []
+        for t in txns:
+            table_data.append({
+                "ID": t["id"],
+                "Company": t["company_name"],
+                "Type": t["transaction_type"],
+                "Description": t["description"],
+                "Amount": f"${t['amount']:,.2f}",
+                "Currency": t["currency"] or "USD",
+                "Counterparty": t["counterparty"] or "",
+                "Date": t["date"],
+                "Notes": t["notes"] or "",
+            })
+        st.dataframe(table_data, use_container_width=True, hide_index=True)
+    else:
+        st.info("No transactions yet.")
+
+    companies = db.get_all_companies()
+    company_names = [c["name"] for c in companies]
+
+    st.subheader("Add Transaction")
+    with st.form("add_transaction", clear_on_submit=True):
+        company = st.selectbox("Company*", company_names)
+        transaction_type = st.selectbox("Type*", ["buy", "sell", "dividend", "interest", "fee", "transfer", "distribution", "capital_call", "other"])
+        description = st.text_input("Description*")
+        amount = st.number_input("Amount*", value=0.0, format="%.2f")
+        currency = st.text_input("Currency", value="USD")
+        counterparty = st.text_input("Counterparty")
+        date = st.date_input("Date*")
+        notes = st.text_area("Notes")
+
+        if st.form_submit_button("Add"):
+            if not description or amount == 0:
+                st.error("Description and amount are required.")
+            else:
+                cid = db.get_company_id(company)
+                db.insert_transaction(
+                    company_id=cid,
+                    transaction_type=transaction_type,
+                    description=description,
+                    amount=amount,
+                    date=str(date),
+                    currency=currency or "USD",
+                    counterparty=counterparty or None,
+                    notes=notes or None,
+                )
+                st.success(f"Added transaction: {description}")
+                st.rerun()
+
+    if txns:
+        st.subheader("Delete Transaction")
+        with st.form("delete_transaction"):
+            txn_options = {f"{t['company_name']} — {t['description']} ({t['date']}) (ID {t['id']})": t["id"] for t in txns}
+            del_choice = st.selectbox("Select transaction to delete", list(txn_options.keys()))
+            confirm = st.checkbox("I confirm deletion")
+            if st.form_submit_button("Delete") and confirm:
+                db.delete_transaction(txn_options[del_choice])
+                st.success("Deleted transaction")
+                st.rerun()
+
+
+# --- Liabilities ---
+
+
+def liabilities_page() -> None:
+    st.title("Liabilities")
+
+    liabilities = db.get_liabilities()
+
+    if liabilities:
+        table_data = []
+        total_principal = 0.0
+        for l in liabilities:
+            p = l["principal"] or 0
+            total_principal += p
+            table_data.append({
+                "ID": l["id"],
+                "Company": l["company_name"],
+                "Type": l["liability_type"],
+                "Creditor": l["creditor"],
+                "Principal": f"${p:,.2f}",
+                "Currency": l["currency"] or "USD",
+                "Interest Rate": f"{l['interest_rate']}%" if l["interest_rate"] is not None else "",
+                "Maturity": l["maturity_date"] or "",
+                "Status": l["status"] or "active",
+            })
+            total_principal += 0  # already added
+
+        st.metric("Total Liabilities", f"${total_principal:,.2f}")
+        st.dataframe(table_data, use_container_width=True, hide_index=True)
+    else:
+        st.info("No liabilities yet.")
+
+    companies = db.get_all_companies()
+    company_names = [c["name"] for c in companies]
+
+    st.subheader("Add Liability")
+    with st.form("add_liability", clear_on_submit=True):
+        company = st.selectbox("Company*", company_names)
+        liability_type = st.selectbox("Type*", ["bank_loan", "bond", "credit_line", "lease", "intercompany", "other"])
+        creditor = st.text_input("Creditor*")
+        principal = st.number_input("Principal*", value=0.0, format="%.2f")
+        currency = st.text_input("Currency", value="USD")
+        interest_rate = st.number_input("Interest Rate (%)", value=0.0, format="%.2f")
+        maturity_date = st.date_input("Maturity Date")
+        status = st.selectbox("Status", ["active", "paid_off", "defaulted", "restructured"])
+        notes = st.text_area("Notes")
+
+        if st.form_submit_button("Add"):
+            if not creditor or principal == 0:
+                st.error("Creditor and principal are required.")
+            else:
+                cid = db.get_company_id(company)
+                db.insert_liability(
+                    company_id=cid,
+                    liability_type=liability_type,
+                    creditor=creditor,
+                    principal=principal,
+                    currency=currency or "USD",
+                    interest_rate=interest_rate if interest_rate > 0 else None,
+                    maturity_date=str(maturity_date),
+                    status=status,
+                    notes=notes or None,
+                )
+                st.success(f"Added liability: {creditor}")
+                st.rerun()
+
+    if liabilities:
+        st.subheader("Delete Liability")
+        with st.form("delete_liability"):
+            lia_options = {f"{l['company_name']} — {l['creditor']} ({l['liability_type']}) (ID {l['id']})": l["id"] for l in liabilities}
+            del_choice = st.selectbox("Select liability to delete", list(lia_options.keys()))
+            confirm = st.checkbox("I confirm deletion")
+            if st.form_submit_button("Delete") and confirm:
+                db.delete_liability(lia_options[del_choice])
+                st.success("Deleted liability")
+                st.rerun()
+
+
+# --- Service Providers ---
+
+
+def service_providers_page() -> None:
+    st.title("Service Providers")
+
+    providers = db.get_service_providers()
+
+    if providers:
+        table_data = []
+        for p in providers:
+            table_data.append({
+                "ID": p["id"],
+                "Company": p["company_name"],
+                "Role": p["role"],
+                "Name": p["name"],
+                "Firm": p["firm"] or "",
+                "Email": p["email"] or "",
+                "Phone": p["phone"] or "",
+                "Notes": p["notes"] or "",
+            })
+        st.dataframe(table_data, use_container_width=True, hide_index=True)
+    else:
+        st.info("No service providers yet.")
+
+    companies = db.get_all_companies()
+    company_names = [c["name"] for c in companies]
+
+    st.subheader("Add Service Provider")
+    with st.form("add_service_provider", clear_on_submit=True):
+        company = st.selectbox("Company*", company_names)
+        role = st.selectbox("Role*", ["lawyer", "accountant", "auditor", "banker", "registered_agent", "tax_advisor", "consultant", "other"])
+        name = st.text_input("Contact Name*")
+        firm = st.text_input("Firm")
+        email = st.text_input("Email")
+        phone = st.text_input("Phone")
+        notes = st.text_area("Notes")
+
+        if st.form_submit_button("Add"):
+            if not name:
+                st.error("Contact name is required.")
+            else:
+                cid = db.get_company_id(company)
+                db.insert_service_provider(
+                    company_id=cid,
+                    role=role,
+                    name=name,
+                    firm=firm or None,
+                    email=email or None,
+                    phone=phone or None,
+                    notes=notes or None,
+                )
+                st.success(f"Added {role}: {name}")
+                st.rerun()
+
+    if providers:
+        st.subheader("Delete Service Provider")
+        with st.form("delete_service_provider"):
+            prov_options = {f"{p['company_name']} — {p['name']} ({p['role']}) (ID {p['id']})": p["id"] for p in providers}
+            del_choice = st.selectbox("Select provider to delete", list(prov_options.keys()))
+            confirm = st.checkbox("I confirm deletion")
+            if st.form_submit_button("Delete") and confirm:
+                db.delete_service_provider(prov_options[del_choice])
+                st.success("Deleted service provider")
+                st.rerun()
+
+
+# --- Insurance Policies ---
+
+
+def insurance_page() -> None:
+    st.title("Insurance Policies")
+
+    policies = db.get_insurance_policies()
+
+    if policies:
+        from datetime import date as dt_date
+        table_data = []
+        expiring_soon = 0
+        for p in policies:
+            is_expiring = p["expiry_date"] and p["expiry_date"] <= str(dt_date.today().replace(month=dt_date.today().month % 12 + 1))
+            if is_expiring:
+                expiring_soon += 1
+            table_data.append({
+                "ID": p["id"],
+                "Company": p["company_name"],
+                "Type": p["policy_type"],
+                "Provider": p["provider"],
+                "Policy #": p["policy_number"] or "",
+                "Coverage": f"${p['coverage_amount']:,.2f}" if p["coverage_amount"] else "",
+                "Premium": f"${p['premium']:,.2f}" if p["premium"] else "",
+                "Currency": p["currency"] or "USD",
+                "Start": p["start_date"] or "",
+                "Expiry": p["expiry_date"] or "",
+            })
+
+        if expiring_soon > 0:
+            st.warning(f"{expiring_soon} policy/policies expiring soon")
+        st.dataframe(table_data, use_container_width=True, hide_index=True)
+    else:
+        st.info("No insurance policies yet.")
+
+    companies = db.get_all_companies()
+    company_names = [c["name"] for c in companies]
+
+    st.subheader("Add Insurance Policy")
+    with st.form("add_insurance", clear_on_submit=True):
+        company = st.selectbox("Company*", company_names)
+        policy_type = st.selectbox("Type*", ["general_liability", "directors_officers", "property", "cyber", "professional", "health", "life", "other"])
+        provider = st.text_input("Insurance Provider*")
+        policy_number = st.text_input("Policy Number")
+        coverage_amount = st.number_input("Coverage Amount", value=0.0, format="%.2f")
+        premium = st.number_input("Annual Premium", value=0.0, format="%.2f")
+        currency = st.text_input("Currency", value="USD")
+        start_date = st.date_input("Start Date")
+        expiry_date = st.date_input("Expiry Date")
+        notes = st.text_area("Notes")
+
+        if st.form_submit_button("Add"):
+            if not provider:
+                st.error("Provider is required.")
+            else:
+                cid = db.get_company_id(company)
+                db.insert_insurance_policy(
+                    company_id=cid,
+                    policy_type=policy_type,
+                    provider=provider,
+                    policy_number=policy_number or None,
+                    coverage_amount=coverage_amount if coverage_amount > 0 else None,
+                    premium=premium if premium > 0 else None,
+                    currency=currency or "USD",
+                    start_date=str(start_date),
+                    expiry_date=str(expiry_date),
+                    notes=notes or None,
+                )
+                st.success(f"Added policy: {provider}")
+                st.rerun()
+
+    if policies:
+        st.subheader("Delete Insurance Policy")
+        with st.form("delete_insurance"):
+            pol_options = {f"{p['company_name']} — {p['provider']} ({p['policy_type']}) (ID {p['id']})": p["id"] for p in policies}
+            del_choice = st.selectbox("Select policy to delete", list(pol_options.keys()))
+            confirm = st.checkbox("I confirm deletion")
+            if st.form_submit_button("Delete") and confirm:
+                db.delete_insurance_policy(pol_options[del_choice])
+                st.success("Deleted insurance policy")
+                st.rerun()
+
+
+# --- Board Meetings ---
+
+
+def board_meetings_page() -> None:
+    st.title("Board Meetings")
+
+    meetings = db.get_board_meetings()
+
+    if meetings:
+        table_data = []
+        for m in meetings:
+            table_data.append({
+                "ID": m["id"],
+                "Company": m["company_name"],
+                "Type": m["meeting_type"],
+                "Date": m["scheduled_date"],
+                "Status": m["status"],
+                "Notes": m["notes"] or "",
+            })
+        st.dataframe(table_data, use_container_width=True, hide_index=True)
+    else:
+        st.info("No board meetings yet.")
+
+    companies = db.get_all_companies()
+    company_names = [c["name"] for c in companies]
+
+    st.subheader("Schedule Board Meeting")
+    with st.form("add_board_meeting", clear_on_submit=True):
+        company = st.selectbox("Company*", company_names)
+        meeting_type = st.selectbox("Type", ["regular", "special", "annual", "extraordinary"])
+        scheduled_date = st.date_input("Date*")
+        status = st.selectbox("Status", ["scheduled", "completed", "cancelled"])
+        notes = st.text_area("Notes")
+
+        if st.form_submit_button("Add"):
+            cid = db.get_company_id(company)
+            db.insert_board_meeting(
+                company_id=cid,
+                scheduled_date=str(scheduled_date),
+                meeting_type=meeting_type,
+                status=status,
+                notes=notes or None,
+            )
+            st.success(f"Scheduled {meeting_type} meeting")
+            st.rerun()
+
+    if meetings:
+        st.subheader("Update Meeting Status")
+        with st.form("update_meeting"):
+            mtg_options = {f"{m['company_name']} — {m['meeting_type']} ({m['scheduled_date']})": m["id"] for m in meetings}
+            mtg_choice = st.selectbox("Select meeting", list(mtg_options.keys()))
+            new_status = st.selectbox("New Status", ["scheduled", "completed", "cancelled"])
+            if st.form_submit_button("Update"):
+                db.update_board_meeting(mtg_options[mtg_choice], status=new_status)
+                st.success("Updated meeting status")
+                st.rerun()
+
+        st.subheader("Delete Board Meeting")
+        with st.form("delete_meeting"):
+            mtg_del_choice = st.selectbox("Select meeting to delete", list(mtg_options.keys()), key="mtg_del")
+            confirm = st.checkbox("I confirm deletion")
+            if st.form_submit_button("Delete") and confirm:
+                db.delete_board_meeting(mtg_options[mtg_del_choice])
+                st.success("Deleted board meeting")
+                st.rerun()
+
+
 # --- Route ---
 
 if page == "Dashboard":
@@ -703,12 +1148,24 @@ elif page == "Companies":
     companies_page()
 elif page == "Asset Holdings":
     asset_holdings_page()
+elif page == "Bank Accounts":
+    bank_accounts_page()
+elif page == "Transactions":
+    transactions_page()
+elif page == "Liabilities":
+    liabilities_page()
 elif page == "Documents":
     documents_page()
 elif page == "Tax Calendar":
     tax_calendar_page()
 elif page == "Financials":
     financials_page()
+elif page == "Service Providers":
+    service_providers_page()
+elif page == "Insurance":
+    insurance_page()
+elif page == "Board Meetings":
+    board_meetings_page()
 elif page == "Audit Log":
     audit_log_page()
 elif page == "Settings":

@@ -130,6 +130,88 @@ def init_db() -> None:
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS bank_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            bank_name TEXT NOT NULL,
+            account_number TEXT,
+            iban TEXT,
+            swift TEXT,
+            currency TEXT DEFAULT 'USD',
+            account_type TEXT DEFAULT 'operating',
+            balance REAL DEFAULT 0,
+            authorized_signers TEXT,
+            notes TEXT,
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            transaction_type TEXT NOT NULL,
+            description TEXT NOT NULL,
+            amount REAL NOT NULL,
+            currency TEXT DEFAULT 'USD',
+            counterparty TEXT,
+            date TEXT NOT NULL,
+            asset_holding_id INTEGER,
+            notes TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+            FOREIGN KEY (asset_holding_id) REFERENCES asset_holdings(id) ON DELETE SET NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS liabilities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            liability_type TEXT NOT NULL,
+            creditor TEXT NOT NULL,
+            principal REAL NOT NULL,
+            currency TEXT DEFAULT 'USD',
+            interest_rate REAL,
+            maturity_date TEXT,
+            status TEXT DEFAULT 'active',
+            notes TEXT,
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS service_providers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            role TEXT NOT NULL,
+            name TEXT NOT NULL,
+            firm TEXT,
+            email TEXT,
+            phone TEXT,
+            notes TEXT,
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS insurance_policies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            policy_type TEXT NOT NULL,
+            provider TEXT NOT NULL,
+            policy_number TEXT,
+            coverage_amount REAL,
+            premium REAL,
+            currency TEXT DEFAULT 'USD',
+            start_date TEXT,
+            expiry_date TEXT,
+            notes TEXT,
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS board_meetings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            meeting_type TEXT DEFAULT 'regular',
+            scheduled_date TEXT NOT NULL,
+            status TEXT DEFAULT 'scheduled',
+            notes TEXT,
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+        );
     """)
     conn.commit()
     conn.close()
@@ -696,6 +778,385 @@ def delete_financial(financial_id: int) -> None:
     conn.close()
 
 
+# --- Bank Accounts CRUD ---
+
+
+def insert_bank_account(
+    company_id: int,
+    bank_name: str,
+    *,
+    account_number: str | None = None,
+    iban: str | None = None,
+    swift: str | None = None,
+    currency: str = "USD",
+    account_type: str = "operating",
+    balance: float = 0,
+    authorized_signers: list[str] | None = None,
+    notes: str | None = None,
+) -> int:
+    conn = _conn()
+    cur = conn.execute(
+        """INSERT INTO bank_accounts
+           (company_id, bank_name, account_number, iban, swift, currency,
+            account_type, balance, authorized_signers, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            company_id, bank_name, account_number, iban, swift, currency,
+            account_type, balance, _join_csv(authorized_signers or []), notes,
+        ),
+    )
+    row_id = cur.lastrowid
+    _log(conn, "insert", "bank_accounts", row_id, f"bank={bank_name}")
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def get_bank_accounts(company_id: int | None = None) -> list[sqlite3.Row]:
+    conn = _conn()
+    if company_id:
+        rows = conn.execute(
+            "SELECT b.*, c.name as company_name FROM bank_accounts b JOIN companies c ON b.company_id = c.id WHERE b.company_id = ? ORDER BY b.id",
+            (company_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT b.*, c.name as company_name FROM bank_accounts b JOIN companies c ON b.company_id = c.id ORDER BY b.id"
+        ).fetchall()
+    conn.close()
+    return rows
+
+
+def update_bank_account(account_id: int, **kwargs) -> None:
+    allowed = {"bank_name", "account_number", "iban", "swift", "currency",
+               "account_type", "balance", "authorized_signers", "notes", "company_id"}
+    sets = []
+    values = []
+    for key, val in kwargs.items():
+        if key not in allowed:
+            raise ValueError(f"Unknown field: {key}")
+        if key == "authorized_signers" and isinstance(val, list):
+            val = _join_csv(val)
+        sets.append(f"{key} = ?")
+        values.append(val)
+    if not sets:
+        return
+    values.append(account_id)
+    conn = _conn()
+    conn.execute(f"UPDATE bank_accounts SET {', '.join(sets)} WHERE id = ?", values)
+    _log(conn, "update", "bank_accounts", account_id, json.dumps({k: str(v) for k, v in kwargs.items()}))
+    conn.commit()
+    conn.close()
+
+
+def delete_bank_account(account_id: int) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM bank_accounts WHERE id = ?", (account_id,))
+    _log(conn, "delete", "bank_accounts", account_id)
+    conn.commit()
+    conn.close()
+
+
+# --- Transactions CRUD ---
+
+
+def insert_transaction(
+    company_id: int,
+    transaction_type: str,
+    description: str,
+    amount: float,
+    date: str,
+    *,
+    currency: str = "USD",
+    counterparty: str | None = None,
+    asset_holding_id: int | None = None,
+    notes: str | None = None,
+) -> int:
+    conn = _conn()
+    cur = conn.execute(
+        """INSERT INTO transactions
+           (company_id, transaction_type, description, amount, currency,
+            counterparty, date, asset_holding_id, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (company_id, transaction_type, description, amount, currency,
+         counterparty, date, asset_holding_id, notes),
+    )
+    row_id = cur.lastrowid
+    _log(conn, "insert", "transactions", row_id, f"type={transaction_type} amount={amount}")
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def get_transactions(company_id: int | None = None) -> list[sqlite3.Row]:
+    conn = _conn()
+    if company_id:
+        rows = conn.execute(
+            "SELECT t.*, c.name as company_name FROM transactions t JOIN companies c ON t.company_id = c.id WHERE t.company_id = ? ORDER BY t.date DESC",
+            (company_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT t.*, c.name as company_name FROM transactions t JOIN companies c ON t.company_id = c.id ORDER BY t.date DESC"
+        ).fetchall()
+    conn.close()
+    return rows
+
+
+def delete_transaction(transaction_id: int) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM transactions WHERE id = ?", (transaction_id,))
+    _log(conn, "delete", "transactions", transaction_id)
+    conn.commit()
+    conn.close()
+
+
+# --- Liabilities CRUD ---
+
+
+def insert_liability(
+    company_id: int,
+    liability_type: str,
+    creditor: str,
+    principal: float,
+    *,
+    currency: str = "USD",
+    interest_rate: float | None = None,
+    maturity_date: str | None = None,
+    status: str = "active",
+    notes: str | None = None,
+) -> int:
+    conn = _conn()
+    cur = conn.execute(
+        """INSERT INTO liabilities
+           (company_id, liability_type, creditor, principal, currency,
+            interest_rate, maturity_date, status, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (company_id, liability_type, creditor, principal, currency,
+         interest_rate, maturity_date, status, notes),
+    )
+    row_id = cur.lastrowid
+    _log(conn, "insert", "liabilities", row_id, f"type={liability_type} creditor={creditor}")
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def get_liabilities(company_id: int | None = None) -> list[sqlite3.Row]:
+    conn = _conn()
+    if company_id:
+        rows = conn.execute(
+            "SELECT l.*, c.name as company_name FROM liabilities l JOIN companies c ON l.company_id = c.id WHERE l.company_id = ? ORDER BY l.id",
+            (company_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT l.*, c.name as company_name FROM liabilities l JOIN companies c ON l.company_id = c.id ORDER BY l.id"
+        ).fetchall()
+    conn.close()
+    return rows
+
+
+def update_liability(liability_id: int, **kwargs) -> None:
+    allowed = {"liability_type", "creditor", "principal", "currency",
+               "interest_rate", "maturity_date", "status", "notes", "company_id"}
+    sets = []
+    values = []
+    for key, val in kwargs.items():
+        if key not in allowed:
+            raise ValueError(f"Unknown field: {key}")
+        sets.append(f"{key} = ?")
+        values.append(val)
+    if not sets:
+        return
+    values.append(liability_id)
+    conn = _conn()
+    conn.execute(f"UPDATE liabilities SET {', '.join(sets)} WHERE id = ?", values)
+    _log(conn, "update", "liabilities", liability_id, json.dumps({k: str(v) for k, v in kwargs.items()}))
+    conn.commit()
+    conn.close()
+
+
+def delete_liability(liability_id: int) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM liabilities WHERE id = ?", (liability_id,))
+    _log(conn, "delete", "liabilities", liability_id)
+    conn.commit()
+    conn.close()
+
+
+# --- Service Providers CRUD ---
+
+
+def insert_service_provider(
+    company_id: int,
+    role: str,
+    name: str,
+    *,
+    firm: str | None = None,
+    email: str | None = None,
+    phone: str | None = None,
+    notes: str | None = None,
+) -> int:
+    conn = _conn()
+    cur = conn.execute(
+        """INSERT INTO service_providers
+           (company_id, role, name, firm, email, phone, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (company_id, role, name, firm, email, phone, notes),
+    )
+    row_id = cur.lastrowid
+    _log(conn, "insert", "service_providers", row_id, f"role={role} name={name}")
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def get_service_providers(company_id: int | None = None) -> list[sqlite3.Row]:
+    conn = _conn()
+    if company_id:
+        rows = conn.execute(
+            "SELECT s.*, c.name as company_name FROM service_providers s JOIN companies c ON s.company_id = c.id WHERE s.company_id = ? ORDER BY s.id",
+            (company_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT s.*, c.name as company_name FROM service_providers s JOIN companies c ON s.company_id = c.id ORDER BY s.id"
+        ).fetchall()
+    conn.close()
+    return rows
+
+
+def delete_service_provider(provider_id: int) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM service_providers WHERE id = ?", (provider_id,))
+    _log(conn, "delete", "service_providers", provider_id)
+    conn.commit()
+    conn.close()
+
+
+# --- Insurance Policies CRUD ---
+
+
+def insert_insurance_policy(
+    company_id: int,
+    policy_type: str,
+    provider: str,
+    *,
+    policy_number: str | None = None,
+    coverage_amount: float | None = None,
+    premium: float | None = None,
+    currency: str = "USD",
+    start_date: str | None = None,
+    expiry_date: str | None = None,
+    notes: str | None = None,
+) -> int:
+    conn = _conn()
+    cur = conn.execute(
+        """INSERT INTO insurance_policies
+           (company_id, policy_type, provider, policy_number, coverage_amount,
+            premium, currency, start_date, expiry_date, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (company_id, policy_type, provider, policy_number, coverage_amount,
+         premium, currency, start_date, expiry_date, notes),
+    )
+    row_id = cur.lastrowid
+    _log(conn, "insert", "insurance_policies", row_id, f"type={policy_type} provider={provider}")
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def get_insurance_policies(company_id: int | None = None) -> list[sqlite3.Row]:
+    conn = _conn()
+    if company_id:
+        rows = conn.execute(
+            "SELECT i.*, c.name as company_name FROM insurance_policies i JOIN companies c ON i.company_id = c.id WHERE i.company_id = ? ORDER BY i.expiry_date",
+            (company_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT i.*, c.name as company_name FROM insurance_policies i JOIN companies c ON i.company_id = c.id ORDER BY i.expiry_date"
+        ).fetchall()
+    conn.close()
+    return rows
+
+
+def delete_insurance_policy(policy_id: int) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM insurance_policies WHERE id = ?", (policy_id,))
+    _log(conn, "delete", "insurance_policies", policy_id)
+    conn.commit()
+    conn.close()
+
+
+# --- Board Meetings CRUD ---
+
+
+def insert_board_meeting(
+    company_id: int,
+    scheduled_date: str,
+    *,
+    meeting_type: str = "regular",
+    status: str = "scheduled",
+    notes: str | None = None,
+) -> int:
+    conn = _conn()
+    cur = conn.execute(
+        """INSERT INTO board_meetings
+           (company_id, meeting_type, scheduled_date, status, notes)
+           VALUES (?, ?, ?, ?, ?)""",
+        (company_id, meeting_type, scheduled_date, status, notes),
+    )
+    row_id = cur.lastrowid
+    _log(conn, "insert", "board_meetings", row_id, f"date={scheduled_date}")
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def get_board_meetings(company_id: int | None = None) -> list[sqlite3.Row]:
+    conn = _conn()
+    if company_id:
+        rows = conn.execute(
+            "SELECT m.*, c.name as company_name FROM board_meetings m JOIN companies c ON m.company_id = c.id WHERE m.company_id = ? ORDER BY m.scheduled_date",
+            (company_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT m.*, c.name as company_name FROM board_meetings m JOIN companies c ON m.company_id = c.id ORDER BY m.scheduled_date"
+        ).fetchall()
+    conn.close()
+    return rows
+
+
+def update_board_meeting(meeting_id: int, **kwargs) -> None:
+    allowed = {"meeting_type", "scheduled_date", "status", "notes", "company_id"}
+    sets = []
+    values = []
+    for key, val in kwargs.items():
+        if key not in allowed:
+            raise ValueError(f"Unknown field: {key}")
+        sets.append(f"{key} = ?")
+        values.append(val)
+    if not sets:
+        return
+    values.append(meeting_id)
+    conn = _conn()
+    conn.execute(f"UPDATE board_meetings SET {', '.join(sets)} WHERE id = ?", values)
+    _log(conn, "update", "board_meetings", meeting_id, json.dumps({k: str(v) for k, v in kwargs.items()}))
+    conn.commit()
+    conn.close()
+
+
+def delete_board_meeting(meeting_id: int) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM board_meetings WHERE id = ?", (meeting_id,))
+    _log(conn, "delete", "board_meetings", meeting_id)
+    conn.commit()
+    conn.close()
+
+
 # --- Price History ---
 
 
@@ -795,12 +1256,24 @@ def export_json() -> dict:
     docs = [dict(r) for r in get_documents()]
     deadlines = [dict(r) for r in get_tax_deadlines()]
     financials = [dict(r) for r in get_financials()]
+    bank_accounts = [dict(r) for r in get_bank_accounts()]
+    transactions = [dict(r) for r in get_transactions()]
+    liabilities = [dict(r) for r in get_liabilities()]
+    service_providers = [dict(r) for r in get_service_providers()]
+    insurance_policies = [dict(r) for r in get_insurance_policies()]
+    board_meetings = [dict(r) for r in get_board_meetings()]
 
     return {
         "entities": result,
         "documents": docs,
         "tax_deadlines": deadlines,
         "financials": financials,
+        "bank_accounts": bank_accounts,
+        "transactions": transactions,
+        "liabilities": liabilities,
+        "service_providers": service_providers,
+        "insurance_policies": insurance_policies,
+        "board_meetings": board_meetings,
     }
 
 
@@ -827,6 +1300,12 @@ def get_stats() -> dict:
     custodians_count = conn.execute("SELECT COUNT(*) FROM custodian_accounts").fetchone()[0]
     docs_count = conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
     deadlines_count = conn.execute("SELECT COUNT(*) FROM tax_deadlines").fetchone()[0]
+    bank_accounts_count = conn.execute("SELECT COUNT(*) FROM bank_accounts").fetchone()[0]
+    transactions_count = conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+    liabilities_count = conn.execute("SELECT COUNT(*) FROM liabilities").fetchone()[0]
+    service_providers_count = conn.execute("SELECT COUNT(*) FROM service_providers").fetchone()[0]
+    insurance_policies_count = conn.execute("SELECT COUNT(*) FROM insurance_policies").fetchone()[0]
+    board_meetings_count = conn.execute("SELECT COUNT(*) FROM board_meetings").fetchone()[0]
 
     conn.close()
     return {
@@ -839,4 +1318,10 @@ def get_stats() -> dict:
         "custodian_accounts": custodians_count,
         "documents": docs_count,
         "tax_deadlines": deadlines_count,
+        "bank_accounts": bank_accounts_count,
+        "transactions": transactions_count,
+        "liabilities": liabilities_count,
+        "service_providers": service_providers_count,
+        "insurance_policies": insurance_policies_count,
+        "board_meetings": board_meetings_count,
     }
