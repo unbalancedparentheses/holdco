@@ -1,4 +1,7 @@
 __pycache__/
 *.pyc
 .streamlit/
-ergodic.db
+*.db
+seed.json
+REPORT.md
+data/

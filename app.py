@@ -1,16 +1,18 @@
 import streamlit as st
 
 import db
-from models import AssetHolding, Category, Company, Holding
+from models import AssetHolding, Company, Holding
 from yahoo import get_price
 
 db.init_db()
 
-st.set_page_config(page_title="Ergodic", layout="wide")
+app_name = db.get_app_name()
+
+st.set_page_config(page_title=app_name, layout="wide")
 
 page = st.sidebar.radio(
     "Navigation",
-    ["Dashboard", "Companies", "Asset Holdings", "Documents", "Tax Calendar", "Financials", "Audit Log"],
+    ["Dashboard", "Companies", "Asset Holdings", "Documents", "Tax Calendar", "Financials", "Audit Log", "Settings"],
 )
 
 
@@ -18,7 +20,7 @@ page = st.sidebar.radio(
 
 
 def dashboard_page() -> None:
-    st.title("Ergodic")
+    st.title(db.get_app_name())
     entities = db.get_entities()
     stats = db.get_stats()
 
@@ -30,14 +32,16 @@ def dashboard_page() -> None:
     cols[3].metric("Countries", len(stats["by_country"]))
 
     # Category breakdown
-    cat_cols = st.columns(len(stats["by_category"]))
-    for i, (cat, count) in enumerate(stats["by_category"].items()):
-        cat_cols[i].metric(cat, count)
+    if stats["by_category"]:
+        cat_cols = st.columns(len(stats["by_category"]))
+        for i, (cat, count) in enumerate(stats["by_category"].items()):
+            cat_cols[i].metric(cat, count)
 
     st.divider()
 
     # Category filter
-    all_cats = ["All"] + [c.value for c in Category]
+    category_names = db.get_category_names()
+    all_cats = ["All"] + category_names
     cat_filter = st.selectbox("Filter by category", all_cats, key="dash_cat_filter")
 
     for entity in entities:
@@ -46,11 +50,11 @@ def dashboard_page() -> None:
             col1, col2, col3 = st.columns(3)
             col1.metric("Country", entity.country)
             col2.metric("Subsidiaries", len(entity.subsidiaries))
-            col3.metric("Category", "Holding")
+            col3.metric("Category", entity.category)
 
             subs = entity.subsidiaries
             if cat_filter != "All":
-                subs = [s for s in subs if s.category.value == cat_filter]
+                subs = [s for s in subs if s.category == cat_filter]
 
             if subs:
                 subs_data = []
@@ -58,7 +62,7 @@ def dashboard_page() -> None:
                     subs_data.append({
                         "Entity": s.name,
                         "Country": s.country,
-                        "Category": s.category.value,
+                        "Category": s.category,
                         "Ownership %": f"{s.ownership_pct}%" if s.ownership_pct is not None else "",
                         "Shareholders": ", ".join(s.shareholders) if s.shareholders else "",
                         "Directors": ", ".join(s.directors) if s.directors else "",
@@ -68,7 +72,7 @@ def dashboard_page() -> None:
             elif cat_filter != "All":
                 st.info(f"No {cat_filter} subsidiaries.")
         else:
-            if cat_filter != "All" and entity.category.value != cat_filter:
+            if cat_filter != "All" and entity.category != cat_filter:
                 continue
             st.header(entity.name)
             col1, col2, col3 = st.columns(3)
@@ -142,6 +146,7 @@ def companies_page() -> None:
     st.title("Companies")
 
     rows = db.get_all_companies()
+    category_names = db.get_category_names()
 
     table_data = []
     for r in rows:
@@ -172,7 +177,7 @@ def companies_page() -> None:
     with st.form("add_company", clear_on_submit=True):
         name = st.text_input("Name*")
         country = st.text_input("Country*")
-        category = st.selectbox("Category*", [c.value for c in Category])
+        category = st.selectbox("Category*", category_names)
         is_holding = st.checkbox("Is Holding")
 
         holdings_list = [r for r in rows if r["is_holding"]]
@@ -223,11 +228,8 @@ def companies_page() -> None:
             with st.form("edit_company"):
                 new_name = st.text_input("Name", value=selected["name"])
                 new_country = st.text_input("Country", value=selected["country"])
-                new_category = st.selectbox(
-                    "Category",
-                    [c.value for c in Category],
-                    index=[c.value for c in Category].index(selected["category"]),
-                )
+                cat_index = category_names.index(selected["category"]) if selected["category"] in category_names else 0
+                new_category = st.selectbox("Category", category_names, index=cat_index)
                 new_holding = st.checkbox("Is Holding", value=bool(selected["is_holding"]))
 
                 parent_options = ["(none)"] + [r["name"] for r in rows if r["is_holding"] and r["id"] != selected["id"]]
@@ -445,7 +447,6 @@ def tax_calendar_page() -> None:
     deadlines = db.get_tax_deadlines()
 
     if deadlines:
-        # Show upcoming vs overdue
         from datetime import date
 
         overdue = []
@@ -632,6 +633,68 @@ def audit_log_page() -> None:
         st.info("No audit log entries yet.")
 
 
+# --- Settings ---
+
+
+def settings_page() -> None:
+    st.title("Settings")
+
+    # App Settings
+    st.subheader("General")
+    with st.form("settings_form"):
+        current_name = db.get_setting("app_name", "Holdco")
+        current_tagline = db.get_setting("tagline", "")
+        current_website = db.get_setting("website", "")
+
+        new_app_name = st.text_input("App Name", value=current_name)
+        new_tagline = st.text_input("Tagline", value=current_tagline)
+        new_website = st.text_input("Website", value=current_website)
+
+        if st.form_submit_button("Save Settings"):
+            db.set_setting("app_name", new_app_name)
+            db.set_setting("tagline", new_tagline)
+            db.set_setting("website", new_website)
+            st.success("Settings saved. Refresh to see title change.")
+            st.rerun()
+
+    # Categories
+    st.subheader("Categories")
+    categories = db.get_categories()
+
+    if categories:
+        cat_data = []
+        for c in categories:
+            cat_data.append({
+                "ID": c["id"],
+                "Name": c["name"],
+                "Color": c["color"],
+            })
+        st.dataframe(cat_data, use_container_width=True, hide_index=True)
+
+    # Add Category
+    with st.form("add_category", clear_on_submit=True):
+        cat_name = st.text_input("Category Name*")
+        cat_color = st.color_picker("Color", value="#e0e0e0")
+        if st.form_submit_button("Add Category"):
+            if not cat_name:
+                st.error("Category name is required.")
+            else:
+                db.insert_category(cat_name, cat_color)
+                st.success(f"Added category: {cat_name}")
+                st.rerun()
+
+    # Delete Category
+    if categories:
+        with st.form("delete_category"):
+            cat_options = {f"{c['name']} (ID {c['id']})": c["id"] for c in categories}
+            del_choice = st.selectbox("Select category to delete", list(cat_options.keys()))
+            confirm = st.checkbox("I confirm deletion")
+            if st.form_submit_button("Delete Category") and confirm:
+                db.delete_category(cat_options[del_choice])
+                st.success("Deleted category")
+                st.rerun()
+
+
 # --- Route ---
 
 if page == "Dashboard":
@@ -648,3 +711,5 @@ elif page == "Financials":
     financials_page()
 elif page == "Audit Log":
     audit_log_page()
+elif page == "Settings":
+    settings_page()

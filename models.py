@@ -1,14 +1,4 @@
-from enum import Enum
-
 from pydantic import BaseModel, field_validator
-
-
-class Category(str, Enum):
-    CODE = "Code"
-    FINANCE = "Finance"
-    CULTURE = "Culture"
-    CRAFT = "Craft"
-    HOLDING = "Holding"
 
 
 class CustodianAccount(BaseModel):
@@ -30,7 +20,7 @@ class Company(BaseModel):
     name: str
     legal_name: str | None = None
     country: str
-    category: Category
+    category: str
     ownership_pct: int | None = None
     tax_id: str | None = None
     shareholders: list[str] = []
@@ -47,5 +37,5 @@ class Company(BaseModel):
 
 
 class Holding(Company):
-    category: Category = Category.HOLDING
+    category: str = "Holding"
     subsidiaries: list[Company] = []

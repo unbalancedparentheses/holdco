@@ -6,7 +6,7 @@ from yahoo import get_price
 
 db.init_db()
 
-app = FastAPI(title="Ergodic API", version="1.0.0")
+app = FastAPI(title=db.get_app_name() + " API", version="1.0.0")
 
 
 # --- Request models ---
@@ -85,6 +85,15 @@ class FinancialCreate(BaseModel):
     expenses: float = 0
     currency: str = "USD"
     notes: str | None = None
+
+
+class CategoryCreate(BaseModel):
+    name: str
+    color: str = "#e0e0e0"
+
+
+class SettingUpdate(BaseModel):
+    value: str
 
 
 # --- Entities ---
@@ -268,6 +277,40 @@ def create_financial(body: FinancialCreate):
 @app.delete("/financials/{financial_id}")
 def delete_financial(financial_id: int):
     db.delete_financial(financial_id)
+    return {"ok": True}
+
+
+# --- Categories ---
+
+
+@app.get("/categories")
+def list_categories():
+    return db.get_categories()
+
+
+@app.post("/categories", status_code=201)
+def create_category(body: CategoryCreate):
+    row_id = db.insert_category(body.name, body.color)
+    return {"id": row_id}
+
+
+@app.delete("/categories/{category_id}")
+def delete_category(category_id: int):
+    db.delete_category(category_id)
+    return {"ok": True}
+
+
+# --- Settings ---
+
+
+@app.get("/settings")
+def get_settings():
+    return db.get_all_settings()
+
+
+@app.put("/settings/{key}")
+def update_setting(key: str, body: SettingUpdate):
+    db.set_setting(key, body.value)
     return {"ok": True}
 
 

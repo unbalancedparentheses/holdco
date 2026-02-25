@@ -1,0 +1,30 @@
+{
+  "settings": {
+    "app_name": "Holdco",
+    "tagline": "Open source holding company management",
+    "website": ""
+  },
+  "categories": [
+    {"name": "Technology", "color": "#e8f5e9"},
+    {"name": "Finance", "color": "#fff3e0"},
+    {"name": "Media", "color": "#f3e5f5"},
+    {"name": "Retail", "color": "#fce4ec"},
+    {"name": "Holding", "color": "#e1f5fe"}
+  ],
+  "companies": [
+    {
+      "name": "Acme Holdings",
+      "country": "United States",
+      "category": "Holding",
+      "is_holding": true,
+      "shareholders": ["Jane Smith"],
+      "directors": ["Jane Smith", "John Doe"],
+      "subsidiaries": [
+        {"name": "Acme Tech", "country": "United States", "category": "Technology", "ownership_pct": 100},
+        {"name": "Acme Capital", "country": "United States", "category": "Finance", "ownership_pct": 100},
+        {"name": "Acme Media", "country": "United Kingdom", "category": "Media", "ownership_pct": 75},
+        {"name": "Acme Retail", "country": "Germany", "category": "Retail", "ownership_pct": 100}
+      ]
+    }
+  ]
+}

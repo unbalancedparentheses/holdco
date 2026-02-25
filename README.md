@@ -1,107 +1,96 @@
-# Ergodic
+# Holdco
 
-Internal management system for [Ergodic Group](https://ergodicgroup.com) —
-a privately held permanent capital firm (est. 2014) that invests directly and holds.
-Infrastructure and culture built for endurance across four domains:
-**Code**, **Finance**, **Culture**, and **Craft**.
+Open source holding company management system. Track corporate structure,
+ownership, asset holdings, custody, documents, tax compliance, and financials
+across all your entities from a single dashboard.
 
-**26** entities across **4** countries.
+## Features
 
-Code: 8 | Finance: 5 | Culture: 5 | Craft: 7 | Holding: 1
+- **Corporate structure** — hierarchical parent/subsidiary relationships with ownership percentages
+- **Asset holdings** — track positions with custodian accounts, multi-currency support
+- **Live prices** — real-time asset valuations from Yahoo Finance with price history
+- **Documents** — store contracts, articles of incorporation, tax filings
+- **Tax calendar** — deadline tracking with overdue alerts per jurisdiction
+- **Financials** — revenue and expenses per entity and period
+- **Mermaid diagrams** — auto-generated ownership structure visualizations
+- **Audit log** — full change history of all database mutations
+- **REST API** — FastAPI JSON API for programmatic access
+- **Report generation** — auto-generated markdown report from database
+- **Configurable** — app name, categories, and settings managed via web admin panel
+- **Seed data** — bootstrap from JSON for quick setup
 
-Tracks corporate structure, ownership, asset holdings, custody,
-documents, tax compliance, and financials across all entities.
+## Quickstart
 
----
+### pip
 
-This README is auto-generated from the SQLite database. Do not edit it directly.
-Instead, edit via the admin panel and regenerate:
-
+```bash
+pip install -r requirements.txt
+python seed.py                          # populate with demo data
+streamlit run app.py                    # dashboard at http://localhost:8501
+uvicorn api:app --reload                # API at http://localhost:8000
 ```
-streamlit run app.py      # admin panel + dashboard
-python generate_readme.py  # regenerate this file
+
+### Docker
+
+```bash
+docker compose up
+# Dashboard: http://localhost:8501
+# API:       http://localhost:8000
 ```
 
-## Ownership Structure
+### Nix
 
-```mermaid
-graph TD
-    c1["Camiguin"]
-    c2["Foltrek"]
-    c3["Lambda"]
-    c4["Sur"]
-    c5["FuzzingLabs"]
-    c6["Aligned"]
-    c7["Sovra"]
-    c8["Restolia"]
-    c9["3MI Labs"]
-    c10["Ergodic Fund"]
-    c11["Pol Finance"]
-    c12["Levenue"]
-    c13["Cresium"]
-    c14["421"]
-    c15["Bellolandia"]
-    c16["LCB Game Studio"]
-    c17["Lambda Forge"]
-    c18["Arcademy"]
-    c19["Burgschneider"]
-    c20["Laderas de los Andes"]
-    c21["Fruto Cafe"]
-    c22["High Mobility"]
-    c23["Ōtoro"]
-    c24["Palermo Wine Club"]
-    c25["Best Eleven"]
-    c26["Lambda SAS"]
-    c1 -->| 100%| c2
-    c1 -->| 100%| c3
-    c1 -->| 50%| c4
-    c1 -->| 100%| c5
-    c1 -->| 100%| c6
-    c1 -->| 100%| c7
-    c1 -->| 100%| c8
-    c1 -->| 100%| c9
-    c1 -->| 100%| c10
-    c1 -->| 100%| c11
-    c1 -->| 100%| c12
-    c1 -->| 100%| c13
-    c1 -->| 100%| c14
-    c1 -->| 100%| c15
-    c1 -->| 100%| c16
-    c1 -->| 100%| c17
-    c1 -->| 100%| c18
-    c1 -->| 100%| c19
-    c1 -->| 100%| c20
-    c1 -->| 100%| c21
-    c1 -->| 100%| c22
-    c1 -->| 100%| c23
-    c1 -->| 100%| c24
-    c1 -->| 100%| c25
-    style c1 fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
-    style c2 fill:#e8f5e9,stroke:#388e3c
-    style c3 fill:#e8f5e9,stroke:#388e3c
-    style c4 fill:#e8f5e9,stroke:#388e3c
-    style c5 fill:#e8f5e9,stroke:#388e3c
-    style c6 fill:#e8f5e9,stroke:#388e3c
-    style c7 fill:#e8f5e9,stroke:#388e3c
-    style c8 fill:#e8f5e9,stroke:#388e3c
-    style c9 fill:#fff3e0,stroke:#f57c00
-    style c10 fill:#fff3e0,stroke:#f57c00
-    style c11 fill:#fff3e0,stroke:#f57c00
-    style c12 fill:#fff3e0,stroke:#f57c00
-    style c13 fill:#fff3e0,stroke:#f57c00
-    style c14 fill:#f3e5f5,stroke:#7b1fa2
-    style c15 fill:#f3e5f5,stroke:#7b1fa2
-    style c16 fill:#f3e5f5,stroke:#7b1fa2
-    style c17 fill:#f3e5f5,stroke:#7b1fa2
-    style c18 fill:#f3e5f5,stroke:#7b1fa2
-    style c19 fill:#fce4ec,stroke:#c62828
-    style c20 fill:#fce4ec,stroke:#c62828
-    style c21 fill:#fce4ec,stroke:#c62828
-    style c22 fill:#fce4ec,stroke:#c62828
-    style c23 fill:#fce4ec,stroke:#c62828
-    style c24 fill:#fce4ec,stroke:#c62828
-    style c25 fill:#fce4ec,stroke:#c62828
-    style c26 fill:#e8f5e9,stroke:#388e3c
+```bash
+nix develop                             # enter dev shell with all deps
+python seed.py
+streamlit run app.py
+```
+
+## Configuration
+
+All configuration is done through the **Settings** page in the admin panel:
+
+- **App Name** — displayed in the dashboard title and API
+- **Tagline** — shown in generated reports
+- **Website** — included in generated reports
+- **Categories** — add, edit, or remove categories with custom colors for Mermaid diagrams
+
+No config files to edit. Everything lives in the database.
+
+## Seed Data
+
+On first run, `python seed.py` loads data from `seed.json` (gitignored, your real data)
+or falls back to `seed.example.json` (demo data with "Acme Holdings").
+
+The seed is idempotent — it skips if the database already has companies.
+
+### Format
+
+```json
+{
+  "settings": {
+    "app_name": "My Holdco",
+    "tagline": "Family office management",
+    "website": "https://example.com"
+  },
+  "categories": [
+    {"name": "Technology", "color": "#e8f5e9"},
+    {"name": "Finance", "color": "#fff3e0"}
+  ],
+  "companies": [
+    {
+      "name": "Parent Corp",
+      "country": "United States",
+      "category": "Holding",
+      "is_holding": true,
+      "shareholders": ["Alice"],
+      "directors": ["Alice", "Bob"],
+      "subsidiaries": [
+        {"name": "Sub Inc", "country": "United States", "category": "Technology", "ownership_pct": 100}
+      ]
+    }
+  ]
+}
 ```
 
 ## Architecture
@@ -109,41 +98,19 @@ graph TD
 | File | Purpose |
 |---|---|
 | `models.py` | Pydantic models — Company, Holding, AssetHolding, CustodianAccount |
-| `db.py` | SQLite layer — CRUD operations, `get_entities()`, `export_json()` |
-| `app.py` | Streamlit dashboard + admin panel for managing data |
-| `yahoo.py` | Live asset prices from Yahoo Finance with history tracking |
+| `db.py` | SQLite layer — CRUD for all tables, categories, settings |
+| `app.py` | Streamlit dashboard + admin panel + settings management |
 | `api.py` | FastAPI JSON API for programmatic access |
-| `generate_readme.py` | Reads the database and generates this README |
+| `yahoo.py` | Live asset prices from Yahoo Finance with history tracking |
+| `generate_readme.py` | Reads the database and generates `REPORT.md` |
+| `seed.py` | First-run seed loader from JSON |
 
-The `db` module exposes a Python API (`db.insert_company(...)`, `db.export_json()`, etc.)
-that AI agents or scripts can use directly.
-
-## Dashboard
-
-```
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-**Dashboard**: corporate structure, live asset valuations, category filters, price history charts.
-
-**Companies**: add, edit, and delete companies with notes, websites, and documents.
-
-**Asset Holdings**: manage asset positions, custodian accounts, multi-currency support.
-
-**Tax Calendar**: track filing deadlines and compliance status per jurisdiction.
-
-**Financials**: revenue and expenses per entity and period.
-
-**Audit Log**: full change history of all database mutations.
+The `db` module exposes a Python API (`db.insert_company(...)`, `db.get_categories()`,
+`db.get_setting(...)`, etc.) that AI agents or scripts can use directly.
 
 ## API
 
-```
-uvicorn api:app --reload
-```
-
-JSON API at `http://localhost:8000`. Endpoints:
+JSON API at `http://localhost:8000`. Full endpoint list:
 
 | Method | Path | Description |
 |---|---|---|
@@ -155,6 +122,8 @@ JSON API at `http://localhost:8000`. Endpoints:
 | GET | `/holdings` | List all asset holdings |
 | POST | `/holdings` | Create an asset holding |
 | DELETE | `/holdings/{id}` | Delete an asset holding |
+| POST | `/custodians` | Create a custodian account |
+| DELETE | `/custodians/{id}` | Delete a custodian account |
 | GET | `/documents` | List all documents |
 | POST | `/documents` | Create a document |
 | DELETE | `/documents/{id}` | Delete a document |
@@ -164,80 +133,21 @@ JSON API at `http://localhost:8000`. Endpoints:
 | GET | `/financials` | List all financials |
 | POST | `/financials` | Create a financial record |
 | DELETE | `/financials/{id}` | Delete a financial record |
+| GET | `/categories` | List all categories |
+| POST | `/categories` | Create a category |
+| DELETE | `/categories/{id}` | Delete a category |
+| GET | `/settings` | Get all settings |
+| PUT | `/settings/{key}` | Update a setting |
 | GET | `/prices/{ticker}` | Get live price + history |
 | GET | `/audit-log` | View recent changes |
 | GET | `/stats` | Summary statistics |
 | GET | `/export` | Full JSON export |
 
-## Camiguin
+## Environment Variables
 
-| | |
-|---|---|
-| **Country** | Spain |
-| **Category** | Holding |
-| **Shareholders** | Federico Carrone |
-| **Directors** | Martin Paulucci, Nicolas Urman |
-| **Lawyer Studio** | Briz |
-
-### Code (7)
-
-| Entity      | Country   | Ownership % | Directors                   | Lawyer Studio |
-|-------------|-----------|-------------|-----------------------------|---------------|
-| Foltrek     | Uruguay   | 100%        | Juan Deal, Federico Carrone | PPV           |
-| Lambda      | Argentina | 100%        |                             |               |
-| Sur         | Argentina | 50%         |                             |               |
-| FuzzingLabs | Argentina | 100%        |                             |               |
-| Aligned     | Argentina | 100%        |                             |               |
-| Sovra       | Argentina | 100%        |                             |               |
-| Restolia    | Argentina | 100%        |                             |               |
-
-#### Foltrek Holdings
-
-| Asset | Ticker | Custodian Bank | Authorized Persons          |
-|-------|--------|----------------|-----------------------------|
-| Gold  | XAUUSD | Pershing       | Juan Deal, Federico Carrone |
-
-### Finance (5)
-
-| Entity       | Country   | Ownership % |
-|--------------|-----------|-------------|
-| 3MI Labs     | Argentina | 100%        |
-| Ergodic Fund | Argentina | 100%        |
-| Pol Finance  | Argentina | 100%        |
-| Levenue      | Argentina | 100%        |
-| Cresium      | Argentina | 100%        |
-
-### Culture (5)
-
-| Entity          | Country   | Ownership % |
-|-----------------|-----------|-------------|
-| 421             | Argentina | 100%        |
-| Bellolandia     | Argentina | 100%        |
-| LCB Game Studio | Argentina | 100%        |
-| Lambda Forge    | Argentina | 100%        |
-| Arcademy        | Argentina | 100%        |
-
-### Craft (7)
-
-| Entity               | Country   | Ownership % |
-|----------------------|-----------|-------------|
-| Burgschneider        | Europe/US | 100%        |
-| Laderas de los Andes | Argentina | 100%        |
-| Fruto Cafe           | Argentina | 100%        |
-| High Mobility        | Argentina | 100%        |
-| Ōtoro                | Argentina | 100%        |
-| Palermo Wine Club    | Argentina | 100%        |
-| Best Eleven          | Argentina | 100%        |
-
-## Lambda SAS
-
-| | |
-|---|---|
-| **Country** | Argentina |
-| **Ownership %** | 100% |
-| **Shareholders** | Pablo Perello, Juan Mazzoni, Martina Cantaro, Matias Onorato |
-| **Directors** | Pablo Perello |
-| **Lawyer Studio** | Croz |
+| Variable | Default | Description |
+|---|---|---|
+| `HOLDCO_DB` | `holdco.db` | Path to SQLite database file |
 
 ## Roadmap
 
@@ -246,16 +156,23 @@ JSON API at `http://localhost:8000`. Endpoints:
 - [x] SQLite database with full CRUD
 - [x] Streamlit admin panel (companies, holdings, custodians)
 - [x] FastAPI JSON API for programmatic access
-- [x] Auto-generated README with architecture docs
+- [x] Auto-generated report with architecture docs
 - [x] Mermaid ownership structure diagram
-- [x] Category-grouped subsidiaries in README
+- [x] Category-grouped subsidiaries in reports
 - [x] Audit log for all database changes
+- [x] Configurable categories and settings via web admin
+- [x] Seed data loader from JSON
+- [x] Docker and Docker Compose support
+- [x] Nix flake for reproducible development
 - [ ] Multi-user authentication and role-based access control
 - [ ] Database backup/restore and migration tooling
 - [ ] Full-text search across all entities, documents, and notes
 - [ ] Webhook notifications on changes (Slack, email, Telegram)
 - [ ] Static HTML report generation for read-only sharing
 - [ ] Activity dashboard with recent changes across all tables
+- [ ] Automated database backups (scheduled SQLite snapshots)
+- [ ] Data import/export from CSV/Excel
+- [ ] Real-time WebSocket updates for collaborative use
 
 ### Corporate Structure & Governance
 
@@ -269,6 +186,9 @@ JSON API at `http://localhost:8000`. Endpoints:
 - [ ] KYC/AML compliance status per entity
 - [ ] Key contact directory (lawyers, accountants, bankers per entity)
 - [ ] Employee headcount and key personnel per subsidiary
+- [ ] Beneficial ownership registry (UBO tracking for transparency laws)
+- [ ] Corporate secretary workflows (annual returns, registered agent)
+- [ ] Entity relationship mapping for regulatory disclosures
 
 ### Financial Operations
 
@@ -285,6 +205,11 @@ JSON API at `http://localhost:8000`. Endpoints:
 - [ ] Accounts payable and receivable aging
 - [ ] QuickBooks/Xero API integration for real-time bookkeeping sync
 - [ ] Invoice management per entity
+- [ ] Multi-currency consolidated NAV (net asset value)
+- [ ] Dividend yield tracking and projections
+- [ ] Entity cost center analysis (overhead per subsidiary)
+- [ ] Scenario modeling (what-if restructuring analysis)
+- [ ] Bank feed integration (Plaid/Open Banking)
 
 ### Asset Management & Portfolio
 
@@ -298,6 +223,7 @@ JSON API at `http://localhost:8000`. Endpoints:
 - [ ] Crypto wallet address tracking and on-chain balance verification
 - [ ] Automated daily/weekly price snapshot scheduler
 - [ ] Benchmark comparison (S&P 500, BTC, gold)
+- [ ] Tax-loss harvesting suggestions
 
 ### Tax & Compliance
 
@@ -308,6 +234,8 @@ JSON API at `http://localhost:8000`. Endpoints:
 - [ ] Tax filing status tracker with accountant assignments
 - [ ] Withholding tax tracking on cross-border payments
 - [ ] Annual compliance checklist generator per jurisdiction
+- [ ] Anti-money laundering (AML) transaction monitoring
+- [ ] FATCA/CRS reporting helper for cross-border tax obligations
 
 ### Documents & Knowledge
 
@@ -317,6 +245,7 @@ JSON API at `http://localhost:8000`. Endpoints:
 - [ ] Vendor and supplier contract management
 - [ ] Insurance policy tracking per entity (coverage, expiry, premiums)
 - [ ] Tagging and categorization for document search
+- [ ] E-signature integration (DocuSign/HelloSign) for board resolutions
 
 ### Reporting & Visualization
 
@@ -327,3 +256,20 @@ JSON API at `http://localhost:8000`. Endpoints:
 - [ ] Quarterly board report generator (PDF/HTML)
 - [ ] Customizable dashboard widgets
 - [ ] Export to Excel/CSV for all tables
+
+### Integrations
+
+- [ ] Accounting software sync (QuickBooks, Xero, FreshBooks)
+- [ ] Calendar sync (Google Calendar, Outlook) for tax deadlines
+- [ ] Slack/Discord bot for notifications and quick lookups
+
+### Security & Access
+
+- [ ] Encrypted database at rest
+- [ ] API key authentication
+- [ ] Row-level access control (per-entity permissions)
+- [ ] Two-factor authentication
+
+## License
+
+MIT

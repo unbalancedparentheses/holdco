@@ -1,11 +1,12 @@
 import json
+import os
 import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 
-from models import AssetHolding, Category, Company, CustodianAccount, Holding
+from models import AssetHolding, Company, CustodianAccount, Holding
 
-DB_PATH = Path(__file__).parent / "ergodic.db"
+DB_PATH = Path(os.environ.get("HOLDCO_DB", Path(__file__).parent / "holdco.db"))
 
 
 def _conn() -> sqlite3.Connection:
@@ -118,20 +119,18 @@ def init_db() -> None:
             record_id INTEGER,
             details TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            color TEXT DEFAULT '#e0e0e0'
+        );
+
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
     """)
-
-    # Add columns to existing tables if they don't exist yet (migration)
-    for col, default in [("notes", None), ("website", None)]:
-        try:
-            conn.execute(f"ALTER TABLE companies ADD COLUMN {col} TEXT")
-        except sqlite3.OperationalError:
-            pass
-
-    try:
-        conn.execute("ALTER TABLE asset_holdings ADD COLUMN currency TEXT DEFAULT 'USD'")
-    except sqlite3.OperationalError:
-        pass
-
     conn.commit()
     conn.close()
 
@@ -141,6 +140,91 @@ def _log(conn: sqlite3.Connection, action: str, table_name: str, record_id: int 
         "INSERT INTO audit_log (action, table_name, record_id, details) VALUES (?, ?, ?, ?)",
         (action, table_name, record_id, details),
     )
+
+
+# --- Categories CRUD ---
+
+
+def get_categories() -> list[dict]:
+    conn = _conn()
+    rows = conn.execute("SELECT * FROM categories ORDER BY id").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_category_names() -> list[str]:
+    return [c["name"] for c in get_categories()]
+
+
+def insert_category(name: str, color: str = "#e0e0e0") -> int:
+    conn = _conn()
+    cur = conn.execute(
+        "INSERT INTO categories (name, color) VALUES (?, ?)", (name, color)
+    )
+    row_id = cur.lastrowid
+    _log(conn, "insert", "categories", row_id, f"name={name}")
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def update_category(category_id: int, **kwargs) -> None:
+    allowed = {"name", "color"}
+    sets = []
+    values = []
+    for key, val in kwargs.items():
+        if key not in allowed:
+            raise ValueError(f"Unknown field: {key}")
+        sets.append(f"{key} = ?")
+        values.append(val)
+    if not sets:
+        return
+    values.append(category_id)
+    conn = _conn()
+    conn.execute(f"UPDATE categories SET {', '.join(sets)} WHERE id = ?", values)
+    _log(conn, "update", "categories", category_id, json.dumps(kwargs))
+    conn.commit()
+    conn.close()
+
+
+def delete_category(category_id: int) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM categories WHERE id = ?", (category_id,))
+    _log(conn, "delete", "categories", category_id)
+    conn.commit()
+    conn.close()
+
+
+# --- Settings CRUD ---
+
+
+def get_setting(key: str, default: str = "") -> str:
+    conn = _conn()
+    row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+    conn.close()
+    return row["value"] if row else default
+
+
+def set_setting(key: str, value: str) -> None:
+    conn = _conn()
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?",
+        (key, value, value),
+    )
+    _log(conn, "upsert", "settings", None, f"{key}={value}")
+    conn.commit()
+    conn.close()
+
+
+def get_all_settings() -> dict[str, str]:
+    conn = _conn()
+    rows = conn.execute("SELECT key, value FROM settings ORDER BY key").fetchall()
+    conn.close()
+    return {r["key"]: r["value"] for r in rows}
+
+
+def get_app_name() -> str:
+    return get_setting("app_name", "Holdco")
 
 
 # --- Read ---
@@ -195,7 +279,7 @@ def _build_company(conn: sqlite3.Connection, row: sqlite3.Row) -> Company:
         name=row["name"],
         legal_name=row["legal_name"],
         country=row["country"],
-        category=Category(row["category"]),
+        category=row["category"],
         ownership_pct=row["ownership_pct"],
         tax_id=row["tax_id"],
         shareholders=_split_csv(row["shareholders"]),
@@ -215,7 +299,7 @@ def _build_holding(conn: sqlite3.Connection, row: sqlite3.Row) -> Holding:
         name=row["name"],
         legal_name=row["legal_name"],
         country=row["country"],
-        category=Category(row["category"]),
+        category=row["category"],
         ownership_pct=row["ownership_pct"],
         tax_id=row["tax_id"],
         shareholders=_split_csv(row["shareholders"]),
@@ -703,13 +787,11 @@ def export_json() -> dict:
     result = []
     for e in entities:
         d = e.model_dump()
-        d["category"] = d["category"].value if hasattr(d["category"], "value") else d["category"]
         if isinstance(e, Holding):
             for sub in d.get("subsidiaries", []):
-                sub["category"] = sub["category"].value if hasattr(sub["category"], "value") else sub["category"]
+                pass  # category is already a plain string
         result.append(d)
 
-    # Include extra tables
     docs = [dict(r) for r in get_documents()]
     deadlines = [dict(r) for r in get_tax_deadlines()]
     financials = [dict(r) for r in get_financials()]
