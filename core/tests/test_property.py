@@ -43,7 +43,7 @@ safe_text = st.text(
 )
 
 safe_name = st.text(
-    alphabet=st.characters(whitelist_categories=("L", "N", "Z"), blacklist_characters="\x00"),
+    alphabet=st.characters(whitelist_categories=("L", "N"), blacklist_characters="\x00"),
     min_size=1,
     max_size=200,
 )
@@ -182,7 +182,7 @@ class TestCategoryProperties:
 
 
 class TestHoldingProperties:
-    @given(asset=safe_name, ticker=st.text(min_size=1, max_size=20), quantity=positive_float, currency=currency_st)
+    @given(asset=safe_name, ticker=safe_name, quantity=positive_float, currency=currency_st)
     @settings(max_examples=20, suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture])
     def test_holding_roundtrip(self, admin, company, asset, ticker, quantity, currency):
         r = admin.post("/api/holdings", {

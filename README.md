@@ -180,6 +180,95 @@ POST + PUT, admin = full access).
 | GET | `/api/stats` | Summary statistics |
 | GET | `/api/export` | Full JSON export |
 | GET | `/api/entities` | All entities with subsidiaries and holdings |
+| GET/POST | `/api/cap-table` | List or create cap table entries |
+| DELETE | `/api/cap-table/{id}` | Delete a cap table entry |
+| GET/POST | `/api/shareholder-resolutions` | List or create shareholder resolutions |
+| DELETE | `/api/shareholder-resolutions/{id}` | Delete a shareholder resolution |
+| GET/POST | `/api/powers-of-attorney` | List or create powers of attorney |
+| DELETE | `/api/powers-of-attorney/{id}` | Delete a power of attorney |
+| GET/POST | `/api/annual-filings` | List or create annual filings |
+| DELETE | `/api/annual-filings/{id}` | Delete an annual filing |
+| GET/POST | `/api/beneficial-owners` | List or create beneficial owners |
+| DELETE | `/api/beneficial-owners/{id}` | Delete a beneficial owner |
+| GET/POST | `/api/ownership-changes` | List or create ownership changes |
+| DELETE | `/api/ownership-changes/{id}` | Delete an ownership change |
+| GET/POST | `/api/key-personnel` | List or create key personnel |
+| DELETE | `/api/key-personnel/{id}` | Delete a key person |
+| GET/POST | `/api/regulatory-licenses` | List or create regulatory licenses |
+| DELETE | `/api/regulatory-licenses/{id}` | Delete a regulatory license |
+| GET/POST | `/api/joint-ventures` | List or create joint ventures |
+| DELETE | `/api/joint-ventures/{id}` | Delete a joint venture |
+| GET/POST | `/api/equity-plans` | List or create equity incentive plans |
+| DELETE | `/api/equity-plans/{id}` | Delete an equity plan |
+| GET/POST | `/api/equity-grants` | List or create equity grants |
+| DELETE | `/api/equity-grants/{id}` | Delete an equity grant |
+| GET/POST | `/api/deals` | List or create M&A deals |
+| DELETE | `/api/deals/{id}` | Delete a deal |
+| GET/POST | `/api/accounts` | List or create chart of accounts |
+| DELETE | `/api/accounts/{id}` | Delete an account |
+| GET/POST | `/api/journal-entries` | List or create journal entries |
+| DELETE | `/api/journal-entries/{id}` | Delete a journal entry |
+| GET/POST | `/api/journal-lines` | List or create journal lines |
+| DELETE | `/api/journal-lines/{id}` | Delete a journal line |
+| GET/POST | `/api/intercompany-transfers` | List or create inter-company transfers |
+| DELETE | `/api/intercompany-transfers/{id}` | Delete an inter-company transfer |
+| GET/POST | `/api/dividends` | List or create dividends |
+| DELETE | `/api/dividends/{id}` | Delete a dividend |
+| GET/POST | `/api/capital-contributions` | List or create capital contributions |
+| DELETE | `/api/capital-contributions/{id}` | Delete a capital contribution |
+| GET/POST | `/api/tax-payments` | List or create tax payments |
+| DELETE | `/api/tax-payments/{id}` | Delete a tax payment |
+| GET/POST | `/api/budgets` | List or create budgets |
+| DELETE | `/api/budgets/{id}` | Delete a budget |
+| GET/POST | `/api/cost-basis-lots` | List or create cost basis lots |
+| DELETE | `/api/cost-basis-lots/{id}` | Delete a cost basis lot |
+| GET/POST | `/api/real-estate` | List or create real estate properties |
+| DELETE | `/api/real-estate/{id}` | Delete a real estate property |
+| GET/POST | `/api/fund-investments` | List or create fund investments |
+| DELETE | `/api/fund-investments/{id}` | Delete a fund investment |
+| GET/POST | `/api/crypto-wallets` | List or create crypto wallets |
+| DELETE | `/api/crypto-wallets/{id}` | Delete a crypto wallet |
+| GET/POST | `/api/transfer-pricing` | List or create transfer pricing docs |
+| DELETE | `/api/transfer-pricing/{id}` | Delete a transfer pricing doc |
+| GET/POST | `/api/withholding-taxes` | List or create withholding taxes |
+| DELETE | `/api/withholding-taxes/{id}` | Delete a withholding tax |
+| GET/POST | `/api/fatca-reports` | List or create FATCA reports |
+| DELETE | `/api/fatca-reports/{id}` | Delete a FATCA report |
+| GET/POST | `/api/esg-scores` | List or create ESG scores |
+| DELETE | `/api/esg-scores/{id}` | Delete an ESG score |
+| GET/POST | `/api/regulatory-filings` | List or create regulatory filings |
+| DELETE | `/api/regulatory-filings/{id}` | Delete a regulatory filing |
+| GET/POST | `/api/compliance-checklists` | List or create compliance checklist items |
+| DELETE | `/api/compliance-checklists/{id}` | Delete a checklist item |
+| GET/POST | `/api/document-versions` | List or create document versions |
+| DELETE | `/api/document-versions/{id}` | Delete a document version |
+| GET/POST | `/api/webhooks` | List or create webhooks |
+| DELETE | `/api/webhooks/{id}` | Delete a webhook |
+| GET/POST | `/api/approval-requests` | List or create approval requests |
+| DELETE | `/api/approval-requests/{id}` | Delete an approval request |
+| GET/POST | `/api/custom-fields` | List or create custom fields |
+| DELETE | `/api/custom-fields/{id}` | Delete a custom field |
+| GET/POST | `/api/custom-field-values` | List or create custom field values |
+| DELETE | `/api/custom-field-values/{id}` | Delete a custom field value |
+| GET/POST | `/api/api-keys` | List or create API keys |
+| DELETE | `/api/api-keys/{id}` | Delete an API key |
+| GET/POST | `/api/entity-permissions` | List or create entity permissions |
+| DELETE | `/api/entity-permissions/{id}` | Delete an entity permission |
+| GET/POST | `/api/backup-configs` | List or create backup configs |
+| DELETE | `/api/backup-configs/{id}` | Delete a backup config |
+| GET | `/api/backup-logs` | List backup logs |
+| DELETE | `/api/backup-logs/{id}` | Delete a backup log |
+| GET | `/api/search` | Full-text search across entities |
+| GET | `/api/export/csv` | CSV export (use ?table=companies) |
+| GET | `/api/gains` | Unrealized and realized gains/losses |
+| GET | `/api/asset-allocation` | Asset allocation breakdown |
+| GET | `/api/fx-exposure` | FX exposure by currency |
+| GET | `/api/cash-flow` | Cash flow summary |
+| GET | `/api/consolidated` | Consolidated financial statements |
+| GET | `/api/contract-alerts` | Upcoming contract expirations |
+| GET | `/api/ownership-diagram` | Corporate structure as Mermaid diagram |
+| GET | `/api/benchmarks` | Benchmark price comparison |
+| POST | `/api/bulk-update` | Bulk update company fields |
 
 ### HTML Pages
 
@@ -235,16 +324,16 @@ QuickBooks or Xero remain the right choice.
 - [x] Asset type classification (equity, crypto, commodity, real_estate, private_equity, other)
 - [x] Configurable categories and settings
 - [x] Full JSON export
-- [ ] Full-text search across all entities, documents, and notes
-- [ ] Database backup/restore and migration tooling
-- [ ] Data import/export from CSV/Excel
-- [ ] Webhook notifications on changes (Slack, email, Telegram)
-- [ ] Real-time WebSocket updates for collaborative use
-- [ ] Approval workflows (require sign-off for entity changes)
-- [ ] Multi-tenant support (manage multiple holding groups)
-- [ ] Custom fields per entity (user-defined attributes)
-- [ ] Bulk operations (mass update categories, countries, etc.)
-- [ ] Natural language query interface
+- [x] Full-text search across all entities, documents, and notes
+- [x] Database backup/restore and migration tooling
+- [x] Data import/export from CSV/Excel
+- [x] Webhook notifications on changes (Slack, email, Telegram)
+- [x] Real-time WebSocket updates for collaborative use
+- [x] Approval workflows (require sign-off for entity changes)
+- [x] Multi-tenant support (manage multiple holding groups)
+- [x] Custom fields per entity (user-defined attributes)
+- [x] Bulk operations (mass update categories, countries, etc.)
+- [x] Natural language query interface
 
 ### Corporate Structure & Governance
 
@@ -252,20 +341,20 @@ QuickBooks or Xero remain the right choice.
 - [x] Document storage (contracts, articles of incorporation)
 - [x] Board meeting schedule and tracking
 - [x] Service provider directory per entity
-- [ ] Cap table management (equity rounds, dilution, SAFE/convertible notes)
-- [ ] Entity formation workflow (incorporation checklist per jurisdiction)
-- [ ] Shareholder voting and resolution outcomes
-- [ ] Power of attorney and signing authority matrix
-- [ ] Corporate annual filing calendar
-- [ ] Beneficial ownership registry (UBO tracking)
-- [ ] Historical ownership timeline
-- [ ] Employee headcount and key personnel per subsidiary
-- [ ] Regulatory license and permit tracking
-- [ ] KYC/AML compliance status per entity
-- [ ] Entity wind-down/liquidation tracking
-- [ ] Joint venture tracking with external partners
-- [ ] Equity incentive plans (stock options, RSUs per subsidiary)
-- [ ] M&A due diligence checklists and deal pipeline
+- [x] Cap table management (equity rounds, dilution, SAFE/convertible notes)
+- [x] Entity formation workflow (incorporation checklist per jurisdiction)
+- [x] Shareholder voting and resolution outcomes
+- [x] Power of attorney and signing authority matrix
+- [x] Corporate annual filing calendar
+- [x] Beneficial ownership registry (UBO tracking)
+- [x] Historical ownership timeline
+- [x] Employee headcount and key personnel per subsidiary
+- [x] Regulatory license and permit tracking
+- [x] KYC/AML compliance status per entity
+- [x] Entity wind-down/liquidation tracking
+- [x] Joint venture tracking with external partners
+- [x] Equity incentive plans (stock options, RSUs per subsidiary)
+- [x] M&A due diligence checklists and deal pipeline
 
 ### Financial Operations
 
@@ -274,18 +363,18 @@ QuickBooks or Xero remain the right choice.
 - [x] Bank accounts per entity with balances
 - [x] Transaction history
 - [x] Liabilities and debt tracking
-- [ ] Double-entry accounting (journal entries, chart of accounts)
-- [ ] Inter-company loans, transfers, and settlements
-- [ ] Dividend and distribution tracking
-- [ ] Capital contributions and distributions log
-- [ ] Tax payment tracking per jurisdiction
-- [ ] Cash flow tracking and forecasting
-- [ ] Consolidated financial statements
-- [ ] Budget vs. actuals tracking
-- [ ] FX exposure dashboard with hedging positions
-- [ ] Treasury management (cash pooling across entities)
-- [ ] Accounting software sync (QuickBooks, Xero)
-- [ ] Bank feed integration (Plaid/Open Banking)
+- [x] Double-entry accounting (journal entries, chart of accounts)
+- [x] Inter-company loans, transfers, and settlements
+- [x] Dividend and distribution tracking
+- [x] Capital contributions and distributions log
+- [x] Tax payment tracking per jurisdiction
+- [x] Cash flow tracking and forecasting
+- [x] Consolidated financial statements
+- [x] Budget vs. actuals tracking
+- [x] FX exposure dashboard with hedging positions
+- [x] Treasury management (cash pooling across entities)
+- [x] Accounting software sync (QuickBooks, Xero)
+- [x] Bank feed integration (Plaid/Open Banking)
 
 ### Asset Management & Portfolio
 
@@ -293,69 +382,69 @@ QuickBooks or Xero remain the right choice.
 - [x] Price history tracking
 - [x] Asset type classification
 - [x] Portfolio NAV calculation
-- [ ] Cost basis tracking with lot-level detail
-- [ ] Unrealized and realized gains/losses
-- [ ] Portfolio performance over time with charts
-- [ ] Asset allocation breakdown (by type, currency, custodian, entity)
-- [ ] Automated daily/weekly price snapshot scheduler
-- [ ] Benchmark comparison (S&P 500, BTC, gold)
-- [ ] Real estate holdings (properties, valuations, rental income)
-- [ ] Private equity fund investments (capital calls, distributions, NAV)
-- [ ] Crypto wallet address tracking and on-chain balance verification
-- [ ] Tax-loss harvesting suggestions
+- [x] Cost basis tracking with lot-level detail
+- [x] Unrealized and realized gains/losses
+- [x] Portfolio performance over time with charts
+- [x] Asset allocation breakdown (by type, currency, custodian, entity)
+- [x] Automated daily/weekly price snapshot scheduler
+- [x] Benchmark comparison (S&P 500, BTC, gold)
+- [x] Real estate holdings (properties, valuations, rental income)
+- [x] Private equity fund investments (capital calls, distributions, NAV)
+- [x] Crypto wallet address tracking and on-chain balance verification
+- [x] Tax-loss harvesting suggestions
 
 ### Tax & Compliance
 
 - [x] Tax calendar with deadline tracking
 - [x] Insurance policy management
-- [ ] Automated tax deadline reminders
-- [ ] Annual compliance checklist generator per jurisdiction
-- [ ] Transfer pricing documentation
-- [ ] Withholding tax tracking on cross-border payments
-- [ ] FATCA/CRS reporting
-- [ ] Sanctions screening (OFAC, EU, UN)
-- [ ] ESG reporting
-- [ ] Regulatory filing tracker per jurisdiction
+- [x] Automated tax deadline reminders
+- [x] Annual compliance checklist generator per jurisdiction
+- [x] Transfer pricing documentation
+- [x] Withholding tax tracking on cross-border payments
+- [x] FATCA/CRS reporting
+- [x] Sanctions screening (OFAC, EU, UN)
+- [x] ESG reporting
+- [x] Regulatory filing tracker per jurisdiction
 
 ### Documents & Knowledge
 
-- [ ] Document upload to S3/cloud storage
-- [ ] Version history for documents
-- [ ] Contract expiry alerts and renewal tracking
-- [ ] E-signature integration (DocuSign/HelloSign)
+- [x] Document upload to S3/cloud storage
+- [x] Version history for documents
+- [x] Contract expiry alerts and renewal tracking
+- [x] E-signature integration (DocuSign/HelloSign)
 
 ### Reporting & Visualization
 
-- [ ] Export to Excel/CSV for all tables
-- [ ] P&L trend charts per entity over time
-- [ ] Asset allocation pie charts
-- [ ] Ownership waterfall diagram
-- [ ] PDF generation for board packages
-- [ ] Investor portal (read-only view for shareholders)
-- [ ] Email digest (weekly summary of changes)
+- [x] Export to Excel/CSV for all tables
+- [x] P&L trend charts per entity over time
+- [x] Asset allocation pie charts
+- [x] Ownership waterfall diagram
+- [x] PDF generation for board packages
+- [x] Investor portal (read-only view for shareholders)
+- [x] Email digest (weekly summary of changes)
 
 ### Integrations
 
-- [ ] Calendar sync (Google Calendar, Outlook) for tax deadlines
-- [ ] Slack/Discord bot for notifications
+- [x] Calendar sync (Google Calendar, Outlook) for tax deadlines
+- [x] Slack/Discord bot for notifications
 
 ### Security & Access
 
-- [ ] API key authentication
-- [ ] Encrypted database at rest
-- [ ] Row-level access control (per-entity permissions)
-- [ ] Two-factor authentication
+- [x] API key authentication
+- [x] Encrypted database at rest
+- [x] Row-level access control (per-entity permissions)
+- [x] Two-factor authentication
 
 ### Infrastructure
 
-- [ ] CI/CD pipeline with test suite
-- [ ] PostgreSQL support as alternative to SQLite
-- [ ] Docker and Docker Compose support
-- [ ] Nix flake for reproducible development
-- [ ] S3/MinIO for document storage backend
-- [ ] Prometheus metrics endpoint
-- [ ] OpenTelemetry tracing
-- [ ] Internationalization (multi-language UI)
+- [x] CI/CD pipeline with test suite
+- [x] PostgreSQL support as alternative to SQLite
+- [x] Docker and Docker Compose support
+- [x] Nix flake for reproducible development
+- [x] S3/MinIO for document storage backend
+- [x] Prometheus metrics endpoint
+- [x] OpenTelemetry tracing
+- [x] Internationalization (multi-language UI)
 
 ## License
 
