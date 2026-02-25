@@ -1,5 +1,5 @@
-from django.db.models import Count
-from django.shortcuts import render
+from django.db.models import Count, Sum
+from django.shortcuts import get_object_or_404, render
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -469,11 +469,28 @@ def _build_export():
 
 def dashboard(request):
     companies = Company.objects.all()
-    top_level = companies.filter(parent__isnull=True)
+    top_level = companies.filter(parent__isnull=True).prefetch_related(
+        "subsidiaries", "asset_holdings"
+    )
     total_companies = companies.count()
     total_subsidiaries = companies.filter(parent__isnull=False).count()
     total_holdings = AssetHolding.objects.count()
-    total_bank_accounts = BankAccount.objects.count()
+
+    # Bank accounts with aggregated balance
+    bank_accounts = BankAccount.objects.all()
+    total_bank_accounts = bank_accounts.count()
+    balances_by_currency = {}
+    for ba in bank_accounts:
+        balances_by_currency.setdefault(ba.currency, 0)
+        balances_by_currency[ba.currency] += ba.balance
+
+    # Liabilities
+    active_liabilities = Liability.objects.filter(status="active")
+    total_liabilities = active_liabilities.count()
+    liability_by_currency = {}
+    for lia in active_liabilities:
+        liability_by_currency.setdefault(lia.currency, 0)
+        liability_by_currency[lia.currency] += lia.principal
 
     by_category = {}
     for row in companies.values("category").annotate(cnt=Count("id")).order_by("-cnt"):
@@ -483,14 +500,92 @@ def dashboard(request):
     for row in companies.values("country").annotate(cnt=Count("id")).order_by("-cnt"):
         by_country[row["country"]] = row["cnt"]
 
+    # Recent transactions
+    recent_transactions = Transaction.objects.select_related("company").order_by("-date")[:8]
+
+    # Upcoming deadlines
+    upcoming_deadlines = TaxDeadline.objects.select_related("company").exclude(
+        status="completed"
+    ).order_by("due_date")[:6]
+
+    # Insurance policies
+    insurance_policies = InsurancePolicy.objects.select_related("company").order_by("expiry_date")[:6]
+
+    # Upcoming board meetings
+    upcoming_meetings = BoardMeeting.objects.select_related("company").exclude(
+        status="completed"
+    ).order_by("scheduled_date")[:5]
+
+    # Service providers
+    providers = ServiceProvider.objects.select_related("company").all()[:6]
+
     context = {
         "total_companies": total_companies,
         "total_subsidiaries": total_subsidiaries,
         "total_holdings": total_holdings,
         "total_bank_accounts": total_bank_accounts,
+        "balances_by_currency": balances_by_currency,
+        "total_liabilities": total_liabilities,
+        "liability_by_currency": liability_by_currency,
         "by_category": by_category,
         "by_country": by_country,
         "top_level": top_level,
+        "recent_transactions": recent_transactions,
+        "upcoming_deadlines": upcoming_deadlines,
+        "insurance_policies": insurance_policies,
+        "upcoming_meetings": upcoming_meetings,
+        "providers": providers,
         "recent_audit": AuditLog.objects.all()[:10],
     }
     return render(request, "core/dashboard.html", context)
+
+
+def company_page(request, company_id):
+    company = get_object_or_404(
+        Company.objects.prefetch_related(
+            "subsidiaries__asset_holdings",
+            "asset_holdings__custodian",
+            "bank_accounts",
+            "liabilities",
+            "transactions",
+            "tax_deadlines",
+            "documents",
+            "service_providers",
+            "insurance_policies",
+            "board_meetings",
+            "financials",
+        ),
+        id=company_id,
+    )
+
+    # Aggregate bank balances
+    balances_by_currency = {}
+    for ba in company.bank_accounts.all():
+        balances_by_currency.setdefault(ba.currency, 0)
+        balances_by_currency[ba.currency] += ba.balance
+
+    # Aggregate liabilities
+    active_liabilities = [l for l in company.liabilities.all() if l.status == "active"]
+    liability_by_currency = {}
+    for lia in active_liabilities:
+        liability_by_currency.setdefault(lia.currency, 0)
+        liability_by_currency[lia.currency] += lia.principal
+
+    context = {
+        "company": company,
+        "holdings": company.asset_holdings.all(),
+        "subsidiaries": company.subsidiaries.all(),
+        "bank_accounts": company.bank_accounts.all(),
+        "transactions": company.transactions.all()[:10],
+        "liabilities": company.liabilities.all(),
+        "deadlines": company.tax_deadlines.all(),
+        "documents": company.documents.all(),
+        "providers": company.service_providers.all(),
+        "policies": company.insurance_policies.all(),
+        "meetings": company.board_meetings.all(),
+        "financials": company.financials.all()[:4],
+        "balances_by_currency": balances_by_currency,
+        "liability_by_currency": liability_by_currency,
+        "total_active_liabilities": len(active_liabilities),
+    }
+    return render(request, "core/company_detail.html", context)

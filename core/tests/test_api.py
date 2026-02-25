@@ -405,4 +405,18 @@ def test_entities(client):
 def test_dashboard_page(client):
     r = client.get("/")
     assert r.status_code == 200
-    assert b"Dashboard" in r.content
+    assert b"Corporate Overview" in r.content
+
+
+@pytest.mark.django_db
+def test_company_detail_page(client, api_company):
+    r = client.get(f"/company/{api_company}/")
+    assert r.status_code == 200
+    assert b"Entity Details" in r.content
+    assert b"Co" in r.content
+
+
+@pytest.mark.django_db
+def test_company_detail_page_404(client):
+    r = client.get("/company/99999/")
+    assert r.status_code == 404

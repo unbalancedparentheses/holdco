@@ -1,148 +1,330 @@
 {% extends "core/base.html" %}
-{% block title %}Dashboard — Holdco{% endblock %}
+{% block title %}Corporate Overview — Holdco{% endblock %}
 {% block content %}
-<div class="page-header">
+
+<div class="page-title">
   <h1>Corporate Overview</h1>
-  <p class="subtitle">Summary of holdings, subsidiaries, and recent activity</p>
+  <p class="deck">Group structure, asset positions, financial obligations, and compliance status</p>
+  <hr class="page-title-rule">
 </div>
 
-<!-- Key metrics -->
-<div class="metrics">
-  <div class="metric">
-    <div class="label">Total Entities</div>
-    <div class="value">{{ total_companies }}</div>
-    <div class="note">Across all jurisdictions</div>
+<!-- ===== Key metrics ===== -->
+<div class="metrics-strip">
+  <div class="metric-cell">
+    <div class="metric-label">Entities</div>
+    <div class="metric-value">{{ total_companies }}</div>
+    <div class="metric-note">{{ total_subsidiaries }} subsidiar{{ total_subsidiaries|pluralize:"y,ies" }}</div>
   </div>
-  <div class="metric">
-    <div class="label">Subsidiaries</div>
-    <div class="value">{{ total_subsidiaries }}</div>
-    <div class="note">Under holding companies</div>
+  <div class="metric-cell">
+    <div class="metric-label">Asset Positions</div>
+    <div class="metric-value">{{ total_holdings }}</div>
+    <div class="metric-note">Tracked holdings</div>
   </div>
-  <div class="metric">
-    <div class="label">Asset Holdings</div>
-    <div class="value">{{ total_holdings }}</div>
-    <div class="note">Tracked positions</div>
+  <div class="metric-cell">
+    <div class="metric-label">Bank Accounts</div>
+    <div class="metric-value">{{ total_bank_accounts }}</div>
+    <div class="metric-note">{% for ccy, bal in balances_by_currency.items %}{{ bal|floatformat:0 }}<span class="ccy">{{ ccy }}</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}</div>
   </div>
-  <div class="metric">
-    <div class="label">Bank Accounts</div>
-    <div class="value">{{ total_bank_accounts }}</div>
-    <div class="note">Operating &amp; custody</div>
+  <div class="metric-cell">
+    <div class="metric-label">Active Liabilities</div>
+    <div class="metric-value">{{ total_liabilities }}</div>
+    <div class="metric-note">{% for ccy, amt in liability_by_currency.items %}{{ amt|floatformat:0 }}<span class="ccy">{{ ccy }}</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}</div>
   </div>
 </div>
 
-<!-- Breakdowns -->
-<div class="two-col">
-  <div>
-    <div class="section-title">By Category</div>
-    <div class="breakdown">
-      {% for cat, count in by_category.items %}
-      <div class="breakdown-row">
-        <span class="breakdown-label">{{ cat }}</span>
-        <div class="breakdown-bar">
-          <div class="breakdown-fill" style="width: {% widthratio count total_companies 100 %}%"></div>
+<!-- ===== Breakdowns ===== -->
+<div class="grid-2">
+  <div class="section">
+    <div class="section-head">
+      <h2>By Sector</h2>
+      <span class="count">{{ by_category|length }} categories</span>
+    </div>
+    <div class="panel">
+      <div class="breakdown-list">
+        {% for cat, count in by_category.items %}
+        <div class="bkd-row">
+          <span class="bkd-label">{{ cat }}</span>
+          <div class="bkd-bar"><div class="bkd-fill" style="width: {% widthratio count total_companies 100 %}%"></div></div>
+          <span class="bkd-val">{{ count }}</span>
         </div>
-        <span class="breakdown-val">{{ count }}</span>
+        {% empty %}
+        <div class="empty-state">No categories</div>
+        {% endfor %}
       </div>
-      {% empty %}
-      <div class="empty">No categories yet</div>
-      {% endfor %}
     </div>
   </div>
-  <div>
-    <div class="section-title">By Jurisdiction</div>
-    <div class="breakdown">
-      {% for country, count in by_country.items %}
-      <div class="breakdown-row">
-        <span class="breakdown-label">{{ country }}</span>
-        <div class="breakdown-bar">
-          <div class="breakdown-fill" style="width: {% widthratio count total_companies 100 %}%"></div>
+  <div class="section">
+    <div class="section-head">
+      <h2>By Jurisdiction</h2>
+      <span class="count">{{ by_country|length }} countries</span>
+    </div>
+    <div class="panel">
+      <div class="breakdown-list">
+        {% for country, count in by_country.items %}
+        <div class="bkd-row">
+          <span class="bkd-label">{{ country }}</span>
+          <div class="bkd-bar"><div class="bkd-fill" style="width: {% widthratio count total_companies 100 %}%"></div></div>
+          <span class="bkd-val">{{ count }}</span>
         </div>
-        <span class="breakdown-val">{{ count }}</span>
+        {% empty %}
+        <div class="empty-state">No data</div>
+        {% endfor %}
       </div>
-      {% empty %}
-      <div class="empty">No data</div>
-      {% endfor %}
     </div>
   </div>
 </div>
 
-<!-- Entity structure -->
+<!-- ===== Corporate structure ===== -->
 <div class="section">
-  <div class="section-title">Corporate Structure</div>
-  <div class="card">
+  <div class="section-head">
+    <h2>Group Structure</h2>
+    <span class="count">{{ total_companies }} entities</span>
+  </div>
+  <div class="panel">
     <table>
       <thead>
         <tr>
           <th>Entity</th>
           <th>Jurisdiction</th>
-          <th>Category</th>
+          <th>Sector</th>
           <th>Type</th>
-          <th class="num">Ownership</th>
-          <th class="num">Subsidiaries</th>
+          <th class="th-num">Ownership</th>
+          <th class="th-num">Holdings</th>
         </tr>
       </thead>
       <tbody>
         {% for company in top_level %}
         <tr>
-          <td><span class="entity-name">{{ company.name }}</span></td>
+          <td class="td-name"><a href="/company/{{ company.id }}/" class="td-link">{{ company.name }}</a></td>
           <td>{{ company.country }}</td>
           <td>{{ company.category }}</td>
-          <td>
-            {% if company.is_holding %}
-            <span class="badge badge-holding">Holding</span>
-            {% else %}
-            <span class="badge badge-sub">Company</span>
-            {% endif %}
-          </td>
-          <td class="num">&mdash;</td>
-          <td class="num">{{ company.subsidiaries.count }}</td>
+          <td>{% if company.is_holding %}<span class="tag tag-teal">Holding</span>{% else %}<span class="tag tag-ink">Company</span>{% endif %}</td>
+          <td class="td-num td-muted">&mdash;</td>
+          <td class="td-num">{{ company.asset_holdings.count }}</td>
         </tr>
         {% for sub in company.subsidiaries.all %}
         <tr>
-          <td class="entity-indent"><span class="entity-name">{{ sub.name }}</span></td>
+          <td class="indent td-name"><a href="/company/{{ sub.id }}/" class="td-link">{{ sub.name }}</a></td>
           <td>{{ sub.country }}</td>
           <td>{{ sub.category }}</td>
-          <td><span class="badge badge-sub">Subsidiary</span></td>
-          <td class="num">{{ sub.ownership_pct|default:"—" }}%</td>
-          <td class="num">&mdash;</td>
+          <td><span class="tag tag-claret">Subsidiary</span></td>
+          <td class="td-num">{{ sub.ownership_pct|default:"&mdash;" }}{% if sub.ownership_pct %}%{% endif %}</td>
+          <td class="td-num">{{ sub.asset_holdings.count }}</td>
         </tr>
         {% endfor %}
         {% empty %}
-        <tr><td colspan="6" class="empty">No companies yet. <a href="/admin/core/company/add/">Create one</a></td></tr>
+        <tr><td colspan="6" class="empty-state">No companies yet. <a href="/admin/core/company/add/">Create your first entity</a></td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- Recent Activity -->
+<!-- ===== Transactions + Deadlines row ===== -->
+<div class="grid-2">
+  <div class="section">
+    <div class="section-head">
+      <h2>Recent Transactions</h2>
+    </div>
+    <div class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Entity</th>
+            <th>Description</th>
+            <th>Type</th>
+            <th class="th-num">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for txn in recent_transactions %}
+          <tr>
+            <td class="td-mono">{{ txn.date }}</td>
+            <td>{{ txn.company.name }}</td>
+            <td class="td-name">{{ txn.description|truncatechars:30 }}</td>
+            <td><span class="tag tag-ink">{{ txn.transaction_type }}</span></td>
+            <td class="td-num">{{ txn.amount|floatformat:0 }}<span class="ccy">{{ txn.currency }}</span></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="empty-state">No transactions</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2>Tax &amp; Compliance Calendar</h2>
+    </div>
+    <div class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Due Date</th>
+            <th>Entity</th>
+            <th>Description</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for dl in upcoming_deadlines %}
+          <tr>
+            <td class="td-mono">{{ dl.due_date }}</td>
+            <td>{{ dl.company.name }}</td>
+            <td class="td-name">{{ dl.description|truncatechars:28 }}</td>
+            <td>
+              {% if dl.status == "pending" %}<span class="tag tag-lemon">Pending</span>
+              {% elif dl.status == "in_progress" %}<span class="tag tag-teal">In Progress</span>
+              {% else %}<span class="tag tag-jade">{{ dl.status }}</span>{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="empty-state">No upcoming deadlines</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Insurance + Meetings row ===== -->
+<div class="grid-2">
+  <div class="section">
+    <div class="section-head">
+      <h2>Insurance Coverage</h2>
+    </div>
+    <div class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Policy</th>
+            <th>Provider</th>
+            <th>Entity</th>
+            <th class="th-num">Coverage</th>
+            <th>Expiry</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pol in insurance_policies %}
+          <tr>
+            <td class="td-name">{{ pol.policy_type }}</td>
+            <td>{{ pol.provider }}</td>
+            <td>{{ pol.company.name }}</td>
+            <td class="td-num">{% if pol.coverage_amount %}{{ pol.coverage_amount|floatformat:0 }}<span class="ccy">{{ pol.currency }}</span>{% else %}&mdash;{% endif %}</td>
+            <td class="td-mono">{{ pol.expiry_date|default:"&mdash;" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="empty-state">No policies</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2>Board Meetings</h2>
+    </div>
+    <div class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Entity</th>
+            <th>Type</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for mtg in upcoming_meetings %}
+          <tr>
+            <td class="td-mono">{{ mtg.scheduled_date }}</td>
+            <td>{{ mtg.company.name }}</td>
+            <td class="td-name">{{ mtg.meeting_type|title }}</td>
+            <td>
+              {% if mtg.status == "scheduled" %}<span class="tag tag-teal">Scheduled</span>
+              {% elif mtg.status == "completed" %}<span class="tag tag-jade">Completed</span>
+              {% else %}<span class="tag tag-ink">{{ mtg.status }}</span>{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="empty-state">No upcoming meetings</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Service Providers ===== -->
+{% if providers %}
 <div class="section">
-  <div class="section-title">Recent Activity</div>
-  <div class="card">
+  <div class="section-head">
+    <h2>Service Providers</h2>
+  </div>
+  <div class="panel">
     <table>
       <thead>
         <tr>
-          <th style="width: 140px;">Timestamp</th>
-          <th style="width: 80px;">Action</th>
-          <th style="width: 150px;">Table</th>
+          <th>Name</th>
+          <th>Role</th>
+          <th>Firm</th>
+          <th>Entity</th>
+          <th>Contact</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sp in providers %}
+        <tr>
+          <td class="td-name">{{ sp.name }}</td>
+          <td><span class="tag tag-ink">{{ sp.role }}</span></td>
+          <td>{{ sp.firm|default:"&mdash;" }}</td>
+          <td>{{ sp.company.name }}</td>
+          <td class="td-mono" style="font-size: 0.6875rem;">{{ sp.email|default:"" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- ===== Audit trail ===== -->
+<div class="section">
+  <div class="section-head">
+    <h2>Audit Trail</h2>
+  </div>
+  <div class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 130px;">Timestamp</th>
+          <th style="width: 70px;">Action</th>
+          <th style="width: 130px;">Table</th>
           <th>Details</th>
         </tr>
       </thead>
       <tbody>
         {% for entry in recent_audit %}
         <tr>
-          <td style="font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted);">{{ entry.timestamp|date:"Y-m-d H:i" }}</td>
+          <td class="td-mono" style="color: var(--ink-faint);">{{ entry.timestamp|date:"Y-m-d H:i" }}</td>
           <td>
-            <span class="badge badge-{{ entry.action }}">{{ entry.action }}</span>
+            {% if entry.action == "insert" %}<span class="tag tag-jade">Create</span>
+            {% elif entry.action == "update" %}<span class="tag tag-lemon">Update</span>
+            {% elif entry.action == "delete" %}<span class="tag tag-crimson">Delete</span>
+            {% else %}<span class="tag tag-ink">{{ entry.action }}</span>{% endif %}
           </td>
-          <td style="font-family: var(--mono); font-size: 0.75rem;">{{ entry.table_name }}</td>
-          <td style="color: var(--text-secondary); max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ entry.details|truncatechars:80 }}</td>
+          <td class="td-mono">{{ entry.table_name }}</td>
+          <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-light);">{{ entry.details|truncatechars:80 }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="4" class="empty">No activity recorded yet</td></tr>
+        <tr><td colspan="4" class="empty-state">No activity recorded</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+
 {% endblock %}
