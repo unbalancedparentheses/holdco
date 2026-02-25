@@ -267,13 +267,13 @@ JSON API at `http://localhost:8000`. Interactive docs at
 - [ ] Entity formation workflow (incorporation checklist per jurisdiction)
 - [ ] Board resolution tracking and minutes
 - [ ] Shareholder voting and resolution outcomes
-- [ ] Power of attorney tracking (who can sign for which entity)
+- [ ] Power of attorney and signing authority matrix (who can sign what for which entity)
 - [ ] Shareholder agreement management with expiry dates
 - [ ] Corporate annual filing calendar (separate from tax)
 - [ ] Beneficial ownership registry (UBO tracking for transparency laws)
 - [ ] Corporate secretary workflows (annual returns, registered agent)
 - [ ] Historical ownership timeline (track ownership changes over time)
-- [ ] Key contact directory (lawyers, accountants, bankers per entity)
+- [ ] Service provider directory per entity (lawyer, accountant, auditor, banker, registered agent)
 - [ ] Employee headcount and key personnel per subsidiary
 - [ ] Regulatory license and permit tracking per entity
 - [ ] KYC/AML compliance status per entity
@@ -287,17 +287,24 @@ JSON API at `http://localhost:8000`. Interactive docs at
 
 - [x] P&L tracking (revenue/expenses per entity per period)
 - [x] Multi-currency support for asset holdings
-- [ ] Bank account tracking per company (operating accounts)
+- [ ] Bank accounts per entity (operating, savings, FX — bank, IBAN/SWIFT, currency, authorized signers)
+- [ ] Cash balances per account per currency
+- [ ] Credit facilities and credit lines
+- [ ] Buy/sell transaction history with cost basis and lot tracking
 - [ ] Inter-company loans, transfers, and settlements
-- [ ] Dividend and distribution tracking
+- [ ] Dividend and distribution tracking (received and paid)
+- [ ] Management fee flows between entities
+- [ ] Capital contributions and distributions log
+- [ ] Tax payment tracking per entity per jurisdiction
 - [ ] External debt tracking (bank loans, bonds, credit facilities)
+- [ ] Loans receivable (money others owe you)
+- [ ] Accounts payable and receivable aging
+- [ ] Lease obligations tracking
 - [ ] Cash flow tracking and forecasting
 - [ ] Consolidated financial statements across subsidiaries
 - [ ] Multi-currency consolidated NAV (net asset value)
-- [ ] Capital contributions and equity changes log
 - [ ] Budget vs. actuals tracking per entity
 - [ ] Invoice management per entity
-- [ ] Accounts payable and receivable aging
 - [ ] FX exposure dashboard with hedging positions
 - [ ] Currency hedging recommendations based on FX exposure
 - [ ] Recurring transaction templates (regular dividends, management fees)
@@ -315,14 +322,19 @@ JSON API at `http://localhost:8000`. Interactive docs at
 
 - [x] Live asset prices from Yahoo Finance
 - [x] Price history tracking with snapshots
-- [ ] Cost basis tracking for tax purposes
+- [ ] Asset type classification (equities, fixed income, crypto, commodities, real estate, private equity)
+- [ ] Multiple custodians per asset (split across providers)
+- [ ] Cost basis tracking with lot-level detail (purchase price, date, fees)
+- [ ] Unrealized and realized gains/losses calculation
 - [ ] Portfolio performance over time with charts
-- [ ] Asset allocation breakdown (by type, currency, custodian)
+- [ ] Asset allocation breakdown (by type, currency, custodian, entity)
 - [ ] Automated daily/weekly price snapshot scheduler
 - [ ] Benchmark comparison (S&P 500, BTC, gold)
-- [ ] Real estate holdings tracking (properties, valuations, leases)
+- [ ] Real estate holdings (properties, valuations, rental income, leases)
+- [ ] Private equity and fund investments (capital calls, distributions, NAV)
 - [ ] IP and trademark portfolio per entity
 - [ ] Crypto wallet address tracking and on-chain balance verification
+- [ ] Staking positions and yield tracking
 - [ ] Tax-loss harvesting suggestions
 
 ### Tax & Compliance
@@ -341,6 +353,8 @@ JSON API at `http://localhost:8000`. Interactive docs at
 - [ ] ESG reporting (environmental, social, governance scores per entity)
 - [ ] Data retention policies and GDPR compliance tools
 - [ ] Insurance claims tracking
+- [ ] Board meeting schedule and compliance calendar
+- [ ] Regulatory filing tracker per jurisdiction per entity
 
 ### Documents & Knowledge
 
@@ -348,9 +362,10 @@ JSON API at `http://localhost:8000`. Interactive docs at
 - [ ] Version history for documents
 - [ ] Contract expiry alerts and renewal tracking
 - [ ] Vendor and supplier contract management
-- [ ] Insurance policy tracking per entity (coverage, expiry, premiums)
+- [ ] Insurance policy tracking per entity (coverage, expiry, premiums, renewal dates)
 - [ ] Tagging and categorization for document search
 - [ ] E-signature integration (DocuSign/HelloSign) for board resolutions
+- [ ] Document file storage (S3/MinIO upload, not just URL references)
 
 ### Reporting & Visualization
 
