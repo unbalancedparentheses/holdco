@@ -1,8 +1,17 @@
 defmodule Holdco.Corporate do
   import Ecto.Query
   alias Holdco.Repo
-  alias Holdco.Corporate.{Company, BeneficialOwner, KeyPersonnel, OwnershipChange,
-                           ServiceProvider, TenantGroup, TenantMembership, EntityPermission}
+
+  alias Holdco.Corporate.{
+    Company,
+    BeneficialOwner,
+    KeyPersonnel,
+    OwnershipChange,
+    ServiceProvider,
+    TenantGroup,
+    TenantMembership,
+    EntityPermission
+  }
 
   # Companies
   def list_companies(filters \\ %{}) do
@@ -15,8 +24,14 @@ defmodule Holdco.Corporate do
   def get_company!(id) do
     Company
     |> Repo.get!(id)
-    |> Repo.preload([:subsidiaries, :parent, :beneficial_owners, :key_personnel,
-                      :service_providers, :ownership_changes])
+    |> Repo.preload([
+      :subsidiaries,
+      :parent,
+      :beneficial_owners,
+      :key_personnel,
+      :service_providers,
+      :ownership_changes
+    ])
   end
 
   def create_company(attrs) do
@@ -52,6 +67,7 @@ defmodule Holdco.Corporate do
 
   defp build_tree_node(company, by_parent) do
     children = Map.get(by_parent, company.id, [])
+
     %{
       company: company,
       children: Enum.map(children, &build_tree_node(&1, by_parent))
@@ -257,13 +273,36 @@ defmodule Holdco.Corporate do
     Company
     |> Repo.get!(id)
     |> Repo.preload([
-      :subsidiaries, :parent, :beneficial_owners, :key_personnel,
-      :service_providers, :ownership_changes, :asset_holdings, :bank_accounts,
-      :transactions, :documents, :tax_deadlines, :financials, :board_meetings,
-      :insurance_policies, :liabilities, :dividends, :deals, :joint_ventures,
-      :cap_table, :resolutions, :equity_plans, :powers_of_attorney,
-      :real_estate_properties, :fund_investments, :budgets, :regulatory_filings,
-      :regulatory_licenses, :compliance_checklists, :annual_filings, :esg_scores,
+      :subsidiaries,
+      :parent,
+      :beneficial_owners,
+      :key_personnel,
+      :service_providers,
+      :ownership_changes,
+      :asset_holdings,
+      :bank_accounts,
+      :transactions,
+      :documents,
+      :tax_deadlines,
+      :financials,
+      :board_meetings,
+      :insurance_policies,
+      :liabilities,
+      :dividends,
+      :deals,
+      :joint_ventures,
+      :cap_table,
+      :resolutions,
+      :equity_plans,
+      :powers_of_attorney,
+      :real_estate_properties,
+      :fund_investments,
+      :budgets,
+      :regulatory_filings,
+      :regulatory_licenses,
+      :compliance_checklists,
+      :annual_filings,
+      :esg_scores,
       :sanctions_checks
     ])
   end
@@ -278,7 +317,9 @@ defmodule Holdco.Corporate do
         Holdco.Platform.log_action(action, table, record.id)
         broadcast({String.to_atom("#{table}_#{action}d"), record})
         {:ok, record}
-      error -> error
+
+      error ->
+        error
     end
   end
 end

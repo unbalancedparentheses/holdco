@@ -20,9 +20,18 @@ defmodule Holdco.Assets.RealEstateProperty do
 
   def changeset(real_estate_property, attrs) do
     real_estate_property
-    |> cast(attrs, [:company_id, :name, :address, :property_type, :purchase_date,
-                     :purchase_price, :current_valuation, :rental_income_annual,
-                     :currency, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :name,
+      :address,
+      :property_type,
+      :purchase_date,
+      :purchase_price,
+      :current_valuation,
+      :rental_income_annual,
+      :currency,
+      :notes
+    ])
     |> validate_required([:company_id, :name])
   end
 end

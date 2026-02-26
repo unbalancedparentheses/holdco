@@ -19,8 +19,17 @@ defmodule Holdco.Banking.Transaction do
 
   def changeset(transaction, attrs) do
     transaction
-    |> cast(attrs, [:company_id, :transaction_type, :description, :amount, :currency,
-                     :counterparty, :date, :asset_holding_id, :notes])
-    |> validate_required([:company_id, :transaction_type, :amount, :date])
+    |> cast(attrs, [
+      :company_id,
+      :transaction_type,
+      :description,
+      :amount,
+      :currency,
+      :counterparty,
+      :date,
+      :asset_holding_id,
+      :notes
+    ])
+    |> validate_required([:company_id, :transaction_type, :description, :amount, :date])
   end
 end

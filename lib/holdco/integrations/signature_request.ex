@@ -19,8 +19,17 @@ defmodule Holdco.Integrations.SignatureRequest do
 
   def changeset(signature_request, attrs) do
     signature_request
-    |> cast(attrs, [:company_id, :document_id, :provider, :external_id, :status,
-                     :signers, :sent_at, :completed_at, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :document_id,
+      :provider,
+      :external_id,
+      :status,
+      :signers,
+      :sent_at,
+      :completed_at,
+      :notes
+    ])
     |> validate_required([:company_id, :document_id, :provider])
   end
 end

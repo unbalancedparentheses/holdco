@@ -22,12 +22,20 @@ defmodule Holdco.Workers.TaxReminderWorker do
       end)
 
     for deadline <- deadlines do
-      # Could send webhook or email notification here
       Holdco.Platform.log_action(
         "reminder",
         "tax_deadlines",
         deadline.id,
         "Tax deadline approaching: #{deadline.description} due #{deadline.due_date}"
+      )
+
+      Holdco.Notifications.notify_all_admins(
+        "Tax Deadline Approaching",
+        "#{deadline.description} due #{deadline.due_date}",
+        type: "warning",
+        entity_type: "tax_deadlines",
+        entity_id: deadline.id,
+        action_url: "/tax-calendar"
       )
     end
 

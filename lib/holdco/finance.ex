@@ -1,9 +1,19 @@
 defmodule Holdco.Finance do
   import Ecto.Query
   alias Holdco.Repo
-  alias Holdco.Finance.{Financial, Account, JournalEntry, JournalLine,
-                         InterCompanyTransfer, Dividend, CapitalContribution,
-                         TaxPayment, Budget, Liability}
+
+  alias Holdco.Finance.{
+    Financial,
+    Account,
+    JournalEntry,
+    JournalLine,
+    InterCompanyTransfer,
+    Dividend,
+    CapitalContribution,
+    TaxPayment,
+    Budget,
+    Liability
+  }
 
   # Financials
   def list_financials(company_id \\ nil) do
@@ -116,8 +126,10 @@ defmodule Holdco.Finance do
 
   # Inter-Company Transfers
   def list_inter_company_transfers do
-    from(ict in InterCompanyTransfer, order_by: [desc: ict.date],
-         preload: [:from_company, :to_company])
+    from(ict in InterCompanyTransfer,
+      order_by: [desc: ict.date],
+      preload: [:from_company, :to_company]
+    )
     |> Repo.all()
   end
 
@@ -179,7 +191,8 @@ defmodule Holdco.Finance do
     Repo.all(query)
   end
 
-  def get_capital_contribution!(id), do: Repo.get!(CapitalContribution, id) |> Repo.preload(:company)
+  def get_capital_contribution!(id),
+    do: Repo.get!(CapitalContribution, id) |> Repo.preload(:company)
 
   def create_capital_contribution(attrs) do
     %CapitalContribution{}
@@ -307,7 +320,9 @@ defmodule Holdco.Finance do
         Holdco.Platform.log_action(action, table, record.id)
         broadcast({String.to_atom("#{table}_#{action}d"), record})
         {:ok, record}
-      error -> error
+
+      error ->
+        error
     end
   end
 end

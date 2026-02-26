@@ -18,8 +18,16 @@ defmodule Holdco.Compliance.RegulatoryFiling do
 
   def changeset(regulatory_filing, attrs) do
     regulatory_filing
-    |> cast(attrs, [:company_id, :jurisdiction, :filing_type, :due_date, :filed_date,
-                     :status, :reference_number, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :jurisdiction,
+      :filing_type,
+      :due_date,
+      :filed_date,
+      :status,
+      :reference_number,
+      :notes
+    ])
     |> validate_required([:company_id, :jurisdiction, :filing_type, :due_date])
   end
 end

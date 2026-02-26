@@ -20,8 +20,18 @@ defmodule Holdco.Compliance.InsurancePolicy do
 
   def changeset(insurance_policy, attrs) do
     insurance_policy
-    |> cast(attrs, [:company_id, :policy_type, :provider, :policy_number, :coverage_amount,
-                     :premium, :currency, :start_date, :expiry_date, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :policy_type,
+      :provider,
+      :policy_number,
+      :coverage_amount,
+      :premium,
+      :currency,
+      :start_date,
+      :expiry_date,
+      :notes
+    ])
     |> validate_required([:company_id, :policy_type, :provider])
   end
 end

@@ -1,7 +1,9 @@
 defmodule HoldcoWeb.DashboardLive do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Corporate, Banking, Assets, Finance, Platform, Portfolio}
+  alias Holdco.{Corporate, Banking, Assets, Platform, Portfolio}
+
+  @currencies ~w(USD EUR GBP ARS BRL CHF JPY CAD AUD)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -17,15 +19,33 @@ defmodule HoldcoWeb.DashboardLive do
     snapshots = Assets.list_portfolio_snapshots()
     allocation = Portfolio.asset_allocation()
 
-    {:ok, assign(socket,
-      page_title: "Dashboard",
-      nav: nav,
-      companies: companies,
-      recent_transactions: recent_transactions,
-      recent_audit: recent_audit,
-      snapshots: snapshots,
-      allocation: allocation
-    )}
+    {:ok,
+     assign(socket,
+       page_title: "Dashboard",
+       nav: nav,
+       companies: companies,
+       recent_transactions: recent_transactions,
+       recent_audit: recent_audit,
+       snapshots: snapshots,
+       allocation: allocation,
+       display_currency: "USD",
+       fx_rate: 1.0
+     )}
+  end
+
+  @impl true
+  def handle_event("change_currency", %{"currency" => currency}, socket) do
+    fx_rate =
+      if currency == "USD" do
+        1.0
+      else
+        case Portfolio.get_fx_rate(currency) do
+          rate when rate > 0 -> 1.0 / rate
+          _ -> 1.0
+        end
+      end
+
+    {:noreply, assign(socket, display_currency: currency, fx_rate: fx_rate)}
   end
 
   @impl true
@@ -33,40 +53,54 @@ defmodule HoldcoWeb.DashboardLive do
     recent = [log | Enum.take(socket.assigns.recent_audit, 19)]
     {:noreply, assign(socket, recent_audit: recent)}
   end
+
   def handle_info(_, socket), do: {:noreply, socket}
 
   @impl true
   def render(assigns) do
     ~H"""
     <div class="page-title">
-      <h1>Portfolio Overview</h1>
-      <p class="deck">Net Asset Value and holdings summary across all entities</p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h1>Portfolio Overview</h1>
+          <p class="deck">Net Asset Value and holdings summary across all entities</p>
+        </div>
+        <form phx-change="change_currency" style="display: flex; align-items: center; gap: 0.5rem;">
+          <label class="form-label" style="margin: 0; font-size: 0.85rem;">Display Currency</label>
+          <select name="currency" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+            <%= for ccy <- currencies() do %>
+              <option value={ccy} selected={ccy == @display_currency}>{ccy}</option>
+            <% end %>
+          </select>
+        </form>
+      </div>
       <hr class="page-title-rule" />
     </div>
 
+    <% sym = currency_symbol(@display_currency) %>
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Net Asset Value</div>
-        <div class="metric-value">$<%= format_number(@nav.nav) %></div>
+        <div class="metric-value">{sym}{format_number(@nav.nav * @fx_rate)}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Liquid</div>
-        <div class="metric-value">$<%= format_number(@nav.liquid) %></div>
+        <div class="metric-value">{sym}{format_number(@nav.liquid * @fx_rate)}</div>
         <div class="metric-note">Bank balances</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Marketable</div>
-        <div class="metric-value">$<%= format_number(@nav.marketable) %></div>
+        <div class="metric-value">{sym}{format_number(@nav.marketable * @fx_rate)}</div>
         <div class="metric-note">Stocks, crypto, commodities</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Illiquid</div>
-        <div class="metric-value">$<%= format_number(@nav.illiquid) %></div>
+        <div class="metric-value">{sym}{format_number(@nav.illiquid * @fx_rate)}</div>
         <div class="metric-note">Real estate, PE, funds</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Liabilities</div>
-        <div class="metric-value num-negative">$<%= format_number(@nav.liabilities) %></div>
+        <div class="metric-value num-negative">{sym}{format_number(@nav.liabilities * @fx_rate)}</div>
       </div>
     </div>
 
@@ -99,7 +133,12 @@ defmodule HoldcoWeb.DashboardLive do
             phx-hook="ChartHook"
             data-chart-type="line"
             data-chart-data={Jason.encode!(nav_chart_data(@snapshots))}
-            data-chart-options={Jason.encode!(%{plugins: %{legend: %{display: false}}, scales: %{y: %{beginAtZero: false}}})}
+            data-chart-options={
+              Jason.encode!(%{
+                plugins: %{legend: %{display: false}},
+                scales: %{y: %{beginAtZero: false}}
+              })
+            }
             style="height: 250px;"
           >
             <canvas></canvas>
@@ -112,7 +151,7 @@ defmodule HoldcoWeb.DashboardLive do
       <div class="section">
         <div class="section-head">
           <h2>Corporate Structure</h2>
-          <span class="count"><%= length(@companies) %> entities</span>
+          <span class="count">{length(@companies)} entities</span>
         </div>
         <div class="panel">
           <table>
@@ -129,12 +168,16 @@ defmodule HoldcoWeb.DashboardLive do
                 <tr>
                   <td class={if company.parent_id, do: "indent"}>
                     <.link navigate={~p"/companies/#{company.id}"} class="td-link td-name">
-                      <%= company.name %>
+                      {company.name}
                     </.link>
                   </td>
-                  <td><%= company.country %></td>
-                  <td><%= company.category %></td>
-                  <td><span class={"tag #{status_tag(company.wind_down_status)}"}><%= company.wind_down_status %></span></td>
+                  <td>{company.country}</td>
+                  <td>{company.category}</td>
+                  <td>
+                    <span class={"tag #{status_tag(company.wind_down_status)}"}>
+                      {company.wind_down_status}
+                    </span>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -159,10 +202,10 @@ defmodule HoldcoWeb.DashboardLive do
             <tbody>
               <%= for log <- @recent_audit do %>
                 <tr>
-                  <td class="td-mono"><%= format_time(log.inserted_at) %></td>
-                  <td><span class={"tag #{action_tag(log.action)}"}><%= log.action %></span></td>
-                  <td><%= log.table_name %></td>
-                  <td class="td-mono">#<%= log.record_id %></td>
+                  <td class="td-mono">{format_time(log.inserted_at)}</td>
+                  <td><span class={"tag #{action_tag(log.action)}"}>{log.action}</span></td>
+                  <td>{log.table_name}</td>
+                  <td class="td-mono">#{log.record_id}</td>
                 </tr>
               <% end %>
             </tbody>
@@ -174,7 +217,7 @@ defmodule HoldcoWeb.DashboardLive do
     <div class="section">
       <div class="section-head">
         <h2>Recent Transactions</h2>
-        <span class="count"><%= length(@recent_transactions) %> latest</span>
+        <span class="count">{length(@recent_transactions)} latest</span>
       </div>
       <div class="panel">
         <table>
@@ -190,11 +233,13 @@ defmodule HoldcoWeb.DashboardLive do
           <tbody>
             <%= for tx <- @recent_transactions do %>
               <tr>
-                <td class="td-mono"><%= tx.date %></td>
-                <td><span class="tag tag-ink"><%= tx.transaction_type %></span></td>
-                <td class="td-name"><%= tx.description %></td>
-                <td><%= tx.counterparty %></td>
-                <td class={"td-num #{if tx.amount && tx.amount < 0, do: "num-negative", else: "num-positive"}"}><%= format_currency(tx.amount, tx.currency) %></td>
+                <td class="td-mono">{tx.date}</td>
+                <td><span class="tag tag-ink">{tx.transaction_type}</span></td>
+                <td class="td-name">{tx.description}</td>
+                <td>{tx.counterparty}</td>
+                <td class={"td-num #{if tx.amount && tx.amount < 0, do: "num-negative", else: "num-positive"}"}>
+                  {format_currency(tx.amount, tx.currency)}
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -204,7 +249,18 @@ defmodule HoldcoWeb.DashboardLive do
     """
   end
 
-  defp format_number(n) when is_float(n), do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+  defp currencies, do: @currencies
+
+  defp currency_symbol("USD"), do: "$"
+  defp currency_symbol("EUR"), do: "€"
+  defp currency_symbol("GBP"), do: "£"
+  defp currency_symbol("JPY"), do: "¥"
+  defp currency_symbol("CHF"), do: "CHF "
+  defp currency_symbol(ccy), do: "#{ccy} "
+
+  defp format_number(n) when is_float(n),
+    do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"
 
@@ -213,6 +269,7 @@ defmodule HoldcoWeb.DashboardLive do
   end
 
   defp format_currency(nil, _currency), do: "0"
+
   defp format_currency(amount, currency) do
     sign = if amount < 0, do: "-", else: ""
     "#{sign}#{format_number(abs(amount))} #{currency}"
@@ -233,27 +290,33 @@ defmodule HoldcoWeb.DashboardLive do
 
   defp allocation_chart_data(allocation) do
     colors = ["#0d7680", "#0f5499", "#00994d", "#990f3d", "#ff8833", "#f2a900", "#cc0000"]
+
     %{
       labels: Enum.map(allocation, & &1.type),
-      datasets: [%{
-        data: Enum.map(allocation, & &1.value),
-        backgroundColor: Enum.take(colors, length(allocation))
-      }]
+      datasets: [
+        %{
+          data: Enum.map(allocation, & &1.value),
+          backgroundColor: Enum.take(colors, length(allocation))
+        }
+      ]
     }
   end
 
   defp nav_chart_data(snapshots) do
     sorted = Enum.sort_by(snapshots, & &1.date)
+
     %{
       labels: Enum.map(sorted, & &1.date),
-      datasets: [%{
-        label: "NAV",
-        data: Enum.map(sorted, & &1.nav),
-        borderColor: "#0d7680",
-        backgroundColor: "rgba(13, 118, 128, 0.1)",
-        fill: true,
-        tension: 0.3
-      }]
+      datasets: [
+        %{
+          label: "NAV",
+          data: Enum.map(sorted, & &1.nav),
+          borderColor: "#0d7680",
+          backgroundColor: "rgba(13, 118, 128, 0.1)",
+          fill: true,
+          tension: 0.3
+        }
+      ]
     }
   end
 end

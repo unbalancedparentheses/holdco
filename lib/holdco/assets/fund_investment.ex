@@ -20,8 +20,18 @@ defmodule Holdco.Assets.FundInvestment do
 
   def changeset(fund_investment, attrs) do
     fund_investment
-    |> cast(attrs, [:company_id, :fund_name, :fund_type, :commitment, :called,
-                     :distributed, :nav, :currency, :vintage_year, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :fund_name,
+      :fund_type,
+      :commitment,
+      :called,
+      :distributed,
+      :nav,
+      :currency,
+      :vintage_year,
+      :notes
+    ])
     |> validate_required([:company_id, :fund_name])
   end
 end

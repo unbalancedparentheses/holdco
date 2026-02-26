@@ -18,15 +18,16 @@ defmodule Holdco.Accounts.Scope do
 
   alias Holdco.Accounts.User
 
-  defstruct user: nil
+  defstruct user: nil, role: "viewer"
 
   @doc """
-  Creates a scope for the given user.
+  Creates a scope for the given user, including their role.
 
   Returns nil if no user is given.
   """
   def for_user(%User{} = user) do
-    %__MODULE__{user: user}
+    role = Holdco.Accounts.get_user_role(user)
+    %__MODULE__{user: user, role: role}
   end
 
   def for_user(nil), do: nil

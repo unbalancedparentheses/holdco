@@ -20,8 +20,18 @@ defmodule Holdco.Assets.CostBasisLot do
 
   def changeset(cost_basis_lot, attrs) do
     cost_basis_lot
-    |> cast(attrs, [:holding_id, :purchase_date, :quantity, :price_per_unit, :fees,
-                     :currency, :sold_quantity, :sold_date, :sold_price, :notes])
+    |> cast(attrs, [
+      :holding_id,
+      :purchase_date,
+      :quantity,
+      :price_per_unit,
+      :fees,
+      :currency,
+      :sold_quantity,
+      :sold_date,
+      :sold_price,
+      :notes
+    ])
     |> validate_required([:holding_id, :purchase_date, :quantity, :price_per_unit])
   end
 end

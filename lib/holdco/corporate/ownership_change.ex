@@ -17,8 +17,15 @@ defmodule Holdco.Corporate.OwnershipChange do
 
   def changeset(ownership_change, attrs) do
     ownership_change
-    |> cast(attrs, [:company_id, :date, :from_owner, :to_owner, :ownership_pct,
-                     :transaction_type, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :date,
+      :from_owner,
+      :to_owner,
+      :ownership_pct,
+      :transaction_type,
+      :notes
+    ])
     |> validate_required([:company_id, :date, :from_owner, :to_owner])
   end
 end

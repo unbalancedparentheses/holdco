@@ -8,6 +8,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :role, :string, default: "viewer", null: false
       timestamps()
     end
+
     create unique_index(:user_roles, [:user_id])
 
     create table(:api_keys) do
@@ -18,6 +19,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :last_used_at, :utc_datetime
       timestamps()
     end
+
     create unique_index(:api_keys, [:key])
 
     # Platform
@@ -26,6 +28,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :value, :text
       timestamps()
     end
+
     create unique_index(:settings, [:key])
 
     create table(:categories) do
@@ -33,6 +36,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :color, :string, default: "#e0e0e0"
       timestamps()
     end
+
     create unique_index(:categories, [:name])
 
     create table(:audit_logs) do
@@ -43,6 +47,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :user_id, references(:users, on_delete: :nilify_all)
       timestamps()
     end
+
     create index(:audit_logs, [:table_name])
     create index(:audit_logs, [:inserted_at])
 
@@ -84,6 +89,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :value, :text
       timestamps()
     end
+
     create index(:custom_field_values, [:entity_type, :entity_id])
 
     create table(:backup_configs) do
@@ -129,6 +135,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :dissolution_date, :string
       timestamps()
     end
+
     create index(:companies, [:parent_id])
 
     create table(:beneficial_owners) do
@@ -142,6 +149,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:beneficial_owners, [:company_id])
 
     create table(:key_personnel) do
@@ -156,6 +164,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:key_personnel, [:company_id])
 
     create table(:ownership_changes) do
@@ -168,6 +177,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:ownership_changes, [:company_id])
 
     create table(:service_providers) do
@@ -180,6 +190,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:service_providers, [:company_id])
 
     create table(:tenant_groups) do
@@ -187,6 +198,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :slug, :string, null: false
       timestamps()
     end
+
     create unique_index(:tenant_groups, [:slug])
 
     create table(:tenant_memberships) do
@@ -195,6 +207,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :role, :string, default: "member"
       timestamps()
     end
+
     create unique_index(:tenant_memberships, [:tenant_id, :user_id])
 
     create table(:entity_permissions) do
@@ -203,6 +216,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :permission_level, :string, default: "view"
       timestamps()
     end
+
     create unique_index(:entity_permissions, [:user_id, :company_id])
 
     # Governance
@@ -214,6 +228,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:board_meetings, [:company_id])
 
     create table(:cap_table_entries) do
@@ -229,6 +244,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:cap_table_entries, [:company_id])
 
     create table(:shareholder_resolutions) do
@@ -243,6 +259,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:shareholder_resolutions, [:company_id])
 
     create table(:powers_of_attorney) do
@@ -256,6 +273,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:powers_of_attorney, [:company_id])
 
     create table(:equity_incentive_plans) do
@@ -267,6 +285,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:equity_incentive_plans, [:company_id])
 
     create table(:equity_grants) do
@@ -283,6 +302,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:equity_grants, [:plan_id])
 
     create table(:deals) do
@@ -297,6 +317,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:deals, [:company_id])
 
     create table(:joint_ventures) do
@@ -311,6 +332,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:joint_ventures, [:company_id])
 
     create table(:investor_access) do
@@ -324,6 +346,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create unique_index(:investor_access, [:user_id, :company_id])
 
     # Assets
@@ -337,6 +360,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :asset_type, :string, default: "other"
       timestamps()
     end
+
     create index(:asset_holdings, [:company_id])
 
     create table(:custodian_accounts) do
@@ -347,6 +371,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :authorized_persons, :text, default: "[]"
       timestamps()
     end
+
     create unique_index(:custodian_accounts, [:asset_holding_id])
 
     create table(:cost_basis_lots) do
@@ -362,6 +387,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:cost_basis_lots, [:holding_id])
 
     create table(:crypto_wallets) do
@@ -372,6 +398,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:crypto_wallets, [:holding_id])
 
     create table(:real_estate_properties) do
@@ -387,6 +414,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:real_estate_properties, [:company_id])
 
     create table(:fund_investments) do
@@ -402,6 +430,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:fund_investments, [:company_id])
 
     create table(:portfolio_snapshots) do
@@ -429,6 +458,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:bank_accounts, [:company_id])
 
     create table(:transactions) do
@@ -443,6 +473,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:transactions, [:company_id])
     create index(:transactions, [:date])
 
@@ -456,6 +487,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:financials, [:company_id])
 
     create table(:accounts) do
@@ -467,6 +499,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create unique_index(:accounts, [:code])
 
     create table(:journal_entries) do
@@ -484,6 +517,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :string
       timestamps()
     end
+
     create index(:journal_lines, [:entry_id])
     create index(:journal_lines, [:account_id])
 
@@ -498,6 +532,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:inter_company_transfers, [:from_company_id])
     create index(:inter_company_transfers, [:to_company_id])
 
@@ -511,6 +546,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:dividends, [:company_id])
 
     create table(:capital_contributions) do
@@ -523,6 +559,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:capital_contributions, [:company_id])
 
     create table(:tax_payments) do
@@ -537,6 +574,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:tax_payments, [:company_id])
 
     create table(:budgets) do
@@ -549,6 +587,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:budgets, [:company_id])
 
     # Compliance
@@ -561,6 +600,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:tax_deadlines, [:company_id])
 
     create table(:annual_filings) do
@@ -573,6 +613,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:annual_filings, [:company_id])
 
     create table(:regulatory_filings) do
@@ -586,6 +627,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:regulatory_filings, [:company_id])
 
     create table(:regulatory_licenses) do
@@ -599,6 +641,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:regulatory_licenses, [:company_id])
 
     create table(:compliance_checklists) do
@@ -612,6 +655,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:compliance_checklists, [:company_id])
 
     create table(:insurance_policies) do
@@ -627,6 +671,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:insurance_policies, [:company_id])
 
     create table(:transfer_pricing_docs) do
@@ -654,6 +699,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:withholding_taxes, [:company_id])
 
     create table(:fatca_reports) do
@@ -666,6 +712,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:fatca_reports, [:company_id])
 
     create table(:esg_scores) do
@@ -679,6 +726,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:esg_scores, [:company_id])
 
     create table(:sanctions_lists) do
@@ -699,6 +747,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text, default: ""
       timestamps()
     end
+
     create index(:sanctions_entries, [:sanctions_list_id])
 
     create table(:sanctions_checks) do
@@ -709,6 +758,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text, default: ""
       timestamps()
     end
+
     create index(:sanctions_checks, [:company_id])
 
     # Documents
@@ -720,6 +770,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:documents, [:company_id])
 
     create table(:document_versions) do
@@ -730,6 +781,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:document_versions, [:document_id])
 
     create table(:document_uploads) do
@@ -743,6 +795,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :uploaded_by, :string, default: ""
       timestamps()
     end
+
     create index(:document_uploads, [:document_id])
 
     # Treasury
@@ -762,6 +815,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text, default: ""
       timestamps()
     end
+
     create index(:cash_pool_entries, [:pool_id])
 
     # Pricing
@@ -771,6 +825,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :currency, :string, default: "USD"
       timestamps()
     end
+
     create index(:price_history, [:ticker])
     create index(:price_history, [:inserted_at])
 
@@ -788,6 +843,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text, default: ""
       timestamps()
     end
+
     create index(:accounting_sync_configs, [:company_id])
 
     create table(:accounting_sync_logs) do
@@ -859,6 +915,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :status, :string, default: "draft"
       timestamps()
     end
+
     create index(:scenarios, [:company_id])
 
     create table(:scenario_items) do
@@ -876,6 +933,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:scenario_items, [:scenario_id])
 
     # Liabilities (from original Django model)
@@ -891,6 +949,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :notes, :text
       timestamps()
     end
+
     create index(:liabilities, [:company_id])
   end
 end

@@ -34,12 +34,15 @@ defmodule Holdco.Treasury do
 
   # Cash Pool Entries
   def list_cash_pool_entries(pool_id) do
-    from(cpe in CashPoolEntry, where: cpe.pool_id == ^pool_id,
-         preload: [:company, :bank_account])
+    from(cpe in CashPoolEntry,
+      where: cpe.pool_id == ^pool_id,
+      preload: [:company, :bank_account]
+    )
     |> Repo.all()
   end
 
-  def get_cash_pool_entry!(id), do: Repo.get!(CashPoolEntry, id) |> Repo.preload([:pool, :company, :bank_account])
+  def get_cash_pool_entry!(id),
+    do: Repo.get!(CashPoolEntry, id) |> Repo.preload([:pool, :company, :bank_account])
 
   def create_cash_pool_entry(attrs) do
     %CashPoolEntry{}
@@ -70,7 +73,9 @@ defmodule Holdco.Treasury do
         Holdco.Platform.log_action(action, table, record.id)
         broadcast({String.to_atom("#{table}_#{action}d"), record})
         {:ok, record}
-      error -> error
+
+      error ->
+        error
     end
   end
 end

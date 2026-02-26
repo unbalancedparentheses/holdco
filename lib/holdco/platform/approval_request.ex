@@ -18,8 +18,17 @@ defmodule Holdco.Platform.ApprovalRequest do
 
   def changeset(approval_request, attrs) do
     approval_request
-    |> cast(attrs, [:requested_by, :table_name, :record_id, :action, :payload,
-                     :status, :reviewed_by, :notes, :reviewed_at])
+    |> cast(attrs, [
+      :requested_by,
+      :table_name,
+      :record_id,
+      :action,
+      :payload,
+      :status,
+      :reviewed_by,
+      :notes,
+      :reviewed_at
+    ])
     |> validate_required([:requested_by, :table_name, :action])
   end
 end

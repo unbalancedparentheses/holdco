@@ -18,8 +18,16 @@ defmodule Holdco.Governance.InvestorAccess do
 
   def changeset(investor_access, attrs) do
     investor_access
-    |> cast(attrs, [:user_id, :company_id, :can_view_financials, :can_view_holdings,
-                     :can_view_documents, :can_view_cap_table, :expires_at, :notes])
+    |> cast(attrs, [
+      :user_id,
+      :company_id,
+      :can_view_financials,
+      :can_view_holdings,
+      :can_view_documents,
+      :can_view_cap_table,
+      :expires_at,
+      :notes
+    ])
     |> validate_required([:user_id, :company_id])
     |> unique_constraint([:user_id, :company_id])
   end

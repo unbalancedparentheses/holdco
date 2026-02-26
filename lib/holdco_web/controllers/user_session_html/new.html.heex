@@ -1,5 +1,5 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
-  <div class="mx-auto max-w-sm space-y-4">
+  <div class="auth-card">
     <div class="text-center">
       <.header>
         <p>Log in</p>
@@ -17,7 +17,7 @@
       </.header>
     </div>
 
-    <div :if={local_mail_adapter?()} class="alert alert-info">
+    <div :if={local_mail_adapter?()} class="flash flash-info">
       <.icon name="hero-information-circle" class="size-6 shrink-0" />
       <div>
         <p>You are running the local mail adapter.</p>
@@ -39,11 +39,11 @@
         phx-mounted={JS.focus()}
       />
       <.button class="btn btn-primary w-full">
-        Log in with email <span aria-hidden="true">→</span>
+        Log in with email <span aria-hidden="true">&rarr;</span>
       </.button>
     </.form>
 
-    <div class="divider">or</div>
+    <div class="auth-divider"><span>or</span></div>
 
     <.form :let={f} for={@form} as={:user} id="login_form_password" action={~p"/users/log-in"}>
       <.input
@@ -63,9 +63,9 @@
         spellcheck="false"
       />
       <.button class="btn btn-primary w-full" name={@form[:remember_me].name} value="true">
-        Log in and stay logged in <span aria-hidden="true">→</span>
+        Log in and stay logged in <span aria-hidden="true">&rarr;</span>
       </.button>
-      <.button class="btn btn-primary btn-soft w-full mt-2">
+      <.button class="btn btn-secondary w-full mt-2">
         Log in only this time
       </.button>
     </.form>

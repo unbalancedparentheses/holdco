@@ -20,9 +20,27 @@ defmodule Holdco.Compliance.WithholdingTax do
 
   def changeset(withholding_tax, attrs) do
     withholding_tax
-    |> cast(attrs, [:company_id, :payment_type, :country_from, :country_to,
-                     :gross_amount, :rate, :tax_amount, :currency, :date, :notes])
-    |> validate_required([:company_id, :payment_type, :country_from, :country_to,
-                          :gross_amount, :rate, :tax_amount, :date])
+    |> cast(attrs, [
+      :company_id,
+      :payment_type,
+      :country_from,
+      :country_to,
+      :gross_amount,
+      :rate,
+      :tax_amount,
+      :currency,
+      :date,
+      :notes
+    ])
+    |> validate_required([
+      :company_id,
+      :payment_type,
+      :country_from,
+      :country_to,
+      :gross_amount,
+      :rate,
+      :tax_amount,
+      :date
+    ])
   end
 end

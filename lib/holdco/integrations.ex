@@ -1,8 +1,15 @@
 defmodule Holdco.Integrations do
   import Ecto.Query
   alias Holdco.Repo
-  alias Holdco.Integrations.{AccountingSyncConfig, AccountingSyncLog, BankFeedConfig,
-                              BankFeedTransaction, SignatureRequest, EmailDigestConfig}
+
+  alias Holdco.Integrations.{
+    AccountingSyncConfig,
+    AccountingSyncLog,
+    BankFeedConfig,
+    BankFeedTransaction,
+    SignatureRequest,
+    EmailDigestConfig
+  }
 
   # Accounting Sync Configs
   def list_accounting_sync_configs do
@@ -35,8 +42,10 @@ defmodule Holdco.Integrations do
 
   # Accounting Sync Logs
   def list_accounting_sync_logs(config_id) do
-    from(asl in AccountingSyncLog, where: asl.config_id == ^config_id,
-         order_by: [desc: asl.inserted_at])
+    from(asl in AccountingSyncLog,
+      where: asl.config_id == ^config_id,
+      order_by: [desc: asl.inserted_at]
+    )
     |> Repo.all()
   end
 
@@ -63,8 +72,10 @@ defmodule Holdco.Integrations do
 
   # Bank Feed Configs
   def list_bank_feed_configs do
-    from(bfc in BankFeedConfig, order_by: bfc.provider,
-         preload: [:company, :bank_account, :feed_transactions])
+    from(bfc in BankFeedConfig,
+      order_by: bfc.provider,
+      preload: [:company, :bank_account, :feed_transactions]
+    )
     |> Repo.all()
   end
 
@@ -93,8 +104,10 @@ defmodule Holdco.Integrations do
 
   # Bank Feed Transactions
   def list_bank_feed_transactions(feed_config_id) do
-    from(bft in BankFeedTransaction, where: bft.feed_config_id == ^feed_config_id,
-         order_by: [desc: bft.date])
+    from(bft in BankFeedTransaction,
+      where: bft.feed_config_id == ^feed_config_id,
+      order_by: [desc: bft.date]
+    )
     |> Repo.all()
   end
 
@@ -121,8 +134,12 @@ defmodule Holdco.Integrations do
 
   # Signature Requests
   def list_signature_requests(company_id \\ nil) do
-    query = from(sr in SignatureRequest, order_by: [desc: sr.inserted_at],
-                 preload: [:company, :document])
+    query =
+      from(sr in SignatureRequest,
+        order_by: [desc: sr.inserted_at],
+        preload: [:company, :document]
+      )
+
     query = if company_id, do: where(query, [sr], sr.company_id == ^company_id), else: query
     Repo.all(query)
   end
@@ -191,7 +208,9 @@ defmodule Holdco.Integrations do
         Holdco.Platform.log_action(action, table, record.id)
         broadcast({String.to_atom("#{table}_#{action}d"), record})
         {:ok, record}
-      error -> error
+
+      error ->
+        error
     end
   end
 end

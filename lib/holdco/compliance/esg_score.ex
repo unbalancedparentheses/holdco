@@ -18,8 +18,16 @@ defmodule Holdco.Compliance.EsgScore do
 
   def changeset(esg_score, attrs) do
     esg_score
-    |> cast(attrs, [:company_id, :period, :environmental_score, :social_score,
-                     :governance_score, :overall_score, :framework, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :period,
+      :environmental_score,
+      :social_score,
+      :governance_score,
+      :overall_score,
+      :framework,
+      :notes
+    ])
     |> validate_required([:company_id, :period])
   end
 end

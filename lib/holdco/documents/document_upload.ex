@@ -18,8 +18,16 @@ defmodule Holdco.Documents.DocumentUpload do
 
   def changeset(document_upload, attrs) do
     document_upload
-    |> cast(attrs, [:document_id, :storage_backend, :file_path, :file_name,
-                     :file_size, :content_type, :checksum, :uploaded_by])
+    |> cast(attrs, [
+      :document_id,
+      :storage_backend,
+      :file_path,
+      :file_name,
+      :file_size,
+      :content_type,
+      :checksum,
+      :uploaded_by
+    ])
     |> validate_required([:document_id, :file_path, :file_name])
   end
 end

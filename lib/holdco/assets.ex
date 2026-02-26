@@ -1,8 +1,16 @@
 defmodule Holdco.Assets do
   import Ecto.Query
   alias Holdco.Repo
-  alias Holdco.Assets.{AssetHolding, CustodianAccount, CostBasisLot, CryptoWallet,
-                        RealEstateProperty, FundInvestment, PortfolioSnapshot}
+
+  alias Holdco.Assets.{
+    AssetHolding,
+    CustodianAccount,
+    CostBasisLot,
+    CryptoWallet,
+    RealEstateProperty,
+    FundInvestment,
+    PortfolioSnapshot
+  }
 
   # Asset Holdings
   def list_holdings(filters \\ %{}) do
@@ -43,7 +51,8 @@ defmodule Holdco.Assets do
     |> Repo.all()
   end
 
-  def get_custodian_account!(id), do: Repo.get!(CustodianAccount, id) |> Repo.preload(:asset_holding)
+  def get_custodian_account!(id),
+    do: Repo.get!(CustodianAccount, id) |> Repo.preload(:asset_holding)
 
   def create_custodian_account(attrs) do
     %CustodianAccount{}
@@ -126,7 +135,8 @@ defmodule Holdco.Assets do
     Repo.all(query)
   end
 
-  def get_real_estate_property!(id), do: Repo.get!(RealEstateProperty, id) |> Repo.preload(:company)
+  def get_real_estate_property!(id),
+    do: Repo.get!(RealEstateProperty, id) |> Repo.preload(:company)
 
   def create_real_estate_property(attrs) do
     %RealEstateProperty{}
@@ -212,7 +222,9 @@ defmodule Holdco.Assets do
         Holdco.Platform.log_action(action, table, record.id)
         broadcast({String.to_atom("#{table}_#{action}d"), record})
         {:ok, record}
-      error -> error
+
+      error ->
+        error
     end
   end
 end

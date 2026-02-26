@@ -20,8 +20,18 @@ defmodule Holdco.Governance.CapTableEntry do
 
   def changeset(cap_table_entry, attrs) do
     cap_table_entry
-    |> cast(attrs, [:company_id, :round_name, :investor, :instrument_type, :shares,
-                     :price_per_share, :amount_invested, :currency, :date, :notes])
-    |> validate_required([:company_id, :investor])
+    |> cast(attrs, [
+      :company_id,
+      :round_name,
+      :investor,
+      :instrument_type,
+      :shares,
+      :price_per_share,
+      :amount_invested,
+      :currency,
+      :date,
+      :notes
+    ])
+    |> validate_required([:company_id, :investor, :round_name])
   end
 end

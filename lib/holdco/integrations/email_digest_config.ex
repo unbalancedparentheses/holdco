@@ -18,9 +18,16 @@ defmodule Holdco.Integrations.EmailDigestConfig do
 
   def changeset(email_digest_config, attrs) do
     email_digest_config
-    |> cast(attrs, [:user_id, :frequency, :is_active, :include_portfolio,
-                     :include_deadlines, :include_audit_log, :include_transactions,
-                     :last_sent_at])
+    |> cast(attrs, [
+      :user_id,
+      :frequency,
+      :is_active,
+      :include_portfolio,
+      :include_deadlines,
+      :include_audit_log,
+      :include_transactions,
+      :last_sent_at
+    ])
     |> validate_required([:user_id])
   end
 end

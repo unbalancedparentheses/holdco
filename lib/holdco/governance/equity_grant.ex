@@ -21,9 +21,19 @@ defmodule Holdco.Governance.EquityGrant do
 
   def changeset(equity_grant, attrs) do
     equity_grant
-    |> cast(attrs, [:plan_id, :recipient, :grant_type, :quantity, :strike_price,
-                     :grant_date, :vesting_start, :cliff_months, :vesting_months,
-                     :exercised, :notes])
+    |> cast(attrs, [
+      :plan_id,
+      :recipient,
+      :grant_type,
+      :quantity,
+      :strike_price,
+      :grant_date,
+      :vesting_start,
+      :cliff_months,
+      :vesting_months,
+      :exercised,
+      :notes
+    ])
     |> validate_required([:plan_id, :recipient, :grant_date])
   end
 end

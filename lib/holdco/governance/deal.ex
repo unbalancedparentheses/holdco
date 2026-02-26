@@ -19,8 +19,17 @@ defmodule Holdco.Governance.Deal do
 
   def changeset(deal, attrs) do
     deal
-    |> cast(attrs, [:company_id, :deal_type, :counterparty, :status, :value,
-                     :currency, :target_close_date, :closed_date, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :deal_type,
+      :counterparty,
+      :status,
+      :value,
+      :currency,
+      :target_close_date,
+      :closed_date,
+      :notes
+    ])
     |> validate_required([:company_id, :counterparty])
   end
 end

@@ -19,8 +19,17 @@ defmodule Holdco.Governance.JointVenture do
 
   def changeset(joint_venture, attrs) do
     joint_venture
-    |> cast(attrs, [:company_id, :partner, :name, :ownership_pct, :formation_date,
-                     :status, :total_value, :currency, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :partner,
+      :name,
+      :ownership_pct,
+      :formation_date,
+      :status,
+      :total_value,
+      :currency,
+      :notes
+    ])
     |> validate_required([:company_id, :partner, :name])
   end
 end

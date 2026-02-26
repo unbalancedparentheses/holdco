@@ -57,10 +57,25 @@ defmodule Holdco.Corporate.Company do
 
   def changeset(company, attrs) do
     company
-    |> cast(attrs, [:name, :legal_name, :country, :category, :is_holding, :parent_id,
-                     :ownership_pct, :tax_id, :shareholders, :directors, :lawyer_studio,
-                     :notes, :website, :kyc_status, :wind_down_status, :formation_date,
-                     :dissolution_date])
+    |> cast(attrs, [
+      :name,
+      :legal_name,
+      :country,
+      :category,
+      :is_holding,
+      :parent_id,
+      :ownership_pct,
+      :tax_id,
+      :shareholders,
+      :directors,
+      :lawyer_studio,
+      :notes,
+      :website,
+      :kyc_status,
+      :wind_down_status,
+      :formation_date,
+      :dissolution_date
+    ])
     |> validate_required([:name, :country])
     |> validate_inclusion(:kyc_status, ~w(not_started in_progress approved rejected))
     |> validate_inclusion(:wind_down_status, ~w(active winding_down dissolved))

@@ -16,7 +16,14 @@ defmodule Holdco.Platform.BackupLog do
 
   def changeset(backup_log, attrs) do
     backup_log
-    |> cast(attrs, [:config_id, :status, :file_path, :file_size_bytes, :error_message, :completed_at])
+    |> cast(attrs, [
+      :config_id,
+      :status,
+      :file_path,
+      :file_size_bytes,
+      :error_message,
+      :completed_at
+    ])
     |> validate_required([:config_id])
   end
 end

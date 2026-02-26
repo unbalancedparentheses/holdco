@@ -19,8 +19,17 @@ defmodule Holdco.Integrations.BankFeedTransaction do
 
   def changeset(bank_feed_transaction, attrs) do
     bank_feed_transaction
-    |> cast(attrs, [:feed_config_id, :external_id, :date, :description, :amount,
-                     :currency, :category, :is_matched, :matched_transaction_id])
+    |> cast(attrs, [
+      :feed_config_id,
+      :external_id,
+      :date,
+      :description,
+      :amount,
+      :currency,
+      :category,
+      :is_matched,
+      :matched_transaction_id
+    ])
     |> validate_required([:feed_config_id, :external_id, :date])
   end
 end

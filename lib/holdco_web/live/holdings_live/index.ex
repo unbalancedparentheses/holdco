@@ -12,24 +12,37 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     allocation = Portfolio.asset_allocation()
     total_value = Enum.reduce(holdings, 0.0, fn h, acc -> acc + (h.quantity || 0.0) end)
 
-    {:ok, assign(socket,
-      page_title: "Holdings",
-      holdings: holdings,
-      companies: companies,
-      allocation: allocation,
-      total_value: total_value,
-      show_form: false
-    )}
+    {:ok,
+     assign(socket,
+       page_title: "Holdings",
+       holdings: holdings,
+       companies: companies,
+       allocation: allocation,
+       total_value: total_value,
+       show_form: false
+     )}
   end
 
   @impl true
   def handle_event("show_form", _, socket), do: {:noreply, assign(socket, show_form: true)}
   def handle_event("close_form", _, socket), do: {:noreply, assign(socket, show_form: false)}
 
+  def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("delete", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
   def handle_event("save", %{"holding" => params}, socket) do
     case Assets.create_holding(params) do
-      {:ok, _} -> {:noreply, reload(socket) |> put_flash(:info, "Holding added") |> assign(show_form: false)}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to add holding")}
+      {:ok, _} ->
+        {:noreply,
+         reload(socket) |> put_flash(:info, "Holding added") |> assign(show_form: false)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add holding")}
     end
   end
 
@@ -56,9 +69,19 @@ defmodule HoldcoWeb.HoldingsLive.Index do
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div>
           <h1>Holdings</h1>
-          <p class="deck"><%= length(@holdings) %> positions across all entities</p>
+          <p class="deck">{length(@holdings)} positions across all entities</p>
         </div>
-        <button class="btn btn-primary" phx-click="show_form">Add Holding</button>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <a href={~p"/export/holdings.csv"} class="btn btn-secondary">
+            Export CSV
+          </a>
+          <%= if @can_write do %>
+            <.link navigate={~p"/import?type=holdings"} class="btn btn-secondary">
+              Import CSV
+            </.link>
+            <button class="btn btn-primary" phx-click="show_form">Add Holding</button>
+          <% end %>
+        </div>
       </div>
       <hr class="page-title-rule" />
     </div>
@@ -66,21 +89,23 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Total Positions</div>
-        <div class="metric-value"><%= length(@holdings) %></div>
+        <div class="metric-value">{length(@holdings)}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Total Quantity Value</div>
-        <div class="metric-value"><%= format_number(@total_value) %></div>
+        <div class="metric-value">{format_number(@total_value)}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Asset Types</div>
-        <div class="metric-value"><%= length(@allocation) %></div>
+        <div class="metric-value">{length(@allocation)}</div>
       </div>
     </div>
 
     <div class="grid-2">
       <div class="section">
-        <div class="section-head"><h2>Allocation by Type</h2></div>
+        <div class="section-head">
+          <h2>Allocation by Type</h2>
+        </div>
         <div class="panel" style="padding: 1rem;">
           <div
             id="holdings-allocation-chart"
@@ -95,16 +120,24 @@ defmodule HoldcoWeb.HoldingsLive.Index do
         </div>
       </div>
       <div class="section">
-        <div class="section-head"><h2>By Type Summary</h2></div>
+        <div class="section-head">
+          <h2>By Type Summary</h2>
+        </div>
         <div class="panel">
           <table>
-            <thead><tr><th>Type</th><th class="th-num">Count</th><th class="th-num">Total Qty</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th class="th-num">Count</th>
+                <th class="th-num">Total Qty</th>
+              </tr>
+            </thead>
             <tbody>
               <%= for a <- @allocation do %>
                 <tr>
-                  <td><span class="tag tag-ink"><%= a.type %></span></td>
-                  <td class="td-num"><%= a.count %></td>
-                  <td class="td-num"><%= format_number(a.value || 0) %></td>
+                  <td><span class="tag tag-ink">{a.type}</span></td>
+                  <td class="td-num">{a.count}</td>
+                  <td class="td-num">{format_number(a.value || 0)}</td>
                 </tr>
               <% end %>
             </tbody>
@@ -114,7 +147,9 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     </div>
 
     <div class="section">
-      <div class="section-head"><h2>All Holdings</h2></div>
+      <div class="section-head">
+        <h2>All Holdings</h2>
+      </div>
       <div class="panel">
         <table>
           <thead>
@@ -132,14 +167,25 @@ defmodule HoldcoWeb.HoldingsLive.Index do
           <tbody>
             <%= for h <- @holdings do %>
               <tr>
-                <td class="td-name"><%= h.asset %></td>
-                <td class="td-mono"><%= h.ticker %></td>
-                <td class="td-num"><%= h.quantity %></td>
-                <td><%= h.unit %></td>
-                <td><span class="tag tag-ink"><%= h.asset_type %></span></td>
-                <td><%= h.currency %></td>
-                <td><%= if h.company, do: h.company.name, else: "---" %></td>
-                <td><button phx-click="delete" phx-value-id={h.id} class="btn btn-danger btn-sm" data-confirm="Delete this holding?">Del</button></td>
+                <td class="td-name">{h.asset}</td>
+                <td class="td-mono">{h.ticker}</td>
+                <td class="td-num">{h.quantity}</td>
+                <td>{h.unit}</td>
+                <td><span class="tag tag-ink">{h.asset_type}</span></td>
+                <td>{h.currency}</td>
+                <td>{if h.company, do: h.company.name, else: "---"}</td>
+                <td>
+                  <%= if @can_write do %>
+                    <button
+                      phx-click="delete"
+                      phx-value-id={h.id}
+                      class="btn btn-danger btn-sm"
+                      data-confirm="Delete this holding?"
+                    >
+                      Del
+                    </button>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -153,29 +199,54 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
         <div class="modal" phx-click-away="close_form">
-          <div class="modal-header"><h3>Add Holding</h3></div>
+          <div class="modal-header">
+            <h3>Add Holding</h3>
+          </div>
           <div class="modal-body">
             <form phx-submit="save">
               <div class="form-group">
                 <label class="form-label">Company *</label>
                 <select name="holding[company_id]" class="form-select" required>
                   <option value="">Select company</option>
-                  <%= for c <- @companies do %><option value={c.id}><%= c.name %></option><% end %>
+                  <%= for c <- @companies do %>
+                    <option value={c.id}>{c.name}</option>
+                  <% end %>
                 </select>
               </div>
-              <div class="form-group"><label class="form-label">Asset Name *</label><input type="text" name="holding[asset]" class="form-input" required /></div>
-              <div class="form-group"><label class="form-label">Ticker</label><input type="text" name="holding[ticker]" class="form-input" /></div>
-              <div class="form-group"><label class="form-label">Quantity</label><input type="number" name="holding[quantity]" class="form-input" step="any" /></div>
-              <div class="form-group"><label class="form-label">Unit</label><input type="text" name="holding[unit]" class="form-input" /></div>
+              <div class="form-group">
+                <label class="form-label">Asset Name *</label>
+                <input type="text" name="holding[asset]" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ticker</label>
+                <input type="text" name="holding[ticker]" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Quantity</label>
+                <input type="number" name="holding[quantity]" class="form-input" step="any" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Unit</label>
+                <input type="text" name="holding[unit]" class="form-input" />
+              </div>
               <div class="form-group">
                 <label class="form-label">Asset Type</label>
                 <select name="holding[asset_type]" class="form-select">
-                  <option value="stock">Stock</option><option value="etf">ETF</option><option value="crypto">Crypto</option>
-                  <option value="commodity">Commodity</option><option value="bond">Bond</option><option value="real_estate">Real Estate</option>
-                  <option value="private_equity">Private Equity</option><option value="fund">Fund</option><option value="other">Other</option>
+                  <option value="stock">Stock</option>
+                  <option value="etf">ETF</option>
+                  <option value="crypto">Crypto</option>
+                  <option value="commodity">Commodity</option>
+                  <option value="bond">Bond</option>
+                  <option value="real_estate">Real Estate</option>
+                  <option value="private_equity">Private Equity</option>
+                  <option value="fund">Fund</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
-              <div class="form-group"><label class="form-label">Currency</label><input type="text" name="holding[currency]" class="form-input" value="USD" /></div>
+              <div class="form-group">
+                <label class="form-label">Currency</label>
+                <input type="text" name="holding[currency]" class="form-input" value="USD" />
+              </div>
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Add Holding</button>
                 <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
@@ -188,7 +259,9 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     """
   end
 
-  defp format_number(n) when is_float(n), do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+  defp format_number(n) when is_float(n),
+    do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"
 
@@ -198,12 +271,15 @@ defmodule HoldcoWeb.HoldingsLive.Index do
 
   defp allocation_chart_data(allocation) do
     colors = ["#0d7680", "#0f5499", "#00994d", "#990f3d", "#ff8833", "#f2a900", "#cc0000"]
+
     %{
       labels: Enum.map(allocation, & &1.type),
-      datasets: [%{
-        data: Enum.map(allocation, & &1.value),
-        backgroundColor: Enum.take(colors, length(allocation))
-      }]
+      datasets: [
+        %{
+          data: Enum.map(allocation, & &1.value),
+          backgroundColor: Enum.take(colors, length(allocation))
+        }
+      ]
     }
   end
 end

@@ -1,10 +1,22 @@
 defmodule Holdco.Compliance do
   import Ecto.Query
   alias Holdco.Repo
-  alias Holdco.Compliance.{TaxDeadline, AnnualFiling, RegulatoryFiling, RegulatoryLicense,
-                            ComplianceChecklist, InsurancePolicy, TransferPricingDoc,
-                            WithholdingTax, FatcaReport, EsgScore, SanctionsList,
-                            SanctionsEntry, SanctionsCheck}
+
+  alias Holdco.Compliance.{
+    TaxDeadline,
+    AnnualFiling,
+    RegulatoryFiling,
+    RegulatoryLicense,
+    ComplianceChecklist,
+    InsurancePolicy,
+    TransferPricingDoc,
+    WithholdingTax,
+    FatcaReport,
+    EsgScore,
+    SanctionsList,
+    SanctionsEntry,
+    SanctionsCheck
+  }
 
   # Tax Deadlines
   def list_tax_deadlines(company_id \\ nil) do
@@ -125,7 +137,8 @@ defmodule Holdco.Compliance do
     Repo.all(query)
   end
 
-  def get_compliance_checklist!(id), do: Repo.get!(ComplianceChecklist, id) |> Repo.preload(:company)
+  def get_compliance_checklist!(id),
+    do: Repo.get!(ComplianceChecklist, id) |> Repo.preload(:company)
 
   def create_compliance_checklist(attrs) do
     %ComplianceChecklist{}
@@ -176,8 +189,10 @@ defmodule Holdco.Compliance do
 
   # Transfer Pricing Docs
   def list_transfer_pricing_docs do
-    from(tp in TransferPricingDoc, order_by: [desc: tp.inserted_at],
-         preload: [:from_company, :to_company])
+    from(tp in TransferPricingDoc,
+      order_by: [desc: tp.inserted_at],
+      preload: [:from_company, :to_company]
+    )
     |> Repo.all()
   end
 
@@ -344,12 +359,18 @@ defmodule Holdco.Compliance do
 
   # Sanctions Checks
   def list_sanctions_checks(company_id \\ nil) do
-    query = from(sc in SanctionsCheck, order_by: [desc: sc.inserted_at], preload: [:company, :matched_entry])
+    query =
+      from(sc in SanctionsCheck,
+        order_by: [desc: sc.inserted_at],
+        preload: [:company, :matched_entry]
+      )
+
     query = if company_id, do: where(query, [sc], sc.company_id == ^company_id), else: query
     Repo.all(query)
   end
 
-  def get_sanctions_check!(id), do: Repo.get!(SanctionsCheck, id) |> Repo.preload([:company, :matched_entry])
+  def get_sanctions_check!(id),
+    do: Repo.get!(SanctionsCheck, id) |> Repo.preload([:company, :matched_entry])
 
   def create_sanctions_check(attrs) do
     %SanctionsCheck{}
@@ -380,7 +401,9 @@ defmodule Holdco.Compliance do
         Holdco.Platform.log_action(action, table, record.id)
         broadcast({String.to_atom("#{table}_#{action}d"), record})
         {:ok, record}
-      error -> error
+
+      error ->
+        error
     end
   end
 end

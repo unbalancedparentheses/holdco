@@ -10,12 +10,13 @@ defmodule HoldcoWeb.ScenarioLive.Index do
     scenarios = Scenarios.list_scenarios()
     companies = Corporate.list_companies()
 
-    {:ok, assign(socket,
-      page_title: "Scenarios",
-      scenarios: scenarios,
-      companies: companies,
-      show_form: false
-    )}
+    {:ok,
+     assign(socket,
+       page_title: "Scenarios",
+       scenarios: scenarios,
+       companies: companies,
+       show_form: false
+     )}
   end
 
   @impl true
@@ -27,11 +28,24 @@ defmodule HoldcoWeb.ScenarioLive.Index do
   defp apply_action(socket, :index, _params), do: assign(socket, show_form: false)
 
   @impl true
+  def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("delete", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
   def handle_event("save", %{"scenario" => params}, socket) do
     case Scenarios.create_scenario(params) do
       {:ok, _} ->
         scenarios = Scenarios.list_scenarios()
-        {:noreply, assign(socket, scenarios: scenarios, show_form: false) |> put_flash(:info, "Scenario created") |> push_navigate(to: ~p"/scenarios")}
+
+        {:noreply,
+         assign(socket, scenarios: scenarios, show_form: false)
+         |> put_flash(:info, "Scenario created")
+         |> push_navigate(to: ~p"/scenarios")}
+
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to create scenario")}
     end
@@ -45,7 +59,9 @@ defmodule HoldcoWeb.ScenarioLive.Index do
   end
 
   def handle_event("show_form", _, socket), do: {:noreply, assign(socket, show_form: true)}
-  def handle_event("close_form", _, socket), do: {:noreply, push_navigate(socket, to: ~p"/scenarios")}
+
+  def handle_event("close_form", _, socket),
+    do: {:noreply, push_navigate(socket, to: ~p"/scenarios")}
 
   @impl true
   def handle_info(_, socket) do
@@ -62,7 +78,9 @@ defmodule HoldcoWeb.ScenarioLive.Index do
           <h1>Scenarios</h1>
           <p class="deck">Financial projections and what-if analysis</p>
         </div>
-        <.link navigate={~p"/scenarios/new"} class="btn btn-primary">New Scenario</.link>
+        <%= if @can_write do %>
+          <.link navigate={~p"/scenarios/new"} class="btn btn-primary">New Scenario</.link>
+        <% end %>
       </div>
       <hr class="page-title-rule" />
     </div>
@@ -84,19 +102,34 @@ defmodule HoldcoWeb.ScenarioLive.Index do
             <%= for s <- @scenarios do %>
               <tr>
                 <td>
-                  <.link navigate={~p"/scenarios/#{s.id}"} class="td-link td-name"><%= s.name %></.link>
+                  <.link navigate={~p"/scenarios/#{s.id}"} class="td-link td-name">{s.name}</.link>
                 </td>
-                <td><%= if s.company, do: s.company.name, else: "---" %></td>
-                <td><span class={"tag #{scenario_status_tag(s.status)}"}><%= s.status %></span></td>
-                <td class="td-num"><%= s.projection_months %></td>
-                <td class="td-mono"><%= if s.inserted_at, do: Calendar.strftime(s.inserted_at, "%Y-%m-%d") %></td>
-                <td><button phx-click="delete" phx-value-id={s.id} class="btn btn-danger btn-sm" data-confirm="Delete this scenario?">Del</button></td>
+                <td>{if s.company, do: s.company.name, else: "---"}</td>
+                <td><span class={"tag #{scenario_status_tag(s.status)}"}>{s.status}</span></td>
+                <td class="td-num">{s.projection_months}</td>
+                <td class="td-mono">
+                  {if s.inserted_at, do: Calendar.strftime(s.inserted_at, "%Y-%m-%d")}
+                </td>
+                <td>
+                  <%= if @can_write do %>
+                    <button
+                      phx-click="delete"
+                      phx-value-id={s.id}
+                      class="btn btn-danger btn-sm"
+                      data-confirm="Delete this scenario?"
+                    >
+                      Del
+                    </button>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>
         </table>
         <%= if @scenarios == [] do %>
-          <div class="empty-state">No scenarios yet. <.link navigate={~p"/scenarios/new"}>Create one</.link></div>
+          <div class="empty-state">
+            No scenarios yet. <.link navigate={~p"/scenarios/new"}>Create one</.link>
+          </div>
         <% end %>
       </div>
     </div>
@@ -104,20 +137,50 @@ defmodule HoldcoWeb.ScenarioLive.Index do
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
         <div class="modal" phx-click-away="close_form">
-          <div class="modal-header"><h3>New Scenario</h3></div>
+          <div class="modal-header">
+            <h3>New Scenario</h3>
+          </div>
           <div class="modal-body">
             <form phx-submit="save">
-              <div class="form-group"><label class="form-label">Name *</label><input type="text" name="scenario[name]" class="form-input" required /></div>
-              <div class="form-group"><label class="form-label">Description</label><textarea name="scenario[description]" class="form-input"></textarea></div>
+              <div class="form-group">
+                <label class="form-label">Name *</label>
+                <input type="text" name="scenario[name]" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description</label><textarea
+                  name="scenario[description]"
+                  class="form-input"
+                ></textarea>
+              </div>
               <div class="form-group">
                 <label class="form-label">Company</label>
                 <select name="scenario[company_id]" class="form-select">
                   <option value="">All companies</option>
-                  <%= for c <- @companies do %><option value={c.id}><%= c.name %></option><% end %>
+                  <%= for c <- @companies do %>
+                    <option value={c.id}>{c.name}</option>
+                  <% end %>
                 </select>
               </div>
-              <div class="form-group"><label class="form-label">Base Period</label><input type="text" name="scenario[base_period]" class="form-input" placeholder="e.g. 2025-Q1" /></div>
-              <div class="form-group"><label class="form-label">Projection Months</label><input type="number" name="scenario[projection_months]" class="form-input" value="12" min="1" max="120" /></div>
+              <div class="form-group">
+                <label class="form-label">Base Period</label>
+                <input
+                  type="text"
+                  name="scenario[base_period]"
+                  class="form-input"
+                  placeholder="e.g. 2025-Q1"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Projection Months</label>
+                <input
+                  type="number"
+                  name="scenario[projection_months]"
+                  class="form-input"
+                  value="12"
+                  min="1"
+                  max="120"
+                />
+              </div>
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Create Scenario</button>
                 <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>

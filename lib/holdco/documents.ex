@@ -36,8 +36,10 @@ defmodule Holdco.Documents do
 
   # Document Versions
   def list_document_versions(document_id) do
-    from(dv in DocumentVersion, where: dv.document_id == ^document_id,
-         order_by: [desc: dv.version_number])
+    from(dv in DocumentVersion,
+      where: dv.document_id == ^document_id,
+      order_by: [desc: dv.version_number]
+    )
     |> Repo.all()
   end
 
@@ -64,8 +66,10 @@ defmodule Holdco.Documents do
 
   # Document Uploads
   def list_document_uploads(document_id) do
-    from(du in DocumentUpload, where: du.document_id == ^document_id,
-         order_by: [desc: du.inserted_at])
+    from(du in DocumentUpload,
+      where: du.document_id == ^document_id,
+      order_by: [desc: du.inserted_at]
+    )
     |> Repo.all()
   end
 
@@ -100,7 +104,9 @@ defmodule Holdco.Documents do
         Holdco.Platform.log_action(action, table, record.id)
         broadcast({String.to_atom("#{table}_#{action}d"), record})
         {:ok, record}
-      error -> error
+
+      error ->
+        error
     end
   end
 end

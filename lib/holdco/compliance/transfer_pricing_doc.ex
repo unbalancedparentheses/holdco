@@ -18,8 +18,16 @@ defmodule Holdco.Compliance.TransferPricingDoc do
 
   def changeset(transfer_pricing_doc, attrs) do
     transfer_pricing_doc
-    |> cast(attrs, [:from_company_id, :to_company_id, :description, :method,
-                     :amount, :currency, :period, :notes])
+    |> cast(attrs, [
+      :from_company_id,
+      :to_company_id,
+      :description,
+      :method,
+      :amount,
+      :currency,
+      :period,
+      :notes
+    ])
     |> validate_required([:from_company_id, :to_company_id, :description])
   end
 end

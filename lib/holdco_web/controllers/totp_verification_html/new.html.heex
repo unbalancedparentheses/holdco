@@ -1,0 +1,42 @@
+<Layouts.app flash={@flash} current_scope={assigns[:current_scope]}>
+  <div class="mx-auto max-w-sm space-y-4">
+    <div class="text-center">
+      <.header>
+        <p>Two-Factor Authentication</p>
+        <:subtitle>
+          Enter the 6-digit code from your authenticator app to complete login.
+        </:subtitle>
+      </.header>
+    </div>
+
+    <.form for={%{}} as={:totp} action={~p"/users/totp-verify"} id="totp_verify_form">
+      <div style="margin-bottom: 1rem;">
+        <label for="totp_code" style="display: block; font-weight: 500; margin-bottom: 0.25rem;">
+          Authentication Code
+        </label>
+        <input
+          type="text"
+          id="totp_code"
+          name="totp[code]"
+          inputmode="numeric"
+          pattern="[0-9]{6}"
+          maxlength="6"
+          autocomplete="one-time-code"
+          autofocus
+          required
+          placeholder="000000"
+          style="width: 100%; padding: 0.5rem; font-size: 1.25rem; letter-spacing: 0.5em; text-align: center; font-family: monospace; border: 1px solid #ccc; border-radius: 4px;"
+        />
+      </div>
+      <.button class="btn btn-primary w-full">
+        Verify and log in <span aria-hidden="true">&rarr;</span>
+      </.button>
+    </.form>
+
+    <div style="text-align: center; margin-top: 1rem;">
+      <.link href={~p"/users/log-in"} style="font-size: 0.875rem; color: #666;">
+        &larr; Back to login
+      </.link>
+    </div>
+  </div>
+</Layouts.app>

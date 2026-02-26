@@ -17,6 +17,57 @@ defmodule HoldcoWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :api_authenticated do
+    plug :accepts, ["json"]
+    plug HoldcoWeb.Plugs.ApiKeyAuth
+  end
+
+  # Health check (no auth)
+  scope "/", HoldcoWeb do
+    pipe_through [:api]
+    get "/health", HealthController, :index
+  end
+
+  # JSON API (API key auth)
+  scope "/api", HoldcoWeb.Api do
+    pipe_through [:api_authenticated]
+
+    get "/health", HealthController, :index
+    get "/portfolio", PortfolioController, :index
+    get "/portfolio/allocation", PortfolioController, :allocation
+    get "/portfolio/fx-exposure", PortfolioController, :fx_exposure
+    get "/companies", CompanyController, :index
+    get "/companies/:id", CompanyController, :show
+    get "/holdings", HoldingController, :index
+    get "/transactions", TransactionController, :index
+  end
+
+  # CSV Exports (authenticated)
+  scope "/export", HoldcoWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    get "/companies.csv", ExportController, :companies
+    get "/holdings.csv", ExportController, :holdings
+    get "/transactions.csv", ExportController, :transactions
+  end
+
+  # Printable Reports (authenticated)
+  scope "/reports", HoldcoWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    get "/portfolio", ReportController, :portfolio
+    get "/financial", ReportController, :financial
+    get "/compliance", ReportController, :compliance
+  end
+
+  # File downloads (authenticated)
+  scope "/", HoldcoWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    get "/downloads/:id", DownloadController, :show
+    get "/downloads/:id/preview", DownloadController, :preview
+  end
+
   # Public routes (no auth required)
   scope "/", HoldcoWeb do
     pipe_through [:browser]
@@ -25,6 +76,8 @@ defmodule HoldcoWeb.Router do
     get "/users/log-in/:token", UserSessionController, :confirm
     post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete
+    get "/users/totp-verify", TotpVerificationController, :new
+    post "/users/totp-verify", TotpVerificationController, :create
   end
 
   scope "/", HoldcoWeb do
@@ -48,6 +101,7 @@ defmodule HoldcoWeb.Router do
     pipe_through [:browser, :require_authenticated_user]
 
     live_session :authenticated,
+      layout: {HoldcoWeb.Layouts, :app},
       on_mount: [
         {HoldcoWeb.UserAuth, :ensure_authenticated},
         {HoldcoWeb.Live.Hooks, :current_path}
@@ -58,6 +112,7 @@ defmodule HoldcoWeb.Router do
       live "/companies/:id", CompanyLive.Show, :show
       live "/companies/:id/edit", CompanyLive.Show, :edit
       live "/holdings", HoldingsLive.Index, :index
+      live "/holdings/:id", HoldingsLive.Show, :show
       live "/transactions", TransactionsLive.Index, :index
       live "/bank-accounts", BankAccountsLive.Index, :index
       live "/documents", DocumentsLive.Index, :index
@@ -65,11 +120,17 @@ defmodule HoldcoWeb.Router do
       live "/financials", FinancialsLive.Index, :index
       live "/governance", GovernanceLive.Index, :index
       live "/compliance", ComplianceLive.Index, :index
+      live "/approvals", ApprovalsLive.Index, :index
       live "/scenarios", ScenarioLive.Index, :index
       live "/scenarios/new", ScenarioLive.Index, :new
       live "/scenarios/:id", ScenarioLive.Show, :show
+      live "/import", ImportLive, :index
+      live "/notifications", NotificationsLive, :index
+      live "/search", SearchLive, :index
       live "/audit-log", AuditLive.Index, :index
+      live "/reports", ReportsLive, :index
       live "/settings", SettingsLive.Index, :index
+      live "/users/settings/2fa", TotpSetupLive, :index
     end
   end
 

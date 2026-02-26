@@ -19,8 +19,16 @@ defmodule Holdco.Platform.BackupConfig do
 
   def changeset(backup_config, attrs) do
     backup_config
-    |> cast(attrs, [:name, :destination_type, :destination_path, :schedule,
-                     :retention_days, :is_active, :last_backup_at, :notes])
+    |> cast(attrs, [
+      :name,
+      :destination_type,
+      :destination_path,
+      :schedule,
+      :retention_days,
+      :is_active,
+      :last_backup_at,
+      :notes
+    ])
     |> validate_required([:name, :destination_path])
   end
 end

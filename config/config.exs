@@ -78,7 +78,18 @@ config :holdco, Oban,
   engine: Oban.Engines.Lite,
   notifier: Oban.Notifiers.PG,
   repo: Holdco.Repo,
-  queues: [default: 10, prices: 5, snapshots: 2]
+  queues: [default: 10, prices: 5, snapshots: 2],
+  plugins: [
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"0 2 * * *", Holdco.Workers.PortfolioSnapshotWorker},
+       {"0 3 * * *", Holdco.Workers.SnapshotPricesWorker},
+       {"0 6 * * *", Holdco.Workers.TaxReminderWorker},
+       {"0 4 * * *", Holdco.Workers.BackupWorker},
+       {"0 5 * * 0", Holdco.Workers.SanctionsCheckWorker},
+       {"0 7 * * 1", Holdco.Workers.EmailDigestWorker}
+     ]}
+  ]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

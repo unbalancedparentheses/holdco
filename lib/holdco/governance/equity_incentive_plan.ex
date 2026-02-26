@@ -17,8 +17,14 @@ defmodule Holdco.Governance.EquityIncentivePlan do
 
   def changeset(equity_incentive_plan, attrs) do
     equity_incentive_plan
-    |> cast(attrs, [:company_id, :plan_name, :total_pool, :vesting_schedule,
-                     :board_approval_date, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :plan_name,
+      :total_pool,
+      :vesting_schedule,
+      :board_approval_date,
+      :notes
+    ])
     |> validate_required([:company_id, :plan_name])
   end
 end

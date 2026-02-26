@@ -18,8 +18,16 @@ defmodule Holdco.Finance.InterCompanyTransfer do
 
   def changeset(inter_company_transfer, attrs) do
     inter_company_transfer
-    |> cast(attrs, [:from_company_id, :to_company_id, :amount, :currency, :date,
-                     :description, :status, :notes])
+    |> cast(attrs, [
+      :from_company_id,
+      :to_company_id,
+      :amount,
+      :currency,
+      :date,
+      :description,
+      :status,
+      :notes
+    ])
     |> validate_required([:from_company_id, :to_company_id, :amount, :date])
   end
 end

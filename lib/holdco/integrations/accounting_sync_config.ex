@@ -21,8 +21,18 @@ defmodule Holdco.Integrations.AccountingSyncConfig do
 
   def changeset(accounting_sync_config, attrs) do
     accounting_sync_config
-    |> cast(attrs, [:company_id, :provider, :external_id, :access_token, :refresh_token,
-                     :token_expires_at, :is_active, :last_sync_at, :sync_direction, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :provider,
+      :external_id,
+      :access_token,
+      :refresh_token,
+      :token_expires_at,
+      :is_active,
+      :last_sync_at,
+      :sync_direction,
+      :notes
+    ])
     |> validate_required([:company_id, :provider])
   end
 end

@@ -20,8 +20,18 @@ defmodule Holdco.Banking.BankAccount do
 
   def changeset(bank_account, attrs) do
     bank_account
-    |> cast(attrs, [:company_id, :bank_name, :account_number, :iban, :swift, :currency,
-                     :account_type, :balance, :authorized_signers, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :bank_name,
+      :account_number,
+      :iban,
+      :swift,
+      :currency,
+      :account_type,
+      :balance,
+      :authorized_signers,
+      :notes
+    ])
     |> validate_required([:company_id, :bank_name])
   end
 end

@@ -15,8 +15,7 @@ defmodule Holdco.Assets.CustodianAccount do
 
   def changeset(custodian_account, attrs) do
     custodian_account
-    |> cast(attrs, [:asset_holding_id, :bank, :account_number, :account_type,
-                     :authorized_persons])
+    |> cast(attrs, [:asset_holding_id, :bank, :account_number, :account_type, :authorized_persons])
     |> validate_required([:asset_holding_id, :bank])
   end
 end

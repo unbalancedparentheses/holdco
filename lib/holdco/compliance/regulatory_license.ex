@@ -18,8 +18,16 @@ defmodule Holdco.Compliance.RegulatoryLicense do
 
   def changeset(regulatory_license, attrs) do
     regulatory_license
-    |> cast(attrs, [:company_id, :license_type, :issuing_authority, :license_number,
-                     :issue_date, :expiry_date, :status, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :license_type,
+      :issuing_authority,
+      :license_number,
+      :issue_date,
+      :expiry_date,
+      :status,
+      :notes
+    ])
     |> validate_required([:company_id, :license_type, :issuing_authority])
   end
 end

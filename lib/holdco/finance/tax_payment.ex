@@ -19,8 +19,17 @@ defmodule Holdco.Finance.TaxPayment do
 
   def changeset(tax_payment, attrs) do
     tax_payment
-    |> cast(attrs, [:company_id, :jurisdiction, :tax_type, :amount, :currency,
-                     :date, :period, :status, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :jurisdiction,
+      :tax_type,
+      :amount,
+      :currency,
+      :date,
+      :period,
+      :status,
+      :notes
+    ])
     |> validate_required([:company_id, :jurisdiction, :tax_type, :amount, :date])
   end
 end

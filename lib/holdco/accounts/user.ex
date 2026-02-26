@@ -8,6 +8,8 @@ defmodule Holdco.Accounts.User do
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
     field :authenticated_at, :utc_datetime, virtual: true
+    field :totp_secret, :binary, redact: true
+    field :totp_enabled, :boolean, default: false
 
     timestamps(type: :utc_datetime)
   end
@@ -112,6 +114,14 @@ defmodule Holdco.Accounts.User do
   def confirm_changeset(user) do
     now = DateTime.utc_now(:second)
     change(user, confirmed_at: now)
+  end
+
+  @doc """
+  A user changeset for enabling or disabling TOTP two-factor authentication.
+  """
+  def totp_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:totp_secret, :totp_enabled])
   end
 
   @doc """

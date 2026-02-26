@@ -22,8 +22,20 @@ defmodule Holdco.Scenarios.ScenarioItem do
 
   def changeset(scenario_item, attrs) do
     scenario_item
-    |> cast(attrs, [:scenario_id, :name, :item_type, :amount, :currency, :growth_rate,
-                     :growth_type, :recurrence, :probability, :start_date, :end_date, :notes])
+    |> cast(attrs, [
+      :scenario_id,
+      :name,
+      :item_type,
+      :amount,
+      :currency,
+      :growth_rate,
+      :growth_type,
+      :recurrence,
+      :probability,
+      :start_date,
+      :end_date,
+      :notes
+    ])
     |> validate_required([:scenario_id, :name])
   end
 end

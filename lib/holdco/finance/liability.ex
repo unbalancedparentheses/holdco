@@ -19,8 +19,17 @@ defmodule Holdco.Finance.Liability do
 
   def changeset(liability, attrs) do
     liability
-    |> cast(attrs, [:company_id, :liability_type, :creditor, :principal, :currency,
-                     :interest_rate, :maturity_date, :status, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :liability_type,
+      :creditor,
+      :principal,
+      :currency,
+      :interest_rate,
+      :maturity_date,
+      :status,
+      :notes
+    ])
     |> validate_required([:company_id, :liability_type, :creditor, :principal])
   end
 end

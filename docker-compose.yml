@@ -1,0 +1,21 @@
+services:
+  holdco:
+    build: .
+    ports:
+      - "4000:4000"
+    volumes:
+      - holdco_data:/data
+    environment:
+      DATABASE_PATH: /data/holdco.db
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-please-change-this-to-a-real-secret-key-base-of-at-least-64-characters}
+      PHX_HOST: ${PHX_HOST:-localhost}
+      PHX_SERVER: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  holdco_data:

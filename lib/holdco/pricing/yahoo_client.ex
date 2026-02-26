@@ -87,7 +87,10 @@ defmodule Holdco.Pricing.YahooClient do
           :ets.insert(@cache_table, {yf_ticker, price, System.monotonic_time(:millisecond)})
 
           if original_ticker != yf_ticker do
-            :ets.insert(@cache_table, {original_ticker, price, System.monotonic_time(:millisecond)})
+            :ets.insert(
+              @cache_table,
+              {original_ticker, price, System.monotonic_time(:millisecond)}
+            )
           end
 
           {:ok, price}

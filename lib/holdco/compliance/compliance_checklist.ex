@@ -18,8 +18,16 @@ defmodule Holdco.Compliance.ComplianceChecklist do
 
   def changeset(compliance_checklist, attrs) do
     compliance_checklist
-    |> cast(attrs, [:company_id, :jurisdiction, :item, :category, :completed,
-                     :due_date, :completed_date, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :jurisdiction,
+      :item,
+      :category,
+      :completed,
+      :due_date,
+      :completed_date,
+      :notes
+    ])
     |> validate_required([:company_id, :jurisdiction, :item])
   end
 end

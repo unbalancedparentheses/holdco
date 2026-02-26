@@ -35,6 +35,10 @@ holdco-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Uploaded files (keep .gitkeep)
+/priv/static/uploads/*
+!/priv/static/uploads/.gitkeep
+
 # Database files
 *.db
 *.db-*

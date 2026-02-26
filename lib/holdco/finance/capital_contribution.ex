@@ -17,8 +17,15 @@ defmodule Holdco.Finance.CapitalContribution do
 
   def changeset(capital_contribution, attrs) do
     capital_contribution
-    |> cast(attrs, [:company_id, :contributor, :amount, :currency, :date,
-                     :contribution_type, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :contributor,
+      :amount,
+      :currency,
+      :date,
+      :contribution_type,
+      :notes
+    ])
     |> validate_required([:company_id, :contributor, :amount, :date])
   end
 end

@@ -1,9 +1,18 @@
 defmodule Holdco.Governance do
   import Ecto.Query
   alias Holdco.Repo
-  alias Holdco.Governance.{BoardMeeting, CapTableEntry, ShareholderResolution,
-                            PowerOfAttorney, EquityIncentivePlan, EquityGrant,
-                            Deal, JointVenture, InvestorAccess}
+
+  alias Holdco.Governance.{
+    BoardMeeting,
+    CapTableEntry,
+    ShareholderResolution,
+    PowerOfAttorney,
+    EquityIncentivePlan,
+    EquityGrant,
+    Deal,
+    JointVenture,
+    InvestorAccess
+  }
 
   # Board Meetings
   def list_board_meetings(company_id \\ nil) do
@@ -68,7 +77,8 @@ defmodule Holdco.Governance do
     Repo.all(query)
   end
 
-  def get_shareholder_resolution!(id), do: Repo.get!(ShareholderResolution, id) |> Repo.preload(:company)
+  def get_shareholder_resolution!(id),
+    do: Repo.get!(ShareholderResolution, id) |> Repo.preload(:company)
 
   def create_shareholder_resolution(attrs) do
     %ShareholderResolution{}
@@ -119,12 +129,15 @@ defmodule Holdco.Governance do
 
   # Equity Incentive Plans
   def list_equity_incentive_plans(company_id \\ nil) do
-    query = from(eip in EquityIncentivePlan, order_by: eip.plan_name, preload: [:company, :grants])
+    query =
+      from(eip in EquityIncentivePlan, order_by: eip.plan_name, preload: [:company, :grants])
+
     query = if company_id, do: where(query, [eip], eip.company_id == ^company_id), else: query
     Repo.all(query)
   end
 
-  def get_equity_incentive_plan!(id), do: Repo.get!(EquityIncentivePlan, id) |> Repo.preload([:company, :grants])
+  def get_equity_incentive_plan!(id),
+    do: Repo.get!(EquityIncentivePlan, id) |> Repo.preload([:company, :grants])
 
   def create_equity_incentive_plan(attrs) do
     %EquityIncentivePlan{}
@@ -231,12 +244,15 @@ defmodule Holdco.Governance do
 
   # Investor Access
   def list_investor_accesses(company_id \\ nil) do
-    query = from(ia in InvestorAccess, order_by: [desc: ia.inserted_at], preload: [:user, :company])
+    query =
+      from(ia in InvestorAccess, order_by: [desc: ia.inserted_at], preload: [:user, :company])
+
     query = if company_id, do: where(query, [ia], ia.company_id == ^company_id), else: query
     Repo.all(query)
   end
 
-  def get_investor_access!(id), do: Repo.get!(InvestorAccess, id) |> Repo.preload([:user, :company])
+  def get_investor_access!(id),
+    do: Repo.get!(InvestorAccess, id) |> Repo.preload([:user, :company])
 
   def create_investor_access(attrs) do
     %InvestorAccess{}
@@ -267,7 +283,9 @@ defmodule Holdco.Governance do
         Holdco.Platform.log_action(action, table, record.id)
         broadcast({String.to_atom("#{table}_#{action}d"), record})
         {:ok, record}
-      error -> error
+
+      error ->
+        error
     end
   end
 end

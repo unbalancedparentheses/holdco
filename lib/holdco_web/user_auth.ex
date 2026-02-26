@@ -12,17 +12,24 @@ defmodule HoldcoWeb.UserAuth do
   Used in live_session :on_mount hooks.
   """
   def on_mount(:ensure_authenticated, _params, session, socket) do
-    socket = Phoenix.Component.assign_new(socket, :current_scope, fn ->
-      if user_token = session["user_token"] do
-        case Accounts.get_user_by_session_token(user_token) do
-          {user, _token_inserted_at} -> Scope.for_user(user)
-          nil -> nil
+    socket =
+      Phoenix.Component.assign_new(socket, :current_scope, fn ->
+        if user_token = session["user_token"] do
+          case Accounts.get_user_by_session_token(user_token) do
+            {user, _token_inserted_at} -> Scope.for_user(user)
+            nil -> nil
+          end
         end
-      end
-    end)
+      end)
 
     if socket.assigns.current_scope && socket.assigns.current_scope.user do
-      {:cont, socket}
+      role = socket.assigns.current_scope.role
+
+      {:cont,
+       socket
+       |> Phoenix.Component.assign(:can_write, role in ~w(admin editor))
+       |> Phoenix.Component.assign(:can_admin, role == "admin")
+       |> Phoenix.Component.assign(:user_role, role)}
     else
       {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/users/log-in")}
     end

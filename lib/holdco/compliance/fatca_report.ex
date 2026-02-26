@@ -17,8 +17,15 @@ defmodule Holdco.Compliance.FatcaReport do
 
   def changeset(fatca_report, attrs) do
     fatca_report
-    |> cast(attrs, [:company_id, :reporting_year, :jurisdiction, :report_type,
-                     :status, :filed_date, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :reporting_year,
+      :jurisdiction,
+      :report_type,
+      :status,
+      :filed_date,
+      :notes
+    ])
     |> validate_required([:company_id, :reporting_year, :jurisdiction])
   end
 end

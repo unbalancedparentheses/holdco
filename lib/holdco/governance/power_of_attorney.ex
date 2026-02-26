@@ -18,8 +18,16 @@ defmodule Holdco.Governance.PowerOfAttorney do
 
   def changeset(power_of_attorney, attrs) do
     power_of_attorney
-    |> cast(attrs, [:company_id, :grantor, :grantee, :scope, :start_date, :end_date,
-                     :status, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :grantor,
+      :grantee,
+      :scope,
+      :start_date,
+      :end_date,
+      :status,
+      :notes
+    ])
     |> validate_required([:company_id, :grantor, :grantee])
   end
 end

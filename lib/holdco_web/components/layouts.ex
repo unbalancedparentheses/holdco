@@ -23,7 +23,9 @@ defmodule HoldcoWeb.Layouts do
         id="client-error"
         kind={:error}
         title="We can't find the internet"
-        phx-disconnected={JS.show(to: ".phx-client-error #client-error") |> JS.remove_attribute("hidden")}
+        phx-disconnected={
+          JS.show(to: ".phx-client-error #client-error") |> JS.remove_attribute("hidden")
+        }
         phx-connected={JS.hide(to: "#client-error") |> JS.set_attribute({"hidden", ""})}
         hidden
       >
@@ -34,7 +36,9 @@ defmodule HoldcoWeb.Layouts do
         id="server-error"
         kind={:error}
         title="Something went wrong!"
-        phx-disconnected={JS.show(to: ".phx-server-error #server-error") |> JS.remove_attribute("hidden")}
+        phx-disconnected={
+          JS.show(to: ".phx-server-error #server-error") |> JS.remove_attribute("hidden")
+        }
         phx-connected={JS.hide(to: "#server-error") |> JS.set_attribute({"hidden", ""})}
         hidden
       >
@@ -50,7 +54,7 @@ defmodule HoldcoWeb.Layouts do
   attr :flash, :map, required: true
   attr :current_scope, :map, default: nil
   attr :current_path, :string, default: nil
-  slot :inner_block, required: true
+  slot :inner_block
 
   def app(assigns) do
     ~H"""
@@ -58,38 +62,99 @@ defmodule HoldcoWeb.Layouts do
       <div class="masthead-inner">
         <span class="masthead-label">Portfolio Management</span>
         <span class="masthead-title">Holdco</span>
-        <span class="masthead-date"><%= Calendar.strftime(Date.utc_today(), "%A, %-d %B %Y") %></span>
+        <span class="masthead-date">{Calendar.strftime(Date.utc_today(), "%A, %-d %B %Y")}</span>
       </div>
     </div>
     <nav class="nav-bar">
       <div class="nav-inner">
         <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
-        <div class="nav-links">
-          <.link navigate={~p"/"} class={if @current_path == "/", do: "active"}>Overview</.link>
-          <.link navigate={~p"/companies"} class={if String.starts_with?(@current_path || "", "/companies"), do: "active"}>Companies</.link>
-          <.link navigate={~p"/holdings"} class={if @current_path == "/holdings", do: "active"}>Holdings</.link>
-          <.link navigate={~p"/transactions"} class={if @current_path == "/transactions", do: "active"}>Transactions</.link>
-          <.link navigate={~p"/bank-accounts"} class={if @current_path == "/bank-accounts", do: "active"}>Accounts</.link>
-          <.link navigate={~p"/documents"} class={if @current_path == "/documents", do: "active"}>Documents</.link>
-          <.link navigate={~p"/tax-calendar"} class={if @current_path == "/tax-calendar", do: "active"}>Tax</.link>
-          <.link navigate={~p"/governance"} class={if @current_path == "/governance", do: "active"}>Governance</.link>
-          <.link navigate={~p"/compliance"} class={if @current_path == "/compliance", do: "active"}>Compliance</.link>
-          <.link navigate={~p"/financials"} class={if @current_path == "/financials", do: "active"}>Financials</.link>
-          <.link navigate={~p"/scenarios"} class={if String.starts_with?(@current_path || "", "/scenarios"), do: "active"}>Scenarios</.link>
-          <.link navigate={~p"/settings"} class={if @current_path == "/settings", do: "active"}>Settings</.link>
-          <%= if @current_scope do %>
+        <%= if @current_scope do %>
+          <div class="nav-links">
+            <.link navigate={~p"/"} class={if @current_path == "/", do: "active"}>Overview</.link>
+            <.link
+              navigate={~p"/companies"}
+              class={if String.starts_with?(@current_path || "", "/companies"), do: "active"}
+            >
+              Companies
+            </.link>
+            <.link navigate={~p"/holdings"} class={if @current_path == "/holdings", do: "active"}>
+              Holdings
+            </.link>
+            <.link
+              navigate={~p"/transactions"}
+              class={if @current_path == "/transactions", do: "active"}
+            >
+              Transactions
+            </.link>
+            <.link
+              navigate={~p"/bank-accounts"}
+              class={if @current_path == "/bank-accounts", do: "active"}
+            >
+              Accounts
+            </.link>
+            <.link navigate={~p"/documents"} class={if @current_path == "/documents", do: "active"}>
+              Documents
+            </.link>
+            <.link
+              navigate={~p"/tax-calendar"}
+              class={if @current_path == "/tax-calendar", do: "active"}
+            >
+              Tax
+            </.link>
+            <.link navigate={~p"/governance"} class={if @current_path == "/governance", do: "active"}>
+              Governance
+            </.link>
+            <.link navigate={~p"/compliance"} class={if @current_path == "/compliance", do: "active"}>
+              Compliance
+            </.link>
+            <% pending_count = Holdco.Platform.pending_approval_count() %>
+            <.link navigate={~p"/approvals"} class={if @current_path == "/approvals", do: "active"}>
+              Approvals<%= if pending_count > 0 do %>
+                ({pending_count})
+              <% end %>
+            </.link>
+            <.link navigate={~p"/financials"} class={if @current_path == "/financials", do: "active"}>
+              Financials
+            </.link>
+            <.link
+              navigate={~p"/scenarios"}
+              class={if String.starts_with?(@current_path || "", "/scenarios"), do: "active"}
+            >
+              Scenarios
+            </.link>
+            <.link navigate={~p"/reports"} class={if @current_path == "/reports", do: "active"}>
+              Reports
+            </.link>
+            <.link navigate={~p"/settings"} class={if @current_path == "/settings", do: "active"}>
+              Settings
+            </.link>
+            <.link
+              navigate={~p"/notifications"}
+              class={if @current_path == "/notifications", do: "active"}
+            >
+              Notifications
+            </.link>
+          </div>
+          <div class="nav-utils">
+            <form class="nav-search" action={~p"/search"} method="get">
+              <input type="text" name="q" placeholder="Search..." />
+            </form>
             <div class="nav-user">
               <span>{@current_scope.user.email}</span>
               <.link href={~p"/users/log-out"} method="delete">Logout</.link>
             </div>
-          <% end %>
-        </div>
+          </div>
+        <% end %>
       </div>
     </nav>
 
     <main class="page">
       <.flash_group flash={@flash} />
-      {render_slot(@inner_block)}
+      <%= if assigns[:inner_content] do %>
+        {@inner_content}
+      <% else %>
+        {render_slot(@inner_block)}
+      <% end %>
     </main>
 
     <footer>

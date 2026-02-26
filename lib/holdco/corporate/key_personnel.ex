@@ -19,8 +19,17 @@ defmodule Holdco.Corporate.KeyPersonnel do
 
   def changeset(key_personnel, attrs) do
     key_personnel
-    |> cast(attrs, [:company_id, :name, :title, :department, :email, :phone,
-                     :start_date, :end_date, :notes])
-    |> validate_required([:company_id, :name])
+    |> cast(attrs, [
+      :company_id,
+      :name,
+      :title,
+      :department,
+      :email,
+      :phone,
+      :start_date,
+      :end_date,
+      :notes
+    ])
+    |> validate_required([:company_id, :name, :title])
   end
 end

@@ -281,6 +281,60 @@ defmodule Holdco.Accounts do
     :ok
   end
 
+  ## TOTP Two-Factor Authentication
+
+  @doc """
+  Generates a new random TOTP secret.
+  """
+  def generate_totp_secret do
+    NimbleTOTP.secret()
+  end
+
+  @doc """
+  Enables TOTP for the given user by storing the secret and setting totp_enabled to true.
+  """
+  def enable_totp(%User{} = user, secret) when is_binary(secret) do
+    user
+    |> User.totp_changeset(%{totp_secret: secret, totp_enabled: true})
+    |> Repo.update()
+  end
+
+  @doc """
+  Disables TOTP for the given user by clearing the secret and setting totp_enabled to false.
+  """
+  def disable_totp(%User{} = user) do
+    user
+    |> User.totp_changeset(%{totp_secret: nil, totp_enabled: false})
+    |> Repo.update()
+  end
+
+  @doc """
+  Returns true if the given TOTP code is valid for the user's secret.
+  """
+  def valid_totp?(%User{totp_secret: secret}, code) when is_binary(secret) and is_binary(code) do
+    NimbleTOTP.valid?(secret, code)
+  end
+
+  def valid_totp?(_, _), do: false
+
+  @doc """
+  Generates an otpauth:// URI for the user, suitable for QR code generation.
+  """
+  def totp_uri(%User{} = user, secret) do
+    NimbleTOTP.otpauth_uri("Holdco:#{user.email}", secret, issuer: "Holdco")
+  end
+
+  @doc """
+  Generates an SVG QR code for the user's TOTP URI.
+  """
+  def totp_qr_svg(%User{} = user, secret) do
+    uri = totp_uri(user, secret)
+
+    uri
+    |> EQRCode.encode()
+    |> EQRCode.svg(width: 264)
+  end
+
   ## User Roles
 
   def get_user_role(%User{} = user) do
@@ -309,6 +363,7 @@ defmodule Holdco.Accounts do
 
   def create_api_key(%User{} = user, name) do
     key = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+
     %ApiKey{user_id: user.id}
     |> ApiKey.changeset(%{key: key, name: name})
     |> Repo.insert()

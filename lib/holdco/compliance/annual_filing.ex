@@ -17,8 +17,15 @@ defmodule Holdco.Compliance.AnnualFiling do
 
   def changeset(annual_filing, attrs) do
     annual_filing
-    |> cast(attrs, [:company_id, :jurisdiction, :filing_type, :due_date, :filed_date,
-                     :status, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :jurisdiction,
+      :filing_type,
+      :due_date,
+      :filed_date,
+      :status,
+      :notes
+    ])
     |> validate_required([:company_id, :jurisdiction, :filing_type, :due_date])
   end
 end

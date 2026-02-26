@@ -11,7 +11,9 @@ defmodule Holdco.Pricing do
       {:ok, record} ->
         Holdco.Platform.log_action("create", "price_history", record.id)
         broadcast({:price_recorded, record})
-      _ -> :ok
+
+      _ ->
+        :ok
     end)
   end
 
@@ -19,7 +21,8 @@ defmodule Holdco.Pricing do
     from(p in PriceHistory,
       where: p.ticker == ^ticker,
       order_by: [desc: p.inserted_at],
-      limit: 1)
+      limit: 1
+    )
     |> Repo.one()
   end
 
@@ -27,7 +30,8 @@ defmodule Holdco.Pricing do
     from(p in PriceHistory,
       where: p.ticker == ^ticker,
       order_by: [desc: p.inserted_at],
-      limit: ^limit)
+      limit: ^limit
+    )
     |> Repo.all()
   end
 
@@ -36,7 +40,8 @@ defmodule Holdco.Pricing do
       where: not is_nil(ah.ticker) and ah.ticker != "",
       distinct: ah.ticker,
       select: ah.ticker,
-      order_by: ah.ticker)
+      order_by: ah.ticker
+    )
     |> Repo.all()
   end
 

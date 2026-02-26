@@ -77,7 +77,13 @@ defmodule Holdco.MixProject do
       {:nimble_csv, "~> 1.2"},
 
       # HTML parsing (for Yahoo Finance)
-      {:floki, "~> 0.36"}
+      {:floki, "~> 0.36"},
+
+      # TOTP 2FA
+      {:nimble_totp, "~> 1.0"},
+
+      # QR code generation (for 2FA setup)
+      {:eqrcode, "~> 0.1.10"}
     ]
   end
 

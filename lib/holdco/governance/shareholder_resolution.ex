@@ -19,8 +19,17 @@ defmodule Holdco.Governance.ShareholderResolution do
 
   def changeset(shareholder_resolution, attrs) do
     shareholder_resolution
-    |> cast(attrs, [:company_id, :title, :resolution_type, :date, :passed,
-                     :votes_for, :votes_against, :abstentions, :notes])
+    |> cast(attrs, [
+      :company_id,
+      :title,
+      :resolution_type,
+      :date,
+      :passed,
+      :votes_for,
+      :votes_against,
+      :abstentions,
+      :notes
+    ])
     |> validate_required([:company_id, :title, :date])
   end
 end

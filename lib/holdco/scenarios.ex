@@ -68,6 +68,7 @@ defmodule Holdco.Scenarios do
       {revenue, expenses} =
         Enum.reduce(scenario.items, {0.0, 0.0}, fn item, {rev, exp} ->
           amount = calculate_item_amount(item, month)
+
           case item.item_type do
             "revenue" -> {rev + amount, exp}
             "expense" -> {rev, exp + amount}
@@ -85,22 +86,26 @@ defmodule Holdco.Scenarios do
     probability = item.probability || 1.0
 
     # Apply recurrence filter
-    active = case item.recurrence do
-      "monthly" -> true
-      "quarterly" -> rem(month, 3) == 0
-      "annually" -> month == 12
-      _ -> true
-    end
+    active =
+      case item.recurrence do
+        "monthly" -> true
+        "quarterly" -> rem(month, 3) == 0
+        "annually" -> month == 12
+        _ -> true
+      end
 
     if active do
-      grown_amount = case item.growth_type do
-        "compound" ->
-          base_amount * :math.pow(1 + growth_rate / 100, month - 1)
-        "linear" ->
-          base_amount + base_amount * (growth_rate / 100) * (month - 1)
-        _ ->
-          base_amount
-      end
+      grown_amount =
+        case item.growth_type do
+          "compound" ->
+            base_amount * :math.pow(1 + growth_rate / 100, month - 1)
+
+          "linear" ->
+            base_amount + base_amount * (growth_rate / 100) * (month - 1)
+
+          _ ->
+            base_amount
+        end
 
       grown_amount * probability
     else
@@ -118,7 +123,9 @@ defmodule Holdco.Scenarios do
         Holdco.Platform.log_action(action, table, record.id)
         broadcast({String.to_atom("#{table}_#{action}d"), record})
         {:ok, record}
-      error -> error
+
+      error ->
+        error
     end
   end
 end
