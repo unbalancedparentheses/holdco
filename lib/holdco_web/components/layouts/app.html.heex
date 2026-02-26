@@ -20,45 +20,87 @@
   <nav class="nav-bar">
     <div class="nav-inner">
       <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
+      <% cur = assigns[:current_path] || "" %>
       <% accounting_paths = ~w(/accounts/chart /accounts/journal /accounts/reports /accounts/integrations) %>
-      <% accounting_active = Enum.any?(accounting_paths, fn p -> (assigns[:current_path] || "") == p or String.starts_with?(assigns[:current_path] || "", p <> "/") end) %>
+      <% accounting_active = Enum.any?(accounting_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
+      <% portfolio_paths = ~w(/holdings /transactions /bank-accounts /financials) %>
+      <% portfolio_active = Enum.any?(portfolio_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
+      <% corp_paths = ~w(/governance /compliance /documents) %>
+      <% corp_active = Enum.any?(corp_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
       <div class="nav-links">
-        <.link navigate={~p"/"} class={if assigns[:current_path] == "/", do: "active"}>
+        <.link navigate={~p"/"} class={if cur == "/", do: "active"}>
           Overview
         </.link>
         <.link
           navigate={~p"/companies"}
-          class={if String.starts_with?(assigns[:current_path] || "", "/companies"), do: "active"}
+          class={if String.starts_with?(cur, "/companies"), do: "active"}
         >
           Companies
         </.link>
-        <.link
-          navigate={~p"/tax-calendar"}
-          class={if assigns[:current_path] == "/tax-calendar", do: "active"}
-        >
-          Tax Calendar
-        </.link>
+        <div class="nav-dropdown">
+          <button class={"nav-dropdown-toggle #{if portfolio_active, do: "more-active"}"}>Portfolio &#9662;</button>
+          <div class="nav-dropdown-menu">
+            <.link navigate={~p"/holdings"} class={if String.starts_with?(cur, "/holdings"), do: "active"}>
+              Holdings
+            </.link>
+            <.link navigate={~p"/transactions"} class={if String.starts_with?(cur, "/transactions"), do: "active"}>
+              Transactions
+            </.link>
+            <.link navigate={~p"/bank-accounts"} class={if String.starts_with?(cur, "/bank-accounts"), do: "active"}>
+              Bank Accounts
+            </.link>
+            <.link navigate={~p"/financials"} class={if cur == "/financials", do: "active"}>
+              Financials
+            </.link>
+          </div>
+        </div>
+        <div class="nav-dropdown">
+          <button class={"nav-dropdown-toggle #{if corp_active, do: "more-active"}"}>Corporate &#9662;</button>
+          <div class="nav-dropdown-menu">
+            <.link navigate={~p"/governance"} class={if cur == "/governance", do: "active"}>
+              Governance
+            </.link>
+            <.link navigate={~p"/compliance"} class={if cur == "/compliance", do: "active"}>
+              Compliance
+            </.link>
+            <.link navigate={~p"/documents"} class={if cur == "/documents", do: "active"}>
+              Documents
+            </.link>
+          </div>
+        </div>
         <div class="nav-dropdown">
           <button class={"nav-dropdown-toggle #{if accounting_active, do: "more-active"}"}>Accounting &#9662;</button>
           <div class="nav-dropdown-menu">
-            <.link navigate={~p"/accounts/chart"} class={if assigns[:current_path] == "/accounts/chart", do: "active"}>
+            <.link navigate={~p"/accounts/chart"} class={if cur == "/accounts/chart", do: "active"}>
               Chart of Accounts
             </.link>
-            <.link navigate={~p"/accounts/journal"} class={if assigns[:current_path] == "/accounts/journal", do: "active"}>
+            <.link navigate={~p"/accounts/journal"} class={if cur == "/accounts/journal", do: "active"}>
               Journal Entries
             </.link>
-            <.link navigate={~p"/accounts/reports"} class={if assigns[:current_path] == "/accounts/reports", do: "active"}>
-              Accounting Reports
+            <.link navigate={~p"/accounts/reports"} class={if cur == "/accounts/reports", do: "active"}>
+              Reports
             </.link>
-            <.link navigate={~p"/accounts/integrations"} class={if assigns[:current_path] == "/accounts/integrations", do: "active"}>
+            <.link navigate={~p"/accounts/integrations"} class={if cur == "/accounts/integrations", do: "active"}>
               Integrations
             </.link>
           </div>
         </div>
-        <.link navigate={~p"/reports"} class={if assigns[:current_path] == "/reports", do: "active"}>
+        <.link navigate={~p"/tax-calendar"} class={if cur == "/tax-calendar", do: "active"}>
+          Calendar
+        </.link>
+        <.link navigate={~p"/scenarios"} class={if String.starts_with?(cur, "/scenarios"), do: "active"}>
+          Scenarios
+        </.link>
+        <.link navigate={~p"/contacts"} class={if String.starts_with?(cur, "/contacts"), do: "active"}>
+          Contacts
+        </.link>
+        <.link navigate={~p"/projects"} class={if String.starts_with?(cur, "/projects"), do: "active"}>
+          Projects
+        </.link>
+        <.link navigate={~p"/reports"} class={if cur == "/reports", do: "active"}>
           Reports
         </.link>
-        <.link navigate={~p"/settings"} class={if assigns[:current_path] == "/settings", do: "active"}>
+        <.link navigate={~p"/settings"} class={if cur == "/settings", do: "active"}>
           Settings
         </.link>
       </div>

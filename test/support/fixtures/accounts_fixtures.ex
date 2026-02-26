@@ -38,6 +38,10 @@ defmodule Holdco.AccountsFixtures do
     {:ok, {user, _expired_tokens}} =
       Accounts.login_user_by_magic_link(token)
 
+    # Reset to viewer so tests default to least-privileged role;
+    # tests that need editor/admin call set_user_role explicitly.
+    Accounts.set_user_role(user, "viewer")
+
     user
   end
 

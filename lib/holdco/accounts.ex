@@ -75,9 +75,16 @@ defmodule Holdco.Accounts do
 
   """
   def register_user(attrs) do
-    %User{}
-    |> User.email_changeset(attrs)
-    |> Repo.insert()
+    result =
+      %User{}
+      |> User.email_changeset(attrs)
+      |> Repo.insert()
+
+    with {:ok, user} <- result do
+      role = if Repo.aggregate(User, :count) == 1, do: "admin", else: "editor"
+      set_user_role(user, role)
+      {:ok, Repo.reload!(user)}
+    end
   end
 
   ## Settings

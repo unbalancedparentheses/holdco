@@ -799,4 +799,36 @@ defmodule Holdco.HoldcoFixtures do
 
     i
   end
+
+  def contact_fixture(attrs \\ %{}) do
+    {:ok, contact} =
+      Holdco.Collaboration.create_contact(
+        Enum.into(attrs, %{
+          name: "Contact #{System.unique_integer([:positive])}",
+          title: "Director",
+          organization: "Acme Corp",
+          email: "contact#{System.unique_integer([:positive])}@example.com",
+          phone: "+1-555-0100",
+          role_tag: "advisor"
+        })
+      )
+
+    contact
+  end
+
+  def project_fixture(attrs \\ %{}) do
+    {:ok, project} =
+      Holdco.Collaboration.create_project(
+        Enum.into(attrs, %{
+          name: "Project #{System.unique_integer([:positive])}",
+          status: "planned",
+          project_type: "fundraise",
+          description: "A test project",
+          budget: Decimal.new("100000"),
+          currency: "USD"
+        })
+      )
+
+    project
+  end
 end
