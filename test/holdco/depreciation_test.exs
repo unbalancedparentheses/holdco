@@ -1,0 +1,171 @@
+defmodule Holdco.DepreciationTest do
+  use Holdco.DataCase
+
+  import Holdco.HoldcoFixtures
+
+  alias Holdco.Depreciation
+
+  describe "list_fixed_assets/1" do
+    test "returns all fixed assets" do
+      fa = fixed_asset_fixture()
+      assets = Depreciation.list_fixed_assets()
+      assert length(assets) >= 1
+      assert Enum.any?(assets, &(&1.id == fa.id))
+    end
+
+    test "filters by company_id" do
+      c1 = company_fixture(%{name: "DepCo1"})
+      c2 = company_fixture(%{name: "DepCo2"})
+      fa1 = fixed_asset_fixture(%{company: c1, name: "Asset A"})
+      _fa2 = fixed_asset_fixture(%{company: c2, name: "Asset B"})
+
+      assets = Depreciation.list_fixed_assets(c1.id)
+      assert length(assets) == 1
+      assert hd(assets).id == fa1.id
+    end
+
+    test "returns empty list when no assets for company" do
+      company = company_fixture()
+      assert Depreciation.list_fixed_assets(company.id) == []
+    end
+  end
+
+  describe "get_fixed_asset!/1" do
+    test "returns the fixed asset with given id" do
+      fa = fixed_asset_fixture(%{name: "Fetched Asset"})
+      found = Depreciation.get_fixed_asset!(fa.id)
+      assert found.id == fa.id
+      assert found.name == "Fetched Asset"
+    end
+
+    test "raises when id does not exist" do
+      assert_raise Ecto.NoResultsError, fn ->
+        Depreciation.get_fixed_asset!(0)
+      end
+    end
+  end
+
+  describe "create_fixed_asset/1" do
+    test "creates a fixed asset with valid attrs" do
+      company = company_fixture()
+
+      assert {:ok, fa} =
+               Depreciation.create_fixed_asset(%{
+                 company_id: company.id,
+                 name: "Office Furniture",
+                 purchase_date: "2024-03-01",
+                 purchase_price: 5_000.0,
+                 useful_life_months: 60,
+                 salvage_value: 500.0,
+                 depreciation_method: "straight_line"
+               })
+
+      assert fa.name == "Office Furniture"
+      assert fa.purchase_price == 5_000.0
+    end
+
+    test "fails without required fields" do
+      assert {:error, changeset} = Depreciation.create_fixed_asset(%{})
+      assert %{name: ["can't be blank"]} = errors_on(changeset)
+    end
+
+    test "validates depreciation method" do
+      company = company_fixture()
+
+      assert {:error, changeset} =
+               Depreciation.create_fixed_asset(%{
+                 company_id: company.id,
+                 name: "Bad Method",
+                 depreciation_method: "invalid"
+               })
+
+      assert %{depreciation_method: _} = errors_on(changeset)
+    end
+  end
+
+  describe "update_fixed_asset/2" do
+    test "updates a fixed asset" do
+      fa = fixed_asset_fixture(%{name: "Old Name"})
+      assert {:ok, updated} = Depreciation.update_fixed_asset(fa, %{name: "New Name"})
+      assert updated.name == "New Name"
+    end
+  end
+
+  describe "delete_fixed_asset/1" do
+    test "deletes the fixed asset" do
+      fa = fixed_asset_fixture()
+      assert {:ok, _} = Depreciation.delete_fixed_asset(fa)
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Depreciation.get_fixed_asset!(fa.id)
+      end
+    end
+  end
+
+  describe "schedule/1" do
+    test "generates straight-line depreciation schedule" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 12_000.0,
+          salvage_value: 0.0,
+          useful_life_months: 12,
+          depreciation_method: "straight_line",
+          purchase_date: "2024-01-01"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 12
+
+      first = hd(schedule)
+      assert first.month == 1
+      assert first.depreciation == 1_000.0
+      assert first.accumulated == 1_000.0
+      assert first.book_value == 11_000.0
+
+      last = List.last(schedule)
+      assert last.month == 12
+      assert last.accumulated == 12_000.0
+      assert last.book_value == 0.0
+    end
+
+    test "generates declining-balance depreciation schedule" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 10_000.0,
+          salvage_value: 1_000.0,
+          useful_life_months: 12,
+          depreciation_method: "declining_balance",
+          purchase_date: "2024-01-01"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 12
+
+      first = hd(schedule)
+      assert first.month == 1
+      assert first.depreciation > 0
+      assert first.book_value < 10_000.0
+
+      # Declining balance: each period's depreciation should be <= previous
+      depreciations = Enum.map(schedule, & &1.depreciation)
+      pairs = Enum.zip(depreciations, tl(depreciations))
+      assert Enum.all?(pairs, fn {a, b} -> a >= b end)
+
+      # Book value should never go below salvage
+      assert Enum.all?(schedule, fn row -> row.book_value >= 1_000.0 end)
+    end
+
+    test "handles zero useful life" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 5_000.0,
+          useful_life_months: 0,
+          depreciation_method: "straight_line"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      # With zero useful life, no depreciation should occur - all entries have 0 depreciation
+      assert Enum.all?(schedule, fn row -> row.depreciation == 0.0 end)
+    end
+  end
+end

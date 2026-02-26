@@ -12,6 +12,7 @@ defmodule Holdco.Finance.Account do
 
     belongs_to :parent, __MODULE__
     belongs_to :company, Holdco.Corporate.Company
+    belongs_to :segment, Holdco.Finance.Segment
     has_many :children, __MODULE__, foreign_key: :parent_id
 
     timestamps(type: :utc_datetime)
@@ -19,7 +20,7 @@ defmodule Holdco.Finance.Account do
 
   def changeset(account, attrs) do
     account
-    |> cast(attrs, [:name, :account_type, :code, :parent_id, :company_id, :currency, :notes, :external_id])
+    |> cast(attrs, [:name, :account_type, :code, :parent_id, :company_id, :currency, :notes, :external_id, :segment_id])
     |> validate_required([:name, :account_type])
     |> unique_constraint(:code)
   end

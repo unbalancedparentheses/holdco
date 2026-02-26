@@ -1,7 +1,28 @@
 defmodule HoldcoWeb.ExportController do
   use HoldcoWeb, :controller
 
-  alias Holdco.{Corporate, Assets, Banking, Finance}
+  alias Holdco.{Corporate, Assets, Banking, Finance, Platform}
+
+  def audit_package(conn, params) do
+    company_id = parse_company_id(params)
+
+    trial_balance_csv = generate_trial_balance_csv(company_id)
+    journal_entries_csv = generate_journal_entries_csv(company_id)
+    audit_log_csv = generate_audit_log_csv()
+
+    files = [
+      {~c"trial_balance.csv", trial_balance_csv},
+      {~c"journal_entries.csv", journal_entries_csv},
+      {~c"audit_log.csv", audit_log_csv}
+    ]
+
+    {:ok, {_filename, zip_data}} = :zip.create(~c"audit-package.zip", files, [:memory])
+
+    conn
+    |> put_resp_content_type("application/zip")
+    |> put_resp_header("content-disposition", "attachment; filename=\"audit-package.zip\"")
+    |> send_resp(200, zip_data)
+  end
 
   def companies(conn, _params) do
     companies = Corporate.list_companies()
@@ -114,6 +135,93 @@ defmodule HoldcoWeb.ExportController do
       |> csv_encode()
 
     send_csv(conn, "journal-entries.csv", csv)
+  end
+
+  def audit_log(conn, params) do
+    logs = Platform.list_audit_logs(params)
+
+    csv =
+      [["ID", "Action", "Table", "Record ID", "User", "Timestamp", "Old Values", "New Values"]]
+      |> Enum.concat(
+        Enum.map(logs, fn l ->
+          [
+            l.id,
+            l.action,
+            l.table_name,
+            l.record_id,
+            if(l.user, do: l.user.email, else: ""),
+            if(l.inserted_at,
+              do: Calendar.strftime(l.inserted_at, "%Y-%m-%d %H:%M:%S"),
+              else: ""
+            ),
+            l.old_values || "",
+            l.new_values || ""
+          ]
+        end)
+      )
+      |> csv_encode()
+
+    send_csv(conn, "audit-log.csv", csv)
+  end
+
+  defp generate_trial_balance_csv(company_id) do
+    rows = Finance.trial_balance(company_id)
+
+    [["Code", "Account", "Type", "Debit", "Credit", "Balance"]]
+    |> Enum.concat(
+      Enum.map(rows, fn r ->
+        [r.code, r.name, r.account_type, r.total_debit, r.total_credit, r.balance]
+      end)
+    )
+    |> csv_encode()
+  end
+
+  defp generate_journal_entries_csv(company_id) do
+    entries = Finance.list_journal_entries(company_id)
+
+    [["Date", "Reference", "Description", "Company", "Total Debit", "Total Credit", "Lines"]]
+    |> Enum.concat(
+      Enum.map(entries, fn e ->
+        lines = e.lines || []
+        total_debit = Enum.reduce(lines, 0.0, &((&1.debit || 0.0) + &2))
+        total_credit = Enum.reduce(lines, 0.0, &((&1.credit || 0.0) + &2))
+
+        [
+          e.date,
+          e.reference || "",
+          e.description,
+          if(e.company, do: e.company.name, else: ""),
+          total_debit,
+          total_credit,
+          length(lines)
+        ]
+      end)
+    )
+    |> csv_encode()
+  end
+
+  defp generate_audit_log_csv do
+    logs = Platform.list_audit_logs(%{limit: 10_000})
+
+    [["ID", "Action", "Table", "Record ID", "User", "Timestamp", "Old Values", "New Values"]]
+    |> Enum.concat(
+      Enum.map(logs, fn l ->
+        [
+          l.id,
+          l.action,
+          l.table_name,
+          l.record_id,
+          if(l.user, do: l.user.email, else: ""),
+          if(l.inserted_at,
+            do: Calendar.strftime(l.inserted_at, "%Y-%m-%d %H:%M:%S"),
+            else: ""
+          ),
+          l.old_values || "",
+          l.new_values || ""
+        ]
+      end)
+    )
+    |> csv_encode()
   end
 
   defp parse_company_id(%{"company_id" => ""}), do: nil

@@ -218,5 +218,130 @@ defmodule Holdco.CSVParserTest do
       parsed = Holdco.CSVParser.parse_string(dumped, skip_headers: false)
       assert parsed == original
     end
+
+    test "round trip preserves quoted fields with commas" do
+      original = [["Acme, Corp", "US"], ["Beta Inc", "UK"]]
+      dumped = Holdco.CSVParser.dump_to_iodata(original) |> IO.iodata_to_binary()
+      parsed = Holdco.CSVParser.parse_string(dumped, skip_headers: false)
+      assert parsed == original
+    end
+  end
+
+  describe "parse_string/2 additional edge cases" do
+    test "handles CRLF line endings" do
+      csv = "A,B\r\n1,2\r\n3,4"
+      rows = Holdco.CSVParser.parse_string(csv, skip_headers: true)
+      assert rows == [["1", "2"], ["3", "4"]]
+    end
+
+    test "handles mixed empty and non-empty rows" do
+      csv = "H1,H2\n,\na,b"
+      rows = Holdco.CSVParser.parse_string(csv, skip_headers: true)
+      assert length(rows) == 2
+      assert Enum.at(rows, 0) == ["", ""]
+      assert Enum.at(rows, 1) == ["a", "b"]
+    end
+
+    test "parses CSV with numeric values" do
+      csv = "Name,Amount,Rate\nItem A,10000,0.05\nItem B,25000,0.10"
+      rows = Holdco.CSVParser.parse_string(csv, skip_headers: true)
+      assert rows == [["Item A", "10000", "0.05"], ["Item B", "25000", "0.10"]]
+    end
+
+    test "handles large number of columns" do
+      header = Enum.join(1..20 |> Enum.map(&"H#{&1}"), ",")
+      data = Enum.join(1..20 |> Enum.map(&to_string/1), ",")
+      csv = "#{header}\n#{data}"
+      rows = Holdco.CSVParser.parse_string(csv, skip_headers: true)
+      assert length(rows) == 1
+      assert length(hd(rows)) == 20
+    end
+
+    test "handles quoted field that is just a comma" do
+      csv = "A,B\n\",\",x"
+      rows = Holdco.CSVParser.parse_string(csv, skip_headers: true)
+      assert rows == [[",", "x"]]
+    end
+
+    test "handles empty quoted field" do
+      csv = "A,B\n\"\",x"
+      rows = Holdco.CSVParser.parse_string(csv, skip_headers: true)
+      assert rows == [["", "x"]]
+    end
+  end
+
+  describe "dump_to_iodata/1 additional cases" do
+    test "dumps row with special characters that need quoting" do
+      rows = [["value with \"quotes\"", "normal"]]
+      iodata = Holdco.CSVParser.dump_to_iodata(rows)
+      result = IO.iodata_to_binary(iodata)
+      assert result =~ "quotes"
+    end
+
+    test "dumps row with newline in field" do
+      rows = [["line1\nline2", "normal"]]
+      iodata = Holdco.CSVParser.dump_to_iodata(rows)
+      result = IO.iodata_to_binary(iodata)
+      assert result =~ "line1"
+      assert result =~ "line2"
+    end
+
+    test "dumps multiple rows" do
+      rows = [["a", "b"], ["c", "d"], ["e", "f"]]
+      iodata = Holdco.CSVParser.dump_to_iodata(rows)
+      result = IO.iodata_to_binary(iodata)
+      assert result =~ "a"
+      assert result =~ "c"
+      assert result =~ "e"
+    end
+  end
+
+  describe "parse_enumerable/2 additional cases" do
+    test "parses enumerable with quoted fields" do
+      lines = ["Name,Bio\n", "\"Alice\",\"Line1\nLine2\"\n"]
+      rows = Holdco.CSVParser.parse_enumerable(lines, skip_headers: true)
+      assert rows == [["Alice", "Line1\nLine2"]]
+    end
+
+    test "parses enumerable with CRLF" do
+      lines = ["A,B\r\n", "1,2\r\n"]
+      rows = Holdco.CSVParser.parse_enumerable(lines, skip_headers: true)
+      assert rows == [["1", "2"]]
+    end
+  end
+
+  describe "parse_stream/2 additional cases" do
+    test "parses stream with multiple rows" do
+      lines = ["H1,H2\n", "a,b\n", "c,d\n", "e,f\n"]
+      stream = Stream.map(lines, & &1)
+      rows = Holdco.CSVParser.parse_stream(stream, skip_headers: true) |> Enum.to_list()
+      assert length(rows) == 3
+      assert Enum.at(rows, 0) == ["a", "b"]
+      assert Enum.at(rows, 2) == ["e", "f"]
+    end
+
+    test "parses stream without skipping headers" do
+      lines = ["Name,Age\n", "Alice,30\n"]
+      stream = Stream.map(lines, & &1)
+      rows = Holdco.CSVParser.parse_stream(stream, skip_headers: false) |> Enum.to_list()
+      assert rows == [["Name", "Age"], ["Alice", "30"]]
+    end
+  end
+
+  describe "dump_to_stream/1 additional cases" do
+    test "dumps empty list to empty stream" do
+      stream = Holdco.CSVParser.dump_to_stream([])
+      result = stream |> Enum.to_list() |> IO.iodata_to_binary()
+      assert result == ""
+    end
+
+    test "dumps multiple rows to stream" do
+      rows = [["a", "1"], ["b", "2"], ["c", "3"]]
+      stream = Holdco.CSVParser.dump_to_stream(rows)
+      result = stream |> Enum.to_list() |> IO.iodata_to_binary()
+      assert result =~ "a"
+      assert result =~ "b"
+      assert result =~ "c"
+    end
   end
 end

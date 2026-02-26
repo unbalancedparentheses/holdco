@@ -123,8 +123,8 @@ defmodule HoldcoWeb.LayoutAndNavTest do
       assert html =~ "Accounting"
       assert html =~ "Chart of Accounts"
       assert html =~ "Journal Entries"
-      # Tax Calendar (top-level)
-      assert html =~ "Tax Calendar"
+      # Calendar (top-level)
+      assert html =~ "Calendar"
       # Approvals and Notifications in nav-utils
       assert html =~ "Approvals"
       assert html =~ "Notifications"

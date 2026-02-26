@@ -55,6 +55,10 @@ defmodule Holdco.Corporate.Company do
     has_many :sanctions_checks, Holdco.Compliance.SanctionsCheck
     has_many :fatca_reports, Holdco.Compliance.FatcaReport
     has_many :withholding_taxes, Holdco.Compliance.WithholdingTax
+    has_many :fixed_assets, Holdco.Finance.FixedAsset
+    has_many :leases, Holdco.Finance.Lease
+    has_many :kpis, Holdco.Analytics.Kpi
+    has_many :segments, Holdco.Finance.Segment
 
     timestamps(type: :utc_datetime)
   end

@@ -51,6 +51,9 @@ defmodule HoldcoWeb.Router do
     get "/transactions.csv", ExportController, :transactions
     get "/chart-of-accounts.csv", ExportController, :chart_of_accounts
     get "/journal-entries.csv", ExportController, :journal_entries
+    get "/audit-log.csv", ExportController, :audit_log
+    get "/audit-package.zip", ExportController, :audit_package
+    get "/xbrl/:id", XbrlController, :export
   end
 
   # QuickBooks OAuth (authenticated)
@@ -128,6 +131,7 @@ defmodule HoldcoWeb.Router do
       live "/bank-accounts", BankAccountsLive.Index, :index
       live "/bank-accounts/:id", BankAccountsLive.Show, :show
       live "/documents", DocumentsLive.Index, :index
+      live "/calendar", CalendarLive.Index, :index
       live "/tax-calendar", TaxCalendarLive.Index, :index
       live "/financials", FinancialsLive.Index, :index
       live "/accounts/chart", AccountingLive.ChartOfAccounts, :index
@@ -149,6 +153,31 @@ defmodule HoldcoWeb.Router do
       live "/reports", ReportsLive, :index
       live "/settings", SettingsLive.Index, :index
       live "/users/settings/2fa", TotpSetupLive, :index
+
+      # Phase 1 — Portfolio & Risk
+      live "/risk/concentration", ConcentrationRiskLive.Index, :index
+      live "/debt-maturity", DebtMaturityLive.Index, :index
+      live "/cash-forecast", CashForecastLive.Index, :index
+
+      # Phase 1 — Corporate
+      live "/org-chart", OrgChartLive.Index, :index
+
+      # Phase 1 — Accounting & Finance
+      live "/depreciation", DepreciationLive.Index, :index
+      live "/segments", SegmentLive.Index, :index
+      live "/revaluation", RevaluationLive.Index, :index
+      live "/budgets/variance", BudgetVarianceLive.Index, :index
+      live "/waterfall", WaterfallLive.Index, :index
+      live "/consolidated", ConsolidatedLive.Index, :index
+      live "/leases", LeaseLive.Index, :index
+      live "/compare", EntityComparisonLive.Index, :index
+
+      # Phase 1 — Reports & Analytics
+      live "/tax/capital-gains", CapitalGainsLive.Index, :index
+      live "/kpis", KpiLive.Index, :index
+      live "/aging", AgingReportLive.Index, :index
+      live "/management-reports", ManagementReportsLive.Index, :index
+      live "/audit-diffs", AuditDiffLive.Index, :index
     end
   end
 

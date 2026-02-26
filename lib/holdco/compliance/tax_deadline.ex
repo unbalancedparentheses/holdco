@@ -8,6 +8,7 @@ defmodule Holdco.Compliance.TaxDeadline do
     field :due_date, :string
     field :status, :string, default: "pending"
     field :notes, :string
+    field :estimated_amount, :float
 
     belongs_to :company, Holdco.Corporate.Company
 
@@ -16,7 +17,7 @@ defmodule Holdco.Compliance.TaxDeadline do
 
   def changeset(tax_deadline, attrs) do
     tax_deadline
-    |> cast(attrs, [:company_id, :jurisdiction, :description, :due_date, :status, :notes])
+    |> cast(attrs, [:company_id, :jurisdiction, :description, :due_date, :status, :notes, :estimated_amount])
     |> validate_required([:company_id, :jurisdiction, :description, :due_date])
   end
 end

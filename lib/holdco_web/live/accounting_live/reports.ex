@@ -1,7 +1,9 @@
 defmodule HoldcoWeb.AccountingLive.Reports do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Finance, Corporate}
+  alias Holdco.{Finance, Corporate, Portfolio}
+
+  @currencies ~w(USD EUR GBP ARS BRL CHF JPY CAD AUD)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -22,7 +24,10 @@ defmodule HoldcoWeb.AccountingLive.Reports do
        balance_sheet: Finance.balance_sheet(),
        income_statement: Finance.income_statement(nil, date_from, date_to),
        date_from: date_from,
-       date_to: date_to
+       date_to: date_to,
+       display_currency: "USD",
+       fx_rate: 1.0,
+       currencies: @currencies
      )}
   end
 
@@ -56,6 +61,20 @@ defmodule HoldcoWeb.AccountingLive.Reports do
     {:noreply, assign(socket, date_from: from, date_to: to, income_statement: income_statement)}
   end
 
+  def handle_event("change_currency", %{"currency" => currency}, socket) do
+    fx_rate =
+      if currency == "USD" do
+        1.0
+      else
+        case Portfolio.get_fx_rate(currency) do
+          rate when rate > 0 -> 1.0 / rate
+          _ -> 1.0
+        end
+      end
+
+    {:noreply, assign(socket, display_currency: currency, fx_rate: fx_rate)}
+  end
+
   @impl true
   def handle_info(_, socket) do
     from = socket.assigns.date_from
@@ -79,23 +98,32 @@ defmodule HoldcoWeb.AccountingLive.Reports do
   def render(assigns) do
     ~H"""
     <div class="page-title">
-      <div>
-        <h1>Accounting Reports</h1>
-        <p class="deck">Trial Balance, Balance Sheet, and Income Statement</p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h1>Accounting Reports</h1>
+          <p class="deck">Trial Balance, Balance Sheet, and Income Statement (in {@display_currency})</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <form phx-change="filter_company" style="display: flex; align-items: center; gap: 0.5rem;">
+            <label class="form-label" style="margin: 0; font-size: 0.85rem;">Company</label>
+            <select name="company_id" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+              <option value="">All Companies (Consolidated)</option>
+              <%= for c <- @companies do %>
+                <option value={c.id} selected={to_string(c.id) == @selected_company_id}>{c.name}</option>
+              <% end %>
+            </select>
+          </form>
+          <form phx-change="change_currency" style="display: flex; align-items: center; gap: 0.5rem;">
+            <label class="form-label" style="margin: 0; font-size: 0.85rem;">Currency</label>
+            <select name="currency" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+              <%= for ccy <- @currencies do %>
+                <option value={ccy} selected={ccy == @display_currency}>{ccy}</option>
+              <% end %>
+            </select>
+          </form>
+        </div>
       </div>
       <hr class="page-title-rule" />
-    </div>
-
-    <div style="margin-bottom: 1rem;">
-      <form phx-change="filter_company" style="display: flex; align-items: center; gap: 0.5rem;">
-        <label class="form-label" style="margin: 0; font-size: 0.85rem;">Company</label>
-        <select name="company_id" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
-          <option value="">All Companies (Consolidated)</option>
-          <%= for c <- @companies do %>
-            <option value={c.id} selected={to_string(c.id) == @selected_company_id}>{c.name}</option>
-          <% end %>
-        </select>
-      </form>
     </div>
 
     <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
@@ -122,23 +150,26 @@ defmodule HoldcoWeb.AccountingLive.Reports do
       </button>
     </div>
 
+    <% sym = currency_symbol(@display_currency) %>
+
     <%= if @active_tab == "trial_balance" do %>
-      <.trial_balance_tab data={@trial_balance} />
+      <.trial_balance_tab data={@trial_balance} fx_rate={@fx_rate} sym={sym} />
     <% end %>
 
     <%= if @active_tab == "balance_sheet" do %>
-      <.balance_sheet_tab data={@balance_sheet} />
+      <.balance_sheet_tab data={@balance_sheet} fx_rate={@fx_rate} sym={sym} />
     <% end %>
 
     <%= if @active_tab == "income_statement" do %>
-      <.income_statement_tab data={@income_statement} date_from={@date_from} date_to={@date_to} />
+      <.income_statement_tab data={@income_statement} date_from={@date_from} date_to={@date_to} fx_rate={@fx_rate} sym={sym} />
     <% end %>
     """
   end
 
   defp trial_balance_tab(assigns) do
-    total_debit = Enum.reduce(assigns.data, 0.0, &(&1.total_debit + &2))
-    total_credit = Enum.reduce(assigns.data, 0.0, &(&1.total_credit + &2))
+    fx = assigns.fx_rate
+    total_debit = Enum.reduce(assigns.data, 0.0, &(&1.total_debit * fx + &2))
+    total_credit = Enum.reduce(assigns.data, 0.0, &(&1.total_credit * fx + &2))
     balanced = abs(total_debit - total_credit) < 0.01
     assigns = assign(assigns, total_debit: total_debit, total_credit: total_credit, balanced: balanced)
 
@@ -168,10 +199,10 @@ defmodule HoldcoWeb.AccountingLive.Reports do
                 <td class="td-mono">{row.code}</td>
                 <td><.link navigate={~p"/accounts/journal?account_id=#{row.id}"} class="td-link">{row.name}</.link></td>
                 <td><span class={"badge badge-#{row.account_type}"}>{row.account_type}</span></td>
-                <td class="td-num">{format_number(row.total_debit)}</td>
-                <td class="td-num">{format_number(row.total_credit)}</td>
+                <td class="td-num">{@sym}{format_number(row.total_debit * @fx_rate)}</td>
+                <td class="td-num">{@sym}{format_number(row.total_credit * @fx_rate)}</td>
                 <td class={"td-num #{if row.balance >= 0, do: "num-positive", else: "num-negative"}"}>
-                  {format_number(row.balance)}
+                  {@sym}{format_number(row.balance * @fx_rate)}
                 </td>
               </tr>
             <% end %>
@@ -181,9 +212,9 @@ defmodule HoldcoWeb.AccountingLive.Reports do
               <td></td>
               <td>Total</td>
               <td></td>
-              <td class="td-num">{format_number(@total_debit)}</td>
-              <td class="td-num">{format_number(@total_credit)}</td>
-              <td class="td-num">{format_number(@total_debit - @total_credit)}</td>
+              <td class="td-num">{@sym}{format_number(@total_debit)}</td>
+              <td class="td-num">{@sym}{format_number(@total_credit)}</td>
+              <td class="td-num">{@sym}{format_number(@total_debit - @total_credit)}</td>
             </tr>
           </tfoot>
         </table>
@@ -200,21 +231,21 @@ defmodule HoldcoWeb.AccountingLive.Reports do
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Total Assets</div>
-        <div class="metric-value num-positive">${format_number(@data.total_assets)}</div>
+        <div class="metric-value num-positive">{@sym}{format_number(@data.total_assets * @fx_rate)}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Total Liabilities</div>
-        <div class="metric-value num-negative">${format_number(@data.total_liabilities)}</div>
+        <div class="metric-value num-negative">{@sym}{format_number(@data.total_liabilities * @fx_rate)}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Total Equity</div>
-        <div class="metric-value">${format_number(@data.total_equity)}</div>
+        <div class="metric-value">{@sym}{format_number(@data.total_equity * @fx_rate)}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">A = L + E</div>
         <% diff = @data.total_assets - (@data.total_liabilities + @data.total_equity) %>
         <div class={"metric-value #{if abs(diff) < 0.01, do: "num-positive", else: "num-negative"}"}>
-          <%= if abs(diff) < 0.01, do: "Balanced", else: format_number(diff) %>
+          <%= if abs(diff) < 0.01, do: "Balanced", else: "#{@sym}#{format_number(diff * @fx_rate)}" %>
         </div>
       </div>
     </div>
@@ -232,14 +263,14 @@ defmodule HoldcoWeb.AccountingLive.Reports do
                 <tr>
                   <td class="td-mono">{a.code}</td>
                   <td><.link navigate={~p"/accounts/journal?account_id=#{a.id}"} class="td-link">{a.name}</.link></td>
-                  <td class="td-num">{format_number(a.balance)}</td>
+                  <td class="td-num">{@sym}{format_number(a.balance * @fx_rate)}</td>
                 </tr>
               <% end %>
             </tbody>
             <tfoot>
               <tr style="font-weight: bold; border-top: 2px solid var(--color-border);">
                 <td></td><td>Total Assets</td>
-                <td class="td-num">{format_number(@data.total_assets)}</td>
+                <td class="td-num">{@sym}{format_number(@data.total_assets * @fx_rate)}</td>
               </tr>
             </tfoot>
           </table>
@@ -262,14 +293,14 @@ defmodule HoldcoWeb.AccountingLive.Reports do
                   <tr>
                     <td class="td-mono">{l.code}</td>
                     <td><.link navigate={~p"/accounts/journal?account_id=#{l.id}"} class="td-link">{l.name}</.link></td>
-                    <td class="td-num">{format_number(l.balance)}</td>
+                    <td class="td-num">{@sym}{format_number(l.balance * @fx_rate)}</td>
                   </tr>
                 <% end %>
               </tbody>
               <tfoot>
                 <tr style="font-weight: bold; border-top: 2px solid var(--color-border);">
                   <td></td><td>Total Liabilities</td>
-                  <td class="td-num">{format_number(@data.total_liabilities)}</td>
+                  <td class="td-num">{@sym}{format_number(@data.total_liabilities * @fx_rate)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -291,14 +322,14 @@ defmodule HoldcoWeb.AccountingLive.Reports do
                   <tr>
                     <td class="td-mono">{e.code}</td>
                     <td><.link navigate={~p"/accounts/journal?account_id=#{e.id}"} class="td-link">{e.name}</.link></td>
-                    <td class="td-num">{e.balance |> format_number()}</td>
+                    <td class="td-num">{@sym}{format_number(e.balance * @fx_rate)}</td>
                   </tr>
                 <% end %>
               </tbody>
               <tfoot>
                 <tr style="font-weight: bold; border-top: 2px solid var(--color-border);">
                   <td></td><td>Total Equity</td>
-                  <td class="td-num">{format_number(@data.total_equity)}</td>
+                  <td class="td-num">{@sym}{format_number(@data.total_equity * @fx_rate)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -330,16 +361,16 @@ defmodule HoldcoWeb.AccountingLive.Reports do
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Total Revenue</div>
-        <div class="metric-value num-positive">${format_number(@data.total_revenue)}</div>
+        <div class="metric-value num-positive">{@sym}{format_number(@data.total_revenue * @fx_rate)}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Total Expenses</div>
-        <div class="metric-value num-negative">${format_number(@data.total_expenses)}</div>
+        <div class="metric-value num-negative">{@sym}{format_number(@data.total_expenses * @fx_rate)}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Net Income</div>
         <div class={"metric-value #{if @data.net_income >= 0, do: "num-positive", else: "num-negative"}"}>
-          ${format_number(@data.net_income)}
+          {@sym}{format_number(@data.net_income * @fx_rate)}
         </div>
       </div>
     </div>
@@ -357,14 +388,14 @@ defmodule HoldcoWeb.AccountingLive.Reports do
                 <tr>
                   <td class="td-mono">{r.code}</td>
                   <td><.link navigate={~p"/accounts/journal?account_id=#{r.id}"} class="td-link">{r.name}</.link></td>
-                  <td class="td-num num-positive">{format_number(r.amount)}</td>
+                  <td class="td-num num-positive">{@sym}{format_number(r.amount * @fx_rate)}</td>
                 </tr>
               <% end %>
             </tbody>
             <tfoot>
               <tr style="font-weight: bold; border-top: 2px solid var(--color-border);">
                 <td></td><td>Total Revenue</td>
-                <td class="td-num num-positive">{format_number(@data.total_revenue)}</td>
+                <td class="td-num num-positive">{@sym}{format_number(@data.total_revenue * @fx_rate)}</td>
               </tr>
             </tfoot>
           </table>
@@ -386,14 +417,14 @@ defmodule HoldcoWeb.AccountingLive.Reports do
                 <tr>
                   <td class="td-mono">{e.code}</td>
                   <td><.link navigate={~p"/accounts/journal?account_id=#{e.id}"} class="td-link">{e.name}</.link></td>
-                  <td class="td-num num-negative">{format_number(e.amount)}</td>
+                  <td class="td-num num-negative">{@sym}{format_number(e.amount * @fx_rate)}</td>
                 </tr>
               <% end %>
             </tbody>
             <tfoot>
               <tr style="font-weight: bold; border-top: 2px solid var(--color-border);">
                 <td></td><td>Total Expenses</td>
-                <td class="td-num num-negative">{format_number(@data.total_expenses)}</td>
+                <td class="td-num num-negative">{@sym}{format_number(@data.total_expenses * @fx_rate)}</td>
               </tr>
             </tfoot>
           </table>
@@ -405,6 +436,13 @@ defmodule HoldcoWeb.AccountingLive.Reports do
     </div>
     """
   end
+
+  defp currency_symbol("USD"), do: "$"
+  defp currency_symbol("EUR"), do: "\u20AC"
+  defp currency_symbol("GBP"), do: "\u00A3"
+  defp currency_symbol("JPY"), do: "\u00A5"
+  defp currency_symbol("CHF"), do: "CHF "
+  defp currency_symbol(ccy), do: "#{ccy} "
 
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 2) |> add_commas()

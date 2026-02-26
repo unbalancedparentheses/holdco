@@ -94,5 +94,150 @@ defmodule HoldcoWeb.BankAccountsLiveTest do
 
       assert html =~ "Related Transactions"
     end
+
+    test "shows empty state when no transactions exist", %{conn: conn} do
+      account = bank_account_fixture(%{bank_name: "Empty Txn Bank"})
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "No transactions for this company."
+      assert html =~ "empty-state"
+    end
+
+    test "shows transaction data when transactions exist", %{conn: conn} do
+      company = company_fixture(%{name: "TxnDataCo"})
+
+      account =
+        bank_account_fixture(%{company: company, bank_name: "TxnBank"})
+
+      transaction_fixture(%{
+        company: company,
+        transaction_type: "credit",
+        description: "Incoming wire",
+        amount: 25000.0,
+        currency: "USD",
+        date: "2024-03-15"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "Incoming wire"
+      assert html =~ "credit"
+      assert html =~ "2024-03-15"
+      assert html =~ "USD"
+      assert html =~ "num-positive"
+    end
+
+    test "shows negative transaction amount with negative styling", %{conn: conn} do
+      company = company_fixture(%{name: "NegTxnCo"})
+      account = bank_account_fixture(%{company: company, bank_name: "NegTxnBank"})
+
+      transaction_fixture(%{
+        company: company,
+        transaction_type: "debit",
+        description: "Outgoing payment",
+        amount: -5000.0,
+        currency: "EUR",
+        date: "2024-04-01"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "Outgoing payment"
+      assert html =~ "num-negative"
+      assert html =~ "debit"
+    end
+
+    test "shows IBAN and SWIFT when provided", %{conn: conn} do
+      account =
+        bank_account_fixture(%{
+          bank_name: "IBAN Bank",
+          iban: "DE89370400440532013000",
+          swift: "COBADEFFXXX"
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "DE89370400440532013000"
+      assert html =~ "COBADEFFXXX"
+    end
+
+    test "shows dashes for missing IBAN, SWIFT, and account_number", %{conn: conn} do
+      account = bank_account_fixture(%{bank_name: "No Details Bank"})
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      # The "---" placeholders should appear for missing fields
+      assert html =~ "---"
+    end
+
+    test "shows nil balance as $0", %{conn: conn} do
+      account = bank_account_fixture(%{bank_name: "Zero Balance Bank"})
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "$"
+    end
+
+    test "renders transaction count in header", %{conn: conn} do
+      company = company_fixture(%{name: "CountCo"})
+      account = bank_account_fixture(%{company: company, bank_name: "CountBank"})
+
+      transaction_fixture(%{company: company, description: "Tx1"})
+      transaction_fixture(%{company: company, description: "Tx2"})
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "count"
+      assert html =~ "2"
+    end
+
+    test "shows transaction table headers", %{conn: conn} do
+      company = company_fixture(%{name: "TblHeaderCo"})
+      account = bank_account_fixture(%{company: company, bank_name: "TblBank"})
+      transaction_fixture(%{company: company, description: "HeaderTx"})
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "<th>Date</th>"
+      assert html =~ "<th>Type</th>"
+      assert html =~ "<th>Description</th>"
+      assert html =~ "Amount"
+      assert html =~ "<th>Currency</th>"
+    end
+
+    test "renders page-title-rule and detail-list", %{conn: conn} do
+      account = bank_account_fixture(%{bank_name: "Detail Bank"})
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "page-title-rule"
+      assert html =~ "detail-list"
+      assert html =~ "detail-row"
+      assert html =~ "Account Details"
+    end
+
+    test "shows zero amount transaction", %{conn: conn} do
+      company = company_fixture(%{name: "ZeroAmtCo"})
+      account = bank_account_fixture(%{company: company, bank_name: "ZeroAmtBank"})
+      transaction_fixture(%{company: company, description: "ZeroAmtTx", amount: 0.0})
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "ZeroAmtTx"
+      assert html =~ "num-positive"
+    end
+
+    test "displays large balance with commas formatting", %{conn: conn} do
+      account =
+        bank_account_fixture(%{
+          bank_name: "Large Balance Bank",
+          balance: 1234567.0
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "1,234,567"
+    end
   end
 end

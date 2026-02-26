@@ -25,10 +25,11 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/holdco"
 import topbar from "../vendor/topbar"
 import ChartHook from "./hooks/chart"
+import PrintHook from "./hooks/print"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
-  hooks: { ChartHook, ...colocatedHooks },
+  hooks: { ChartHook, PrintHook, ...colocatedHooks },
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
 })

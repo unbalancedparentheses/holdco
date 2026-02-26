@@ -831,4 +831,112 @@ defmodule Holdco.HoldcoFixtures do
 
     project
   end
+
+  # ── Depreciation ────────────────────────────────────────
+
+  def fixed_asset_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, fa} =
+      Holdco.Depreciation.create_fixed_asset(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          name: "Asset #{System.unique_integer([:positive])}",
+          purchase_date: "2024-01-01",
+          purchase_price: 10_000.0,
+          useful_life_months: 60,
+          salvage_value: 1_000.0,
+          depreciation_method: "straight_line"
+        })
+      )
+
+    fa
+  end
+
+  # ── Leases ──────────────────────────────────────────────
+
+  def lease_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, lease} =
+      Holdco.Finance.create_lease(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          lessor: "Lessor #{System.unique_integer([:positive])}",
+          asset_description: "Office Space",
+          start_date: "2024-01-01",
+          end_date: "2028-12-31",
+          monthly_payment: 5_000.0,
+          discount_rate: 0.05,
+          lease_type: "operating"
+        })
+      )
+
+    lease
+  end
+
+  # ── Analytics ───────────────────────────────────────────
+
+  def kpi_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, kpi} =
+      Holdco.Analytics.create_kpi(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          name: "KPI #{System.unique_integer([:positive])}",
+          metric_type: "currency",
+          target_value: 100_000.0,
+          unit: "USD"
+        })
+      )
+
+    kpi
+  end
+
+  def kpi_snapshot_fixture(attrs \\ %{}) do
+    kpi = Map.get_lazy(attrs, :kpi, fn -> kpi_fixture() end)
+
+    {:ok, snap} =
+      Holdco.Analytics.create_kpi_snapshot(
+        Enum.into(attrs, %{
+          kpi_id: kpi.id,
+          current_value: 85_000.0,
+          date: "2024-01-15",
+          trend: "up"
+        })
+      )
+
+    snap
+  end
+
+  def segment_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, seg} =
+      Holdco.Finance.create_segment(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          name: "Segment #{System.unique_integer([:positive])}",
+          segment_type: "business"
+        })
+      )
+
+    seg
+  end
+
+  def report_template_fixture(attrs \\ %{}) do
+    user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
+
+    {:ok, rt} =
+      Holdco.Analytics.create_report_template(
+        Enum.into(attrs, %{
+          user_id: user.id,
+          name: "Report #{System.unique_integer([:positive])}",
+          frequency: "monthly"
+        })
+      )
+
+    rt
+  end
 end

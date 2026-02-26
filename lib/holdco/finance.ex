@@ -12,7 +12,9 @@ defmodule Holdco.Finance do
     CapitalContribution,
     TaxPayment,
     Budget,
-    Liability
+    Liability,
+    Segment,
+    Lease
   }
 
   # Financials
@@ -428,6 +430,83 @@ defmodule Holdco.Finance do
 
   def total_liabilities do
     Repo.one(from l in Liability, select: sum(l.principal)) || 0.0
+  end
+
+  # Segments
+  def list_segments(company_id \\ nil) do
+    query = from(s in Segment, order_by: s.name, preload: [:company])
+    query = if company_id, do: where(query, [s], s.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_segment!(id), do: Repo.get!(Segment, id) |> Repo.preload(:company)
+
+  def create_segment(attrs) do
+    %Segment{}
+    |> Segment.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("segments", "create")
+  end
+
+  def update_segment(%Segment{} = s, attrs) do
+    s
+    |> Segment.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("segments", "update")
+  end
+
+  def delete_segment(%Segment{} = s) do
+    Repo.delete(s)
+    |> audit_and_broadcast("segments", "delete")
+  end
+
+  # Leases
+  def list_leases(company_id \\ nil) do
+    query = from(l in Lease, order_by: l.lessor, preload: [:company])
+    query = if company_id, do: where(query, [l], l.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_lease!(id), do: Repo.get!(Lease, id) |> Repo.preload(:company)
+
+  def create_lease(attrs) do
+    %Lease{}
+    |> Lease.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("leases", "create")
+  end
+
+  def update_lease(%Lease{} = l, attrs) do
+    l
+    |> Lease.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("leases", "update")
+  end
+
+  def delete_lease(%Lease{} = l) do
+    Repo.delete(l)
+    |> audit_and_broadcast("leases", "delete")
+  end
+
+  # Segment-filtered trial balance
+  def trial_balance_by_segment(segment_id) do
+    from(a in Account,
+      left_join: jl in JournalLine,
+      on: jl.account_id == a.id,
+      where: jl.segment_id == ^segment_id or a.segment_id == ^segment_id,
+      group_by: [a.id, a.name, a.code, a.account_type],
+      select: %{
+        id: a.id,
+        name: a.name,
+        code: a.code,
+        account_type: a.account_type,
+        total_debit: coalesce(sum(jl.debit), 0.0),
+        total_credit: coalesce(sum(jl.credit), 0.0),
+        balance: coalesce(sum(jl.debit), 0.0) - coalesce(sum(jl.credit), 0.0)
+      },
+      order_by: a.code
+    )
+    |> Repo.all()
   end
 
   # PubSub

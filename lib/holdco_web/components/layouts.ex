@@ -87,7 +87,7 @@ defmodule HoldcoWeb.Layouts do
     <nav class="nav-bar">
       <div class="nav-inner">
         <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
-        <% accounting_paths = ~w(/accounts/chart /accounts/journal /accounts/reports /accounts/integrations) %>
+        <% accounting_paths = ~w(/accounts/chart /accounts/journal /accounts/reports /accounts/integrations /depreciation /segments /revaluation /budgets/variance /waterfall /consolidated /leases) %>
         <% accounting_active = Enum.any?(accounting_paths, fn p -> String.starts_with?(@current_path || "", p) end) %>
         <div class="nav-links">
           <.link navigate={~p"/"} class={if @current_path == "/", do: "active"}>Overview</.link>
@@ -98,10 +98,10 @@ defmodule HoldcoWeb.Layouts do
             Companies
           </.link>
           <.link
-            navigate={~p"/tax-calendar"}
-            class={if @current_path == "/tax-calendar", do: "active"}
+            navigate={~p"/calendar"}
+            class={if @current_path == "/calendar", do: "active"}
           >
-            Tax Calendar
+            Calendar
           </.link>
           <div class="nav-dropdown">
             <button class={"nav-dropdown-toggle #{if accounting_active, do: "more-active"}"}>Accounting &#9662;</button>

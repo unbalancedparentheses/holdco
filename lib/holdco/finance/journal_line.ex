@@ -9,13 +9,14 @@ defmodule Holdco.Finance.JournalLine do
 
     belongs_to :entry, Holdco.Finance.JournalEntry
     belongs_to :account, Holdco.Finance.Account
+    belongs_to :segment, Holdco.Finance.Segment
 
     timestamps(type: :utc_datetime)
   end
 
   def changeset(journal_line, attrs) do
     journal_line
-    |> cast(attrs, [:entry_id, :account_id, :debit, :credit, :notes])
+    |> cast(attrs, [:entry_id, :account_id, :debit, :credit, :notes, :segment_id])
     |> validate_required([:entry_id, :account_id])
   end
 end

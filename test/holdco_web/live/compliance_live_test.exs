@@ -1045,6 +1045,258 @@ defmodule HoldcoWeb.ComplianceLiveTest do
   end
 
   # ------------------------------------------------------------------
+  # Edit/Update FATCA
+  # ------------------------------------------------------------------
+
+  describe "FATCA edit/update" do
+    test "edit FATCA report opens edit form", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "Edit FATCA Corp"})
+      report = fatca_report_fixture(%{company: company, reporting_year: 2024, jurisdiction: "SG"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="fatca"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit_fatca"][phx-value-id="#{report.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit FATCA Report"
+      assert html =~ "2024"
+    end
+
+    test "update FATCA report saves changes", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "Update FATCA Corp"})
+      report = fatca_report_fixture(%{company: company, reporting_year: 2024, jurisdiction: "SG"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="fatca"])) |> render_click()
+
+      view
+      |> element(~s(button[phx-click="edit_fatca"][phx-value-id="#{report.id}"]))
+      |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_fatca"]), %{
+          fatca_report: %{
+            company_id: company.id,
+            reporting_year: "2025",
+            jurisdiction: "NZ"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Report updated"
+      assert html =~ "NZ"
+    end
+
+    test "delete_fatca is denied for non-editor", %{conn: conn} do
+      report = fatca_report_fixture()
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+
+      html = render_hook(view, "delete_fatca", %{"id" => report.id})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "update_fatca is denied for non-editor", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+
+      html =
+        render_hook(view, "update_fatca", %{
+          "fatca_report" => %{
+            "reporting_year" => "2025",
+            "jurisdiction" => "US"
+          }
+        })
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Edit/Update ESG
+  # ------------------------------------------------------------------
+
+  describe "ESG edit/update" do
+    test "edit ESG score opens edit form", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "Edit ESG Corp"})
+      score = esg_score_fixture(%{company: company, period: "2024-Q2"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="esg"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit_esg"][phx-value-id="#{score.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit ESG Score"
+      assert html =~ "2024-Q2"
+    end
+
+    test "update ESG score saves changes", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "Update ESG Corp"})
+      score = esg_score_fixture(%{company: company, period: "2024-Q2"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="esg"])) |> render_click()
+
+      view
+      |> element(~s(button[phx-click="edit_esg"][phx-value-id="#{score.id}"]))
+      |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_esg"]), %{
+          esg_score: %{
+            company_id: company.id,
+            period: "2025-Q1",
+            environmental_score: "90",
+            social_score: "80",
+            governance_score: "85",
+            overall_score: "85"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Score updated"
+      assert html =~ "2025-Q1"
+    end
+
+    test "delete_esg is denied for non-editor", %{conn: conn} do
+      score = esg_score_fixture()
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+
+      html = render_hook(view, "delete_esg", %{"id" => score.id})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "update_esg is denied for non-editor", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+
+      html =
+        render_hook(view, "update_esg", %{
+          "esg_score" => %{
+            "period" => "2025-Q1"
+          }
+        })
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Edit/Update Licenses
+  # ------------------------------------------------------------------
+
+  describe "licenses edit/update" do
+    test "edit license opens edit form", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "Edit License Corp"})
+      license = regulatory_license_fixture(%{company: company, license_type: "broker", issuing_authority: "SEC"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="licenses"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit_license"][phx-value-id="#{license.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Regulatory License"
+      assert html =~ "broker"
+    end
+
+    test "update license saves changes", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "Update License Corp"})
+      license = regulatory_license_fixture(%{company: company, license_type: "broker", issuing_authority: "SEC"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="licenses"])) |> render_click()
+
+      view
+      |> element(~s(button[phx-click="edit_license"][phx-value-id="#{license.id}"]))
+      |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_license"]), %{
+          regulatory_license: %{
+            company_id: company.id,
+            license_type: "investment-advisor",
+            issuing_authority: "FINRA"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "License updated"
+      assert html =~ "investment-advisor"
+      assert html =~ "FINRA"
+    end
+
+    test "update_license is denied for non-editor", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+
+      html =
+        render_hook(view, "update_license", %{
+          "regulatory_license" => %{
+            "license_type" => "broker",
+            "issuing_authority" => "SEC"
+          }
+        })
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Additional viewer permission guards
+  # ------------------------------------------------------------------
+
+  describe "additional viewer permission guards" do
+    test "update_insurance is denied for non-editor", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+
+      html =
+        render_hook(view, "update_insurance", %{
+          "insurance_policy" => %{
+            "policy_type" => "D&O",
+            "provider" => "Test"
+          }
+        })
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "update_sanctions is denied for non-editor", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+
+      html =
+        render_hook(view, "update_sanctions", %{
+          "sanctions_check" => %{
+            "checked_name" => "Test"
+          }
+        })
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "delete_sanctions is denied for non-editor via hook", %{conn: conn} do
+      check = sanctions_check_fixture()
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+
+      html = render_hook(view, "delete_sanctions", %{"id" => check.id})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+  end
+
+  # ------------------------------------------------------------------
   # Empty state rendering
   # ------------------------------------------------------------------
 

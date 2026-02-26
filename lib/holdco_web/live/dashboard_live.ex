@@ -256,7 +256,7 @@ defmodule HoldcoWeb.DashboardLive do
       <div class="section">
         <div class="section-head">
           <h2>Upcoming Deadlines</h2>
-          <.link navigate={~p"/tax-calendar"} class="count" style="text-decoration: none;">View All &rarr;</.link>
+          <.link navigate={~p"/calendar"} class="count" style="text-decoration: none;">View All &rarr;</.link>
         </div>
         <div class="panel">
           <table>

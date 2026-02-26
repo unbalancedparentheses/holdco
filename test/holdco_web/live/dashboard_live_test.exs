@@ -545,6 +545,153 @@ defmodule HoldcoWeb.DashboardLiveTest do
     end
   end
 
+  describe "editor quick action buttons" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "editor sees quick action buttons", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "+ Company"
+      assert html =~ "+ Transaction"
+      assert html =~ "+ Holding"
+      assert html =~ "Import CSV"
+    end
+
+    test "quick action links have correct destinations", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ ~s(/companies/new)
+      assert html =~ ~s(/transactions)
+      assert html =~ ~s(/holdings)
+      assert html =~ ~s(/import)
+    end
+  end
+
+  describe "viewer quick action buttons" do
+    test "viewer does not see quick action buttons", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+      refute html =~ "+ Company"
+      refute html =~ "+ Transaction"
+      refute html =~ "+ Holding"
+      refute html =~ "Import CSV"
+    end
+  end
+
+  describe "audit_link routing" do
+    test "company audit log links to company detail page", %{conn: conn} do
+      audit_log_fixture(%{action: "create", table_name: "companies", record_id: 42})
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "/companies/42"
+    end
+
+    test "asset_holdings audit log links to holdings page", %{conn: conn} do
+      audit_log_fixture(%{action: "update", table_name: "asset_holdings", record_id: 7})
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "/holdings/7"
+    end
+
+    test "bank_accounts audit log links to bank accounts page", %{conn: conn} do
+      audit_log_fixture(%{action: "create", table_name: "bank_accounts", record_id: 15})
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "/bank-accounts/15"
+    end
+
+    test "transactions audit log links to transactions page", %{conn: conn} do
+      audit_log_fixture(%{action: "delete", table_name: "transactions", record_id: 99})
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "/transactions/99"
+    end
+
+    test "unknown table audit log links to fallback audit-log page", %{conn: conn} do
+      audit_log_fixture(%{action: "create", table_name: "documents", record_id: 33})
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "/audit-log"
+    end
+  end
+
+  describe "upcoming deadlines with company" do
+    test "deadline with company shows company link", %{conn: conn} do
+      company = company_fixture(%{name: "DeadlineCo"})
+
+      tax_deadline_fixture(%{
+        company: company,
+        description: "Quarterly Filing",
+        due_date: "2027-06-30",
+        status: "pending"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "Quarterly Filing"
+      assert html =~ "DeadlineCo"
+      assert html =~ "/companies/#{company.id}"
+    end
+
+    test "overdue deadline shows crimson tag", %{conn: conn} do
+      tax_deadline_fixture(%{
+        description: "Overdue Filing",
+        due_date: "2027-01-01",
+        status: "overdue"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "Overdue Filing"
+      assert html =~ "tag-crimson"
+    end
+
+    test "pending deadline shows lemon tag", %{conn: conn} do
+      tax_deadline_fixture(%{
+        description: "Pending Filing",
+        due_date: "2027-12-31",
+        status: "pending"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "Pending Filing"
+      assert html =~ "tag-lemon"
+    end
+
+    test "pending approvals with non-zero count shows review link", %{conn: conn} do
+      Holdco.Platform.create_approval_request(%{
+        requested_by: "user@test.com",
+        table_name: "companies",
+        action: "create"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "Review pending approvals"
+      assert html =~ "/approvals"
+    end
+  end
+
+  describe "section links" do
+    test "corporate structure has view all link", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "/companies"
+      assert html =~ "entities"
+    end
+
+    test "recent activity has view all link", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "/audit-log"
+      assert html =~ "View All"
+    end
+
+    test "upcoming deadlines has calendar link", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "/calendar"
+    end
+
+    test "pending approvals has view all link", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "/approvals"
+    end
+  end
+
   describe "audit log format_time rendering" do
     test "audit log with valid timestamp renders formatted time", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")

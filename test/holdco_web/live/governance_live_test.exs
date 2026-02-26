@@ -702,4 +702,358 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "You don&#39;t have permission to do that"
     end
   end
+
+  # ── CRUD: Deals ──────────────────────────────────────────
+
+  describe "deals CRUD" do
+    test "editor can create a deal", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "DealCreateCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      view |> element(~s(button[phx-value-tab="deals"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_deal"]), %{
+          "deal" => %{
+            "company_id" => company.id,
+            "counterparty" => "MegaCorp",
+            "deal_type" => "merger"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Deal added"
+      assert html =~ "MegaCorp"
+      assert html =~ "merger"
+      refute html =~ "modal-overlay"
+    end
+
+    test "editor can delete a deal", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "DealDelCo"})
+      deal = deal_fixture(%{company: company, counterparty: "DeleteTarget"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="deals"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="delete_deal"][phx-value-id="#{deal.id}"]))
+        |> render_click()
+
+      assert html =~ "Deal deleted"
+      refute html =~ "DeleteTarget"
+    end
+
+    test "editor can edit and update a deal", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "DealEditCo"})
+      deal = deal_fixture(%{company: company, counterparty: "Original Counterparty", deal_type: "acquisition"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="deals"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit_deal"][phx-value-id="#{deal.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Deal"
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_deal"]), %{
+          "deal" => %{
+            "company_id" => company.id,
+            "counterparty" => "Updated Counterparty",
+            "deal_type" => "divestiture"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Deal updated"
+      assert html =~ "Updated Counterparty"
+    end
+  end
+
+  # ── CRUD: Equity Plans ──────────────────────────────────
+
+  describe "equity plans CRUD" do
+    test "editor can create an equity plan", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "EquityPlanCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      view |> element(~s(button[phx-value-tab="equity_plans"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_equity_plan"]), %{
+          "equity_plan" => %{
+            "company_id" => company.id,
+            "plan_name" => "2025 Stock Option Plan"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Equity plan added"
+      assert html =~ "2025 Stock Option Plan"
+      refute html =~ "modal-overlay"
+    end
+
+    test "editor can delete an equity plan", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "EquityPlanDelCo"})
+      plan = equity_incentive_plan_fixture(%{company: company, plan_name: "Old Plan"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="equity_plans"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="delete_equity_plan"][phx-value-id="#{plan.id}"]))
+        |> render_click()
+
+      assert html =~ "Equity plan deleted"
+      refute html =~ "Old Plan"
+    end
+
+    test "editor can edit and update an equity plan", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "EquityPlanEditCo"})
+      plan = equity_incentive_plan_fixture(%{company: company, plan_name: "Original Plan"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="equity_plans"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit_equity_plan"][phx-value-id="#{plan.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Equity Plan"
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_equity_plan"]), %{
+          "equity_plan" => %{
+            "company_id" => company.id,
+            "plan_name" => "Updated Plan 2025"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Equity plan updated"
+      assert html =~ "Updated Plan 2025"
+    end
+  end
+
+  # ── CRUD: Joint Ventures ────────────────────────────────
+
+  describe "joint ventures CRUD" do
+    test "editor can create a joint venture", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "JVCreateCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      view |> element(~s(button[phx-value-tab="joint_ventures"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_jv"]), %{
+          "joint_venture" => %{
+            "company_id" => company.id,
+            "partner" => "Partner Corp",
+            "name" => "Asia JV"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Joint venture added"
+      assert html =~ "Asia JV"
+      assert html =~ "Partner Corp"
+      refute html =~ "modal-overlay"
+    end
+
+    test "editor can delete a joint venture", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "JVDelCo"})
+      jv = joint_venture_fixture(%{company: company, partner: "OldPartner", name: "Old JV"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="joint_ventures"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="delete_jv"][phx-value-id="#{jv.id}"]))
+        |> render_click()
+
+      assert html =~ "Joint venture deleted"
+      refute html =~ "Old JV"
+    end
+
+    test "editor can edit and update a joint venture", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "JVEditCo"})
+      jv = joint_venture_fixture(%{company: company, partner: "OrigPartner", name: "Orig JV"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="joint_ventures"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit_jv"][phx-value-id="#{jv.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Joint Venture"
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_jv"]), %{
+          "joint_venture" => %{
+            "company_id" => company.id,
+            "partner" => "New Partner",
+            "name" => "Updated JV"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Joint venture updated"
+      assert html =~ "Updated JV"
+    end
+  end
+
+  # ── CRUD: Powers of Attorney ────────────────────────────
+
+  describe "powers of attorney CRUD" do
+    test "editor can create a power of attorney", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "PoACo"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      view |> element(~s(button[phx-value-tab="powers_of_attorney"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_poa"]), %{
+          "power_of_attorney" => %{
+            "company_id" => company.id,
+            "grantor" => "CEO Smith",
+            "grantee" => "CFO Jones"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Power of attorney added"
+      assert html =~ "CEO Smith"
+      assert html =~ "CFO Jones"
+      refute html =~ "modal-overlay"
+    end
+
+    test "editor can delete a power of attorney", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "PoADelCo"})
+      poa = power_of_attorney_fixture(%{company: company, grantor: "OldGrantor", grantee: "OldGrantee"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="powers_of_attorney"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="delete_poa"][phx-value-id="#{poa.id}"]))
+        |> render_click()
+
+      assert html =~ "Power of attorney deleted"
+      refute html =~ "OldGrantor"
+    end
+
+    test "editor can edit and update a power of attorney", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "PoAEditCo"})
+      poa = power_of_attorney_fixture(%{company: company, grantor: "OrigGrantor", grantee: "OrigGrantee"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="powers_of_attorney"])) |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit_poa"][phx-value-id="#{poa.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Power of Attorney"
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_poa"]), %{
+          "power_of_attorney" => %{
+            "company_id" => company.id,
+            "grantor" => "Updated Grantor",
+            "grantee" => "Updated Grantee"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Power of attorney updated"
+      assert html =~ "Updated Grantor"
+    end
+  end
+
+  # ── Tab content rendering: additional tabs ──────────────
+
+  describe "additional tab content rendering" do
+    test "equity_plans tab shows plan data", %{conn: conn} do
+      company = company_fixture(%{name: "TabEPCo"})
+      equity_incentive_plan_fixture(%{company: company, plan_name: "2024 ESOP"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = view |> element(~s(button[phx-value-tab="equity_plans"])) |> render_click()
+
+      assert html =~ "2024 ESOP"
+      assert html =~ "TabEPCo"
+    end
+
+    test "joint_ventures tab shows JV data", %{conn: conn} do
+      company = company_fixture(%{name: "TabJVCo"})
+      joint_venture_fixture(%{company: company, partner: "JV Partner", name: "Pacific Venture"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = view |> element(~s(button[phx-value-tab="joint_ventures"])) |> render_click()
+
+      assert html =~ "Pacific Venture"
+      assert html =~ "JV Partner"
+    end
+
+    test "powers_of_attorney tab shows PoA data", %{conn: conn} do
+      company = company_fixture(%{name: "TabPoACo"})
+      power_of_attorney_fixture(%{company: company, grantor: "CEO", grantee: "VP Legal"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = view |> element(~s(button[phx-value-tab="powers_of_attorney"])) |> render_click()
+
+      assert html =~ "CEO"
+      assert html =~ "VP Legal"
+    end
+  end
+
+  # ── handle_info ──────────────────────────────────────────
+
+  describe "handle_info" do
+    test "unknown messages trigger reload", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      send(view.pid, :unknown_event)
+      html = render(view)
+      assert html =~ "Governance"
+    end
+  end
 end
