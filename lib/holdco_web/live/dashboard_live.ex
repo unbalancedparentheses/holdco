@@ -290,12 +290,14 @@ defmodule HoldcoWeb.DashboardLive do
 
   defp allocation_chart_data(allocation) do
     colors = ["#0d7680", "#0f5499", "#00994d", "#990f3d", "#ff8833", "#f2a900", "#cc0000"]
+    values = Enum.map(allocation, & &1.value)
+    data = if Enum.all?(values, &(&1 == 0 or &1 == 0.0)), do: Enum.map(allocation, & &1.count), else: values
 
     %{
       labels: Enum.map(allocation, & &1.type),
       datasets: [
         %{
-          data: Enum.map(allocation, & &1.value),
+          data: data,
           backgroundColor: Enum.take(colors, length(allocation))
         }
       ]

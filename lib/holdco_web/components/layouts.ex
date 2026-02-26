@@ -87,6 +87,8 @@ defmodule HoldcoWeb.Layouts do
     <nav class="nav-bar">
       <div class="nav-inner">
         <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
+        <% more_paths = ~w(/compliance /approvals /financials /scenarios /reports /settings /notifications) %>
+        <% more_active = Enum.any?(more_paths, fn p -> (@current_path || "") == p or String.starts_with?(@current_path || "", p <> "/") end) %>
         <div class="nav-links">
           <.link navigate={~p"/"} class={if @current_path == "/", do: "active"}>Overview</.link>
           <.link
@@ -122,36 +124,36 @@ defmodule HoldcoWeb.Layouts do
           <.link navigate={~p"/governance"} class={if @current_path == "/governance", do: "active"}>
             Governance
           </.link>
-          <.link navigate={~p"/compliance"} class={if @current_path == "/compliance", do: "active"}>
-            Compliance
-          </.link>
-          <% pending_count = Holdco.Platform.pending_approval_count() %>
-          <.link navigate={~p"/approvals"} class={if @current_path == "/approvals", do: "active"}>
-            Approvals<%= if pending_count > 0 do %>
-              ({pending_count})
-            <% end %>
-          </.link>
-          <.link navigate={~p"/financials"} class={if @current_path == "/financials", do: "active"}>
-            Financials
-          </.link>
-          <.link
-            navigate={~p"/scenarios"}
-            class={if String.starts_with?(@current_path || "", "/scenarios"), do: "active"}
-          >
-            Scenarios
-          </.link>
-          <.link navigate={~p"/reports"} class={if @current_path == "/reports", do: "active"}>
-            Reports
-          </.link>
-          <.link navigate={~p"/settings"} class={if @current_path == "/settings", do: "active"}>
-            Settings
-          </.link>
-          <.link
-            navigate={~p"/notifications"}
-            class={if @current_path == "/notifications", do: "active"}
-          >
-            Notifications
-          </.link>
+          <div class="nav-dropdown">
+            <button class={"nav-dropdown-toggle #{if more_active, do: "more-active"}"}>More &#9662;</button>
+            <div class="nav-dropdown-menu">
+              <.link navigate={~p"/compliance"} class={if @current_path == "/compliance", do: "active"}>
+                Compliance
+              </.link>
+              <% pending_count = Holdco.Platform.pending_approval_count() %>
+              <.link navigate={~p"/approvals"} class={if @current_path == "/approvals", do: "active"}>
+                Approvals<%= if pending_count > 0, do: " (#{pending_count})" %>
+              </.link>
+              <.link navigate={~p"/financials"} class={if @current_path == "/financials", do: "active"}>
+                Financials
+              </.link>
+              <.link
+                navigate={~p"/scenarios"}
+                class={if String.starts_with?(@current_path || "", "/scenarios"), do: "active"}
+              >
+                Scenarios
+              </.link>
+              <.link navigate={~p"/reports"} class={if @current_path == "/reports", do: "active"}>
+                Reports
+              </.link>
+              <.link navigate={~p"/settings"} class={if @current_path == "/settings", do: "active"}>
+                Settings
+              </.link>
+              <.link navigate={~p"/notifications"} class={if @current_path == "/notifications", do: "active"}>
+                Notifications
+              </.link>
+            </div>
+          </div>
         </div>
         <div class="nav-utils">
           <form class="nav-search" action={~p"/search"} method="get">

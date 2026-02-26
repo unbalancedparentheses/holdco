@@ -244,7 +244,7 @@ defmodule HoldcoWeb.CompanyLive.Index do
     </div>
 
     <%= if @live_action == :new do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>New Company</h3>

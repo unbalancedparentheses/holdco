@@ -216,7 +216,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add/Update Setting</h3>
@@ -294,7 +294,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Category</h3>
@@ -371,7 +371,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Webhook</h3>
@@ -462,7 +462,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Backup Config</h3>

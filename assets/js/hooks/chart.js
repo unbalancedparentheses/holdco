@@ -4,13 +4,10 @@ const ChartHook = {
     const data = JSON.parse(this.el.dataset.chartData || "{}");
     const options = JSON.parse(this.el.dataset.chartOptions || "{}");
 
-    const canvas = this.el.querySelector("canvas") || this.el;
-    const ctx = canvas.getContext ? canvas : document.createElement("canvas");
-    if (!canvas.getContext) {
-      this.el.appendChild(ctx);
-    }
+    const canvas = this.el.querySelector("canvas");
+    if (!canvas) return;
 
-    this.chart = new Chart(ctx, { type, data, options: {
+    this.chart = new Chart(canvas, { type, data, options: {
       responsive: true,
       maintainAspectRatio: false,
       ...options

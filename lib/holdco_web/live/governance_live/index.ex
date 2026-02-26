@@ -300,7 +300,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Board Meeting</h3>
@@ -401,7 +401,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Cap Table Entry</h3>
@@ -508,7 +508,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Resolution</h3>
@@ -605,7 +605,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Deal</h3>
@@ -696,7 +696,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Equity Plan</h3>
@@ -785,7 +785,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Joint Venture</h3>
@@ -884,7 +884,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Power of Attorney</h3>

@@ -166,7 +166,7 @@ defmodule HoldcoWeb.TransactionsLive.Index do
                 <td class="td-name">{tx.description}</td>
                 <td>{tx.counterparty}</td>
                 <td class={"td-num #{if (tx.amount || 0) < 0, do: "num-negative", else: "num-positive"}"}>
-                  {tx.amount} {tx.currency}
+                  {format_currency(tx.amount, tx.currency)}
                 </td>
                 <td>{tx.currency}</td>
                 <td>{if tx.company, do: tx.company.name, else: "---"}</td>
@@ -193,7 +193,7 @@ defmodule HoldcoWeb.TransactionsLive.Index do
     </div>
 
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Transaction</h3>
@@ -265,6 +265,13 @@ defmodule HoldcoWeb.TransactionsLive.Index do
 
   defp add_commas(str) do
     str |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+  end
+
+  defp format_currency(nil, _currency), do: "0"
+
+  defp format_currency(amount, currency) do
+    sign = if amount < 0, do: "-", else: ""
+    "#{sign}#{format_number(abs(amount))} #{currency}"
   end
 
   defp tx_chart_data(transactions) do

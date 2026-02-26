@@ -285,7 +285,7 @@ defmodule HoldcoWeb.ApprovalsLive.Index do
     </div>
 
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>New Approval Request</h3>

@@ -9,7 +9,7 @@ alias Holdco.Assets.{AssetHolding, CustodianAccount, PortfolioSnapshot}
 alias Holdco.Banking.{BankAccount, Transaction}
 alias Holdco.Finance.{Financial, Liability, Dividend}
 alias Holdco.Compliance.{TaxDeadline, InsurancePolicy}
-alias Holdco.Governance.BoardMeeting
+alias Holdco.Governance.{BoardMeeting, CapTableEntry, ShareholderResolution, Deal, EquityIncentivePlan, JointVenture, PowerOfAttorney}
 alias Holdco.Documents.Document
 alias Holdco.Accounts.{User, UserRole}
 
@@ -515,6 +515,185 @@ if Repo.aggregate(BoardMeeting, :count) == 0 do
         }
       ],
       do: Repo.insert!(struct(BoardMeeting, bm))
+end
+
+# ---------- Cap Table ----------
+
+if Repo.aggregate(CapTableEntry, :count) == 0 do
+  for ct <- [
+        %{
+          company_id: holdings.id,
+          investor: "Jane Smith",
+          round_name: "Founder",
+          instrument_type: "equity",
+          shares: 600_000.0,
+          price_per_share: 1.0,
+          amount_invested: 600_000.0,
+          currency: "USD",
+          date: "2020-01-01"
+        },
+        %{
+          company_id: holdings.id,
+          investor: "John Doe",
+          round_name: "Founder",
+          instrument_type: "equity",
+          shares: 400_000.0,
+          price_per_share: 1.0,
+          amount_invested: 400_000.0,
+          currency: "USD",
+          date: "2020-01-01"
+        },
+        %{
+          company_id: tech.id,
+          investor: "Acme Holdings",
+          round_name: "Incorporation",
+          instrument_type: "equity",
+          shares: 1_000_000.0,
+          price_per_share: 1.0,
+          amount_invested: 1_000_000.0,
+          currency: "USD",
+          date: "2020-06-01"
+        }
+      ],
+      do: Repo.insert!(struct(CapTableEntry, ct))
+end
+
+# ---------- Shareholder Resolutions ----------
+
+if Repo.aggregate(ShareholderResolution, :count) == 0 do
+  for sr <- [
+        %{
+          company_id: holdings.id,
+          title: "Approve 2024 Annual Accounts",
+          resolution_type: "ordinary",
+          date: "2025-03-15",
+          passed: true,
+          votes_for: 1_000_000,
+          votes_against: 0
+        },
+        %{
+          company_id: holdings.id,
+          title: "Authorize Share Buyback Programme",
+          resolution_type: "special",
+          date: "2025-03-15",
+          passed: true,
+          votes_for: 800_000,
+          votes_against: 200_000
+        },
+        %{
+          company_id: tech.id,
+          title: "Appoint New Board Director",
+          resolution_type: "ordinary",
+          date: "2025-04-01",
+          passed: false,
+          votes_for: 400_000,
+          votes_against: 600_000
+        }
+      ],
+      do: Repo.insert!(struct(ShareholderResolution, sr))
+end
+
+# ---------- Deals ----------
+
+if Repo.aggregate(Deal, :count) == 0 do
+  for d <- [
+        %{
+          company_id: holdings.id,
+          deal_type: "acquisition",
+          counterparty: "Nordic SaaS AB",
+          status: "pipeline",
+          value: 2_500_000.0,
+          currency: "USD",
+          target_close_date: "2025-09-30",
+          notes: "Early-stage SaaS company in Nordics"
+        },
+        %{
+          company_id: capital.id,
+          deal_type: "investment",
+          counterparty: "GreenEnergy Fund III",
+          status: "due_diligence",
+          value: 500_000.0,
+          currency: "USD",
+          target_close_date: "2025-06-15"
+        }
+      ],
+      do: Repo.insert!(struct(Deal, d))
+end
+
+# ---------- Equity Incentive Plans ----------
+
+if Repo.aggregate(EquityIncentivePlan, :count) == 0 do
+  for ep <- [
+        %{
+          company_id: tech.id,
+          plan_name: "2024 Employee Stock Option Plan",
+          total_pool: 100_000,
+          vesting_schedule: "4-year with 1-year cliff",
+          board_approval_date: "2024-01-15"
+        },
+        %{
+          company_id: holdings.id,
+          plan_name: "Executive Phantom Share Plan",
+          total_pool: 50_000,
+          vesting_schedule: "3-year quarterly vesting",
+          board_approval_date: "2024-06-01"
+        }
+      ],
+      do: Repo.insert!(struct(EquityIncentivePlan, ep))
+end
+
+# ---------- Joint Ventures ----------
+
+if Repo.aggregate(JointVenture, :count) == 0 do
+  for jv <- [
+        %{
+          company_id: media.id,
+          name: "Digital Content Partners",
+          partner: "StreamCo Ltd",
+          ownership_pct: 50.0,
+          formation_date: "2024-09-01",
+          status: "active",
+          total_value: 800_000.0,
+          currency: "GBP"
+        },
+        %{
+          company_id: retail.id,
+          name: "EU Distribution Alliance",
+          partner: "LogiCorp GmbH",
+          ownership_pct: 60.0,
+          formation_date: "2024-11-15",
+          status: "active",
+          total_value: 350_000.0,
+          currency: "EUR"
+        }
+      ],
+      do: Repo.insert!(struct(JointVenture, jv))
+end
+
+# ---------- Powers of Attorney ----------
+
+if Repo.aggregate(PowerOfAttorney, :count) == 0 do
+  for poa <- [
+        %{
+          company_id: holdings.id,
+          grantor: "Acme Holdings",
+          grantee: "Sarah Johnson (Johnson & Partners LLP)",
+          scope: "Corporate filings and regulatory submissions",
+          start_date: "2025-01-01",
+          end_date: "2025-12-31",
+          status: "active"
+        },
+        %{
+          company_id: retail.id,
+          grantor: "Acme Retail",
+          grantee: "Hans Mueller (Mueller Steuerberatung)",
+          scope: "German tax filings and audit representation",
+          start_date: "2025-01-01",
+          end_date: "2025-12-31",
+          status: "active"
+        }
+      ],
+      do: Repo.insert!(struct(PowerOfAttorney, poa))
 end
 
 # ---------- Tax Deadlines ----------

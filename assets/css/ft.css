@@ -152,6 +152,35 @@ a:hover { text-decoration: underline; text-underline-offset: 0.15em; }
 }
 .nav-search input:focus { outline: none; border-color: var(--teal); width: 180px; }
 .nav-user { display: flex; align-items: center; gap: var(--sp-3); }
+/* Nav "More" dropdown */
+.nav-dropdown {
+  position: relative; display: flex; align-items: stretch;
+}
+.nav-dropdown-toggle {
+  display: flex; align-items: center; padding: 0 0.75rem;
+  font-family: var(--body); font-size: 0.8125rem; font-weight: 500;
+  color: var(--ink-light); cursor: pointer; background: none;
+  border: none; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-dropdown-toggle:hover { color: var(--ink); }
+.nav-dropdown-toggle.more-active { color: var(--ink); border-bottom-color: var(--teal); }
+.nav-dropdown-menu {
+  display: none; position: absolute; top: 100%; right: 0;
+  background: var(--white); border: 1px solid var(--rule);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08); z-index: 50; min-width: 180px;
+}
+.nav-dropdown:hover .nav-dropdown-menu,
+.nav-dropdown:focus-within .nav-dropdown-menu { display: block; }
+.nav-dropdown-menu a {
+  display: block; padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem; color: var(--ink-light);
+  text-decoration: none; white-space: nowrap; border-bottom: none;
+}
+.nav-dropdown-menu a:hover { background: var(--teal-light); color: var(--ink); }
+.nav-dropdown-menu a.active { color: var(--teal); font-weight: 600; }
+
 .nav-user span { color: var(--ink-faint); font-size: 0.6875rem; }
 .nav-user a { color: var(--ink-faint); font-size: 0.6875rem; text-decoration: none; }
 .nav-user a:hover { color: var(--ink); text-decoration: none; }
@@ -401,7 +430,8 @@ tbody tr.tr-summary td {
   display: flex; justify-content: space-between; align-items: center;
 }
 .footer-text { font-size: 0.625rem; color: var(--ink-faint); letter-spacing: 0.01em; }
-.footer-links a { font-size: 0.625rem; color: var(--ink-light); text-decoration: none; margin-left: var(--sp-6); }
+.footer-links { display: flex; align-items: center; gap: var(--sp-6); }
+.footer-links a { font-size: 0.625rem; color: var(--ink-light); text-decoration: none; }
 .footer-links a:hover { color: var(--ink); text-decoration: none; }
 
 /* === Forms === */
@@ -442,6 +472,13 @@ tbody tr.tr-summary td {
 .btn-danger { background: var(--white); color: var(--crimson); border-color: var(--crimson); }
 .btn-danger:hover { background: var(--crimson-light); }
 .btn-sm { padding: 0.1875rem 0.5rem; font-size: 0.6875rem; }
+
+/* Subtle delete buttons — text-link style */
+.btn-danger.btn-sm {
+  background: none; border: none; color: var(--ink-faint);
+  padding: 0.125rem 0.25rem; font-size: 0.6875rem; font-weight: 500;
+}
+.btn-danger.btn-sm:hover { color: var(--crimson); background: none; text-decoration: underline; }
 
 /* === Modal/Dialog === */
 

@@ -287,7 +287,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Regulatory Filing</h3>
@@ -382,7 +382,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Regulatory License</h3>
@@ -492,7 +492,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Insurance Policy</h3>
@@ -603,7 +603,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Run Sanctions Check</h3>
@@ -694,7 +694,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add ESG Score</h3>
@@ -802,7 +802,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add FATCA Report</h3>
@@ -899,7 +899,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Withholding Tax</h3>

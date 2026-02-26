@@ -321,7 +321,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
     <% end %>
 
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
+      <div class="modal-overlay">
         <div class="modal" phx-click-away="close_form">
           <div class="modal-header">
             <h3>Add Bank Account</h3>
