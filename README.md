@@ -347,6 +347,10 @@ These extend existing data into immediately useful outputs.
   subscriptions, and management fees on configurable schedules.
 - **Entity comparison.** Side-by-side financials and metrics across companies.
 - **Waterfall charts.** Visualize P&L bridges and NAV change attribution.
+- **Currency revaluation.** Period-end FX revaluation of foreign-currency
+  balances with translation adjustments posted to the P&L.
+- **Audit trail export.** Packaged export in standard formats for external
+  auditors.
 
 ### Phase 2 — Automation and integrations
 
@@ -377,6 +381,10 @@ Reduce manual data entry and connect to external systems.
   reopening requiring admin approval.
 - **Import from Excel and Google Sheets.** Beyond CSV, handle `.xlsx` files with
   column mapping and validation.
+- **Intercompany netting.** Net out payables and receivables across entities
+  before settling, reducing the number of cross-border transfers.
+- **Sweep accounts and rebalancing rules.** Define target balances per account
+  and generate transfer suggestions when thresholds are breached.
 
 ### Phase 3 — Advanced analytics and risk
 
@@ -401,6 +409,8 @@ Turn the platform into a decision-making tool.
 - **Tax loss harvesting.** Identify positions to sell for tax losses based on
   cost basis lots, holding periods, and wash sale rules.
 - **Custom dashboards.** User-configurable widgets instead of a fixed layout.
+- **FX hedging tracker.** Log forward contracts, options, and swaps against FX
+  exposures the system already calculates.
 
 ### Phase 4 — Fund, LP, and tax structures
 
@@ -422,10 +432,6 @@ For holding companies with fund entities or complex tax planning needs.
   withholding taxes.
 - **Repatriation planning.** Track trapped cash per jurisdiction and model
   optimal repatriation routes considering withholding taxes and treaty networks.
-- **Currency revaluation.** Period-end FX revaluation of foreign-currency
-  balances with translation adjustments posted to the P&L.
-- **Intercompany netting.** Net out payables and receivables across entities
-  before settling, reducing the number of cross-border transfers.
 
 ### Phase 5 — Corporate lifecycle and governance
 
@@ -447,6 +453,8 @@ Full entity management from incorporation to dissolution.
   beneficial owner.
 - **Reporting templates.** Pre-built templates for CRS, FATCA, BO registers, and
   other jurisdiction-specific filings.
+- **AML transaction monitoring.** Suspicious transaction detection and reporting
+  beyond sanctions screening.
 - **Intellectual property register.** Patents, trademarks, domains, and licenses
   per entity with renewal dates and cost tracking.
 - **Contract lifecycle management.** Vendor contracts with renewal dates, SLA
@@ -477,10 +485,6 @@ Deeper support for non-traditional asset classes.
 - **On-chain verification.** Pull balances directly from blockchain RPCs to
   verify custodial reports.
 - **Airdrop and fork tracking.** Record cost basis for received tokens.
-- **Sweep accounts and rebalancing rules.** Define target balances per account
-  and generate transfer suggestions when thresholds are breached.
-- **FX hedging tracker.** Log forward contracts, options, and swaps against FX
-  exposures the system already calculates.
 
 ### Phase 7 — Multi-tenant, access control, and intelligence
 
@@ -502,10 +506,6 @@ Scale from single-user to multi-stakeholder platform.
   when relevant regulations change.
 - **Multi-user real-time collaboration.** Presence indicators ("Alice is viewing
   this company") via LiveView presence.
-- **AML transaction monitoring.** Suspicious transaction detection and reporting
-  beyond sanctions screening.
-- **Audit trail export.** Packaged export in standard formats for external
-  auditors.
 - **Data retention policies.** GDPR and privacy compliance with automated expiry
   and deletion of stored documents and personal data.
 
@@ -514,7 +514,15 @@ Scale from single-user to multi-stakeholder platform.
 Open the system up for custom workflows and external tools.
 
 - **GraphQL API.** Alongside the existing REST API for more flexible queries.
-- **Telegram and Slack bot.** Push notifications and quick queries via chat.
+- **Slack integration.** Push alerts to channels, query portfolio data with slash
+  commands, and receive approval requests directly in Slack.
+- **Telegram bot.** Push notifications, quick queries, and approval responses
+  via Telegram for on-the-go management.
+- **WhatsApp notifications.** Deadline reminders, approval requests, and critical
+  alerts via WhatsApp Business API for teams that live in WhatsApp.
+- **Voice call alerts.** Automated phone calls via Twilio for urgent events such
+  as covenant breaches, large unauthorized transactions, or failed sanctions
+  checks when chat notifications are not enough.
 - **BI tool export.** Direct connectors or scheduled exports for Metabase,
   Grafana, or Excel Power Query.
 - **Plugin and extension system.** Let users add custom modules without forking.
