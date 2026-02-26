@@ -269,6 +269,16 @@ defmodule Holdco.Corporate do
     Company.changeset(company, attrs)
   end
 
+  def get_company_consolidated!(id) do
+    company = get_company_with_preloads!(id)
+    subsidiaries = list_subsidiaries(company.id)
+
+    sub_companies =
+      Enum.map(subsidiaries, fn s -> get_company_with_preloads!(s.id) end)
+
+    {company, sub_companies}
+  end
+
   def get_company_with_preloads!(id) do
     Company
     |> Repo.get!(id)

@@ -98,6 +98,27 @@ defmodule HoldcoWeb.ReportsLive do
       </div>
     </div>
 
+    <div
+      class="grid-3"
+      style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;"
+    >
+      <div class="panel" style="padding: 1.5rem;">
+        <h2 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 1.1rem; margin-bottom: 0.5rem;">
+          Scenarios
+        </h2>
+        <p style="color: #666; font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;">
+          Model what-if scenarios for your portfolio. Compare outcomes across different
+          assumptions for market conditions, asset allocation, and strategic decisions.
+        </p>
+        <.link
+          navigate={~p"/scenarios"}
+          style="display: inline-block; background: #0d7680; color: #fff; padding: 0.5rem 1.25rem; border-radius: 4px; text-decoration: none; font-size: 0.85rem; font-weight: 600;"
+        >
+          View Scenarios
+        </.link>
+      </div>
+    </div>
+
     <div class="section" style="margin-top: 2rem;">
       <div class="panel" style="padding: 1.25rem;">
         <p style="color: #888; font-size: 0.85rem; line-height: 1.6;">
