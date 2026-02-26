@@ -128,9 +128,7 @@ a:hover { text-decoration: underline; text-underline-offset: 0.15em; }
 .nav-brand:hover { text-decoration: none; }
 .nav-links {
   display: flex; gap: 0; align-items: stretch; flex: 1;
-  overflow-x: auto; scrollbar-width: none;
 }
-.nav-links::-webkit-scrollbar { display: none; }
 .nav-links a {
   display: flex; align-items: center; padding: 0 0.75rem;
   font-size: 0.8125rem; font-weight: 500; color: var(--ink-light);
