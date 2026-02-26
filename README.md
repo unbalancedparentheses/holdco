@@ -363,8 +363,6 @@ These extend existing data into immediately useful outputs.
   the existing comments table in the UI.
 - **Budget vs actual variance analysis.** Compare budgets to actuals with
   drill-down by entity, period, and account. Built on the existing budgets data.
-- **Recurring transactions.** Auto-generate repeating entries such as rent,
-  subscriptions, and management fees on configurable schedules.
 - **Entity comparison.** Side-by-side financials and metrics across companies.
 - **Waterfall charts.** Visualize P&L bridges and NAV change attribution.
 - **Currency revaluation.** Period-end FX revaluation of foreign-currency
@@ -375,8 +373,6 @@ These extend existing data into immediately useful outputs.
   not just the entity's base currency.
 - **Segment reporting.** Slice financials by business segment, geography, or any
   custom dimension.
-- **Multi-book accounting.** Maintain parallel books under IFRS, US GAAP, local
-  GAAP, or tax basis for the same entity.
 - **Minority interest and NCI tracking.** Non-controlling interests in partially
   owned subsidiaries, required for proper consolidation.
 - **KPI tracking.** Define and track custom key performance indicators per entity
@@ -438,6 +434,8 @@ Reduce manual data entry and connect to external systems.
   account balance drops below X" or "when a deadline is within Y days."
 - **Zapier, Make, and n8n integration.** No-code automation for non-technical
   users, connecting Holdco events and data to thousands of external services.
+- **Recurring transactions.** Auto-generate repeating entries such as rent,
+  subscriptions, and management fees on configurable schedules.
 
 ### Phase 3 — Advanced analytics and risk
 
@@ -503,6 +501,8 @@ For holding companies with fund entities or complex tax planning needs.
   annual impairment reviews with fair value calculations.
 - **Fundraising and capital raising pipeline.** For fund entities actively
   raising, track commitments, soft circles, closes, and investor onboarding.
+- **Multi-book accounting.** Maintain parallel books under IFRS, US GAAP, local
+  GAAP, or tax basis for the same entity.
 
 ### Phase 5 — Corporate lifecycle and governance
 
