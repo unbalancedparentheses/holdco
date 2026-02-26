@@ -17,7 +17,8 @@ defmodule HoldcoWeb.DocumentsLive.Index do
        documents: documents,
        companies: companies,
        selected_company_id: "",
-       show_form: false
+       show_form: false,
+       editing_item: nil
      )
      |> allow_upload(:file,
        accept: ~w(.pdf .doc .docx .xls .xlsx .png .jpg),
@@ -26,11 +27,19 @@ defmodule HoldcoWeb.DocumentsLive.Index do
   end
 
   @impl true
-  def handle_event("show_form", _, socket), do: {:noreply, assign(socket, show_form: true)}
-  def handle_event("close_form", _, socket), do: {:noreply, assign(socket, show_form: false)}
+  def handle_event("show_form", _, socket),
+    do: {:noreply, assign(socket, show_form: :add, editing_item: nil)}
+
+  def handle_event("close_form", _, socket),
+    do: {:noreply, assign(socket, show_form: false, editing_item: nil)}
 
   def handle_event("noop", _, socket), do: {:noreply, socket}
   def handle_event("validate", _params, socket), do: {:noreply, socket}
+
+  def handle_event("edit", %{"id" => id}, socket) do
+    document = Documents.get_document!(String.to_integer(id))
+    {:noreply, assign(socket, show_form: :edit, editing_item: document)}
+  end
 
   def handle_event("filter_company", %{"company_id" => id}, socket) do
     company_id = if id == "", do: nil, else: String.to_integer(id)
@@ -48,6 +57,10 @@ defmodule HoldcoWeb.DocumentsLive.Index do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
 
+  def handle_event("update", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
   def handle_event("delete", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
@@ -60,11 +73,28 @@ defmodule HoldcoWeb.DocumentsLive.Index do
 
         {:noreply,
          socket
-         |> assign(documents: documents, show_form: false)
+         |> assign(documents: documents, show_form: false, editing_item: nil)
          |> put_flash(:info, "Document added")}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to add document")}
+    end
+  end
+
+  def handle_event("update", %{"document" => params}, socket) do
+    document = socket.assigns.editing_item
+
+    case Documents.update_document(document, params) do
+      {:ok, _} ->
+        documents = Documents.list_documents()
+
+        {:noreply,
+         socket
+         |> assign(documents: documents, show_form: false, editing_item: nil)
+         |> put_flash(:info, "Document updated")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update document")}
     end
   end
 
@@ -171,7 +201,13 @@ defmodule HoldcoWeb.DocumentsLive.Index do
               <tr>
                 <td class="td-name">{doc.name}</td>
                 <td><span class="tag tag-ink">{doc.doc_type}</span></td>
-                <td>{if doc.company, do: doc.company.name, else: "---"}</td>
+                <td>
+                  <%= if doc.company do %>
+                    <.link navigate={~p"/companies/#{doc.company.id}"} class="td-link">{doc.company.name}</.link>
+                  <% else %>
+                    ---
+                  <% end %>
+                </td>
                 <td>
                   <%= if upload_count(doc) > 0 do %>
                     <div style="display: flex; flex-direction: column; gap: 0.35rem;">
@@ -211,14 +247,23 @@ defmodule HoldcoWeb.DocumentsLive.Index do
                 </td>
                 <td>
                   <%= if @can_write do %>
-                    <button
-                      phx-click="delete"
-                      phx-value-id={doc.id}
-                      class="btn btn-danger btn-sm"
-                      data-confirm="Delete?"
-                    >
-                      Del
-                    </button>
+                    <div style="display: flex; gap: 0.25rem;">
+                      <button
+                        phx-click="edit"
+                        phx-value-id={doc.id}
+                        class="btn btn-secondary btn-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        phx-click="delete"
+                        phx-value-id={doc.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    </div>
                   <% end %>
                 </td>
               </tr>
@@ -226,12 +271,15 @@ defmodule HoldcoWeb.DocumentsLive.Index do
           </tbody>
         </table>
         <%= if @documents == [] do %>
-          <div class="empty-state">No documents yet.</div>
+          <div class="empty-state">
+            <p>No documents yet.</p>
+            <p style="color: var(--muted); font-size: 0.9rem;">Store contracts, certificates, reports, and other files for your entities.</p>
+          </div>
         <% end %>
       </div>
     </div>
 
-    <%= if @show_form do %>
+    <%= if @show_form == :add do %>
       <div class="modal-overlay" phx-click="close_form">
         <div class="modal" phx-click="noop">
           <div class="modal-header">
@@ -292,6 +340,57 @@ defmodule HoldcoWeb.DocumentsLive.Index do
               </div>
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Add Document</button>
+                <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <%= if @show_form == :edit and @editing_item do %>
+      <div class="modal-overlay" phx-click="close_form">
+        <div class="modal" phx-click="noop">
+          <div class="modal-header">
+            <h3>Edit Document</h3>
+          </div>
+          <div class="modal-body">
+            <form phx-submit="update">
+              <div class="form-group">
+                <label class="form-label">Company *</label>
+                <select name="document[company_id]" class="form-select" required>
+                  <option value="">Select company</option>
+                  <%= for c <- @companies do %>
+                    <option value={c.id} selected={c.id == @editing_item.company_id}>{c.name}</option>
+                  <% end %>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Name *</label>
+                <input type="text" name="document[name]" class="form-input" value={@editing_item.name} required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Type</label>
+                <input
+                  type="text"
+                  name="document[doc_type]"
+                  class="form-input"
+                  value={@editing_item.doc_type}
+                  placeholder="e.g. contract, certificate, report"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">URL</label>
+                <input type="text" name="document[url]" class="form-input" value={@editing_item.url} />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notes</label><textarea
+                  name="document[notes]"
+                  class="form-input"
+                >{@editing_item.notes}</textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Update Document</button>
                 <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
               </div>
             </form>

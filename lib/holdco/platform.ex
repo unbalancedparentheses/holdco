@@ -21,6 +21,7 @@ defmodule Holdco.Platform do
     |> order_by([a], desc: a.inserted_at)
     |> limit(^Map.get(opts, :limit, 100))
     |> Repo.all()
+    |> Repo.preload(:user)
   end
 
   defp apply_audit_filters(query, opts) do
@@ -111,13 +112,15 @@ defmodule Holdco.Platform do
   end
 
   def log_action(action, table_name, record_id, details \\ nil, user_id \\ nil) do
+    effective_user_id = user_id || Process.get(:current_user_id)
+
     result =
       create_audit_log(%{
         action: action,
         table_name: table_name,
         record_id: record_id,
         details: details,
-        user_id: user_id
+        user_id: effective_user_id
       })
 
     # Fire-and-forget webhook delivery (skip for webhook events to avoid loops)

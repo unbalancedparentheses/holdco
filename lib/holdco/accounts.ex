@@ -372,6 +372,17 @@ defmodule Holdco.Accounts do
   def delete_api_key(%ApiKey{} = api_key), do: Repo.delete(api_key)
   def get_api_key!(id), do: Repo.get!(ApiKey, id)
 
+  ## User listing
+
+  def list_users do
+    from(u in User, order_by: u.email)
+    |> Repo.all()
+    |> Enum.map(fn user ->
+      role = get_user_role(user)
+      Map.put(user, :role, role)
+    end)
+  end
+
   ## Token helper
 
   defp update_user_and_delete_all_tokens(changeset) do

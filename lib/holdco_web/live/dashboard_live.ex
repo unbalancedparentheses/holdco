@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.DashboardLive do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Corporate, Banking, Assets, Platform, Portfolio}
+  alias Holdco.{Corporate, Banking, Assets, Platform, Portfolio, Compliance}
 
   @currencies ~w(USD EUR GBP ARS BRL CHF JPY CAD AUD)
 
@@ -18,6 +18,15 @@ defmodule HoldcoWeb.DashboardLive do
     recent_audit = Platform.list_audit_logs(%{limit: 20})
     snapshots = Assets.list_portfolio_snapshots()
     allocation = Portfolio.asset_allocation()
+    pending_approvals = Platform.pending_approval_count()
+
+    upcoming_deadlines =
+      Compliance.list_tax_deadlines()
+      |> Enum.filter(fn td ->
+        td.status in ["pending", "overdue"] and td.due_date != nil
+      end)
+      |> Enum.sort_by(& &1.due_date)
+      |> Enum.take(5)
 
     {:ok,
      assign(socket,
@@ -29,7 +38,9 @@ defmodule HoldcoWeb.DashboardLive do
        snapshots: snapshots,
        allocation: allocation,
        display_currency: "USD",
-       fx_rate: 1.0
+       fx_rate: 1.0,
+       pending_approvals: pending_approvals,
+       upcoming_deadlines: upcoming_deadlines
      )}
   end
 
@@ -76,6 +87,15 @@ defmodule HoldcoWeb.DashboardLive do
       </div>
       <hr class="page-title-rule" />
     </div>
+
+    <%= if @can_write do %>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <.link navigate={~p"/companies/new"} class="btn btn-primary">+ Company</.link>
+        <.link navigate={~p"/transactions"} class="btn btn-secondary">+ Transaction</.link>
+        <.link navigate={~p"/holdings"} class="btn btn-secondary">+ Holding</.link>
+        <.link navigate={~p"/import"} class="btn btn-secondary">Import CSV</.link>
+      </div>
+    <% end %>
 
     <% sym = currency_symbol(@display_currency) %>
     <div class="metrics-strip">
@@ -164,7 +184,7 @@ defmodule HoldcoWeb.DashboardLive do
       <div class="section">
         <div class="section-head">
           <h2>Corporate Structure</h2>
-          <span class="count">{length(@companies)} entities</span>
+          <.link navigate={~p"/companies"} class="count" style="text-decoration: none;">{length(@companies)} entities &rarr;</.link>
         </div>
         <div class="panel">
           <table>
@@ -201,6 +221,7 @@ defmodule HoldcoWeb.DashboardLive do
       <div class="section">
         <div class="section-head">
           <h2>Recent Activity</h2>
+          <.link navigate={~p"/audit-log"} class="count" style="text-decoration: none;">View All &rarr;</.link>
         </div>
         <div class="panel" id="audit-feed">
           <table>
@@ -218,7 +239,11 @@ defmodule HoldcoWeb.DashboardLive do
                   <td class="td-mono">{format_time(log.inserted_at)}</td>
                   <td><span class={"tag #{action_tag(log.action)}"}>{log.action}</span></td>
                   <td>{log.table_name}</td>
-                  <td class="td-mono">#{log.record_id}</td>
+                  <td class="td-mono">
+                    <.link navigate={audit_link(log.table_name, log.record_id)} class="td-link">
+                      #{log.record_id}
+                    </.link>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -227,10 +252,67 @@ defmodule HoldcoWeb.DashboardLive do
       </div>
     </div>
 
+    <div class="grid-2">
+      <div class="section">
+        <div class="section-head">
+          <h2>Upcoming Deadlines</h2>
+          <.link navigate={~p"/tax-calendar"} class="count" style="text-decoration: none;">View All &rarr;</.link>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Due Date</th>
+                <th>Description</th>
+                <th>Company</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for td <- @upcoming_deadlines do %>
+                <tr>
+                  <td class="td-mono">{td.due_date}</td>
+                  <td class="td-name">{td.description}</td>
+                  <td>
+                    <%= if td.company do %>
+                      <.link navigate={~p"/companies/#{td.company.id}"} class="td-link">{td.company.name}</.link>
+                    <% else %>
+                      ---
+                    <% end %>
+                  </td>
+                  <td><span class={"tag #{deadline_tag(td.status)}"}>{td.status}</span></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+          <%= if @upcoming_deadlines == [] do %>
+            <div class="empty-state">No upcoming deadlines. You're all clear!</div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>Pending Approvals</h2>
+          <.link navigate={~p"/approvals"} class="count" style="text-decoration: none;">View All &rarr;</.link>
+        </div>
+        <div class="panel" style="padding: 1.5rem; text-align: center;">
+          <div class="metric-value" style="font-size: 2.5rem;">{@pending_approvals}</div>
+          <div class="metric-label" style="margin-top: 0.5rem;">
+            <%= if @pending_approvals == 0 do %>
+              No pending approvals
+            <% else %>
+              <.link navigate={~p"/approvals"} class="td-link">Review pending approvals</.link>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="section">
       <div class="section-head">
         <h2>Recent Transactions</h2>
-        <span class="count">{length(@recent_transactions)} latest</span>
+        <.link navigate={~p"/transactions"} class="count" style="text-decoration: none;">{length(@recent_transactions)} latest &rarr;</.link>
       </div>
       <div class="panel">
         <table>
@@ -300,6 +382,18 @@ defmodule HoldcoWeb.DashboardLive do
   defp action_tag("update"), do: "tag-lemon"
   defp action_tag("delete"), do: "tag-crimson"
   defp action_tag(_), do: "tag-ink"
+
+  defp deadline_tag("overdue"), do: "tag-crimson"
+  defp deadline_tag("pending"), do: "tag-lemon"
+  defp deadline_tag("completed"), do: "tag-jade"
+  defp deadline_tag(_), do: "tag-ink"
+
+  defp audit_link(_, nil), do: "#"
+  defp audit_link("companies", id), do: ~p"/companies/#{id}"
+  defp audit_link("asset_holdings", id), do: ~p"/holdings/#{id}"
+  defp audit_link("bank_accounts", id), do: ~p"/bank-accounts/#{id}"
+  defp audit_link("transactions", id), do: ~p"/transactions/#{id}"
+  defp audit_link(_, id), do: ~p"/audit-log?table_name=&record=#{id}"
 
   defp nav_chart_data(snapshots) do
     sorted = Enum.sort_by(snapshots, & &1.date)

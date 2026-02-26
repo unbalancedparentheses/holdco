@@ -20,6 +20,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
        total_balance: total_balance,
        selected_company_id: "",
        show_form: false,
+       editing_item: nil,
        cash_pools: cash_pools,
        show_pool_form: false
      )}
@@ -28,8 +29,16 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
   @impl true
   def handle_event("noop", _, socket), do: {:noreply, socket}
 
-  def handle_event("show_form", _, socket), do: {:noreply, assign(socket, show_form: true)}
-  def handle_event("close_form", _, socket), do: {:noreply, assign(socket, show_form: false)}
+  def handle_event("show_form", _, socket),
+    do: {:noreply, assign(socket, show_form: :add, editing_item: nil)}
+
+  def handle_event("close_form", _, socket),
+    do: {:noreply, assign(socket, show_form: false, editing_item: nil)}
+
+  def handle_event("edit", %{"id" => id}, socket) do
+    bank_account = Banking.get_bank_account!(String.to_integer(id))
+    {:noreply, assign(socket, show_form: :edit, editing_item: bank_account)}
+  end
 
   def handle_event("filter_company", %{"company_id" => id}, socket) do
     company_id = if id == "", do: nil, else: String.to_integer(id)
@@ -54,6 +63,10 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
 
+  def handle_event("update", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
   def handle_event("delete", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
@@ -66,6 +79,21 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to add bank account")}
+    end
+  end
+
+  def handle_event("update", %{"bank_account" => params}, socket) do
+    bank_account = socket.assigns.editing_item
+
+    case Banking.update_bank_account(bank_account, params) do
+      {:ok, _} ->
+        {:noreply,
+         reload(socket)
+         |> put_flash(:info, "Bank account updated")
+         |> assign(show_form: false, editing_item: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update bank account")}
     end
   end
 
@@ -236,17 +264,26 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
                 <td>{ba.account_type}</td>
                 <td>{ba.currency}</td>
                 <td class="td-num">{format_number(ba.balance || 0.0)}</td>
-                <td>{if ba.company, do: ba.company.name, else: "---"}</td>
+                <td>
+                  <%= if ba.company do %>
+                    <.link navigate={~p"/companies/#{ba.company.id}"} class="td-link">{ba.company.name}</.link>
+                  <% else %>
+                    ---
+                  <% end %>
+                </td>
                 <td>
                   <%= if @can_write do %>
-                    <button
-                      phx-click="delete"
-                      phx-value-id={ba.id}
-                      class="btn btn-danger btn-sm"
-                      data-confirm="Delete?"
-                    >
-                      Del
-                    </button>
+                    <div style="display: flex; gap: 0.25rem;">
+                      <button phx-click="edit" phx-value-id={ba.id} class="btn btn-secondary btn-sm">Edit</button>
+                      <button
+                        phx-click="delete"
+                        phx-value-id={ba.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    </div>
                   <% end %>
                 </td>
               </tr>
@@ -254,7 +291,15 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
           </tbody>
         </table>
         <%= if @accounts == [] do %>
-          <div class="empty-state">No bank accounts yet.</div>
+          <div class="empty-state">
+            <p>No bank accounts yet.</p>
+            <p style="color: var(--muted); font-size: 0.9rem;">Bank accounts track balances held at financial institutions across your entities.</p>
+            <%= if @can_write do %>
+              <div style="margin-top: 0.75rem;">
+                <button class="btn btn-primary btn-sm" phx-click="show_form">Add your first account</button>
+              </div>
+            <% end %>
+          </div>
         <% end %>
       </div>
     </div>
@@ -304,7 +349,15 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
           </tbody>
         </table>
         <%= if @cash_pools == [] do %>
-          <div class="empty-state">No cash pools yet.</div>
+          <div class="empty-state">
+            <p>No cash pools yet.</p>
+            <p style="color: var(--muted); font-size: 0.9rem;">Cash pools let you group accounts and set target balances for treasury management.</p>
+            <%= if @can_write do %>
+              <div style="margin-top: 0.75rem;">
+                <button class="btn btn-primary btn-sm" phx-click="show_pool_form">Create your first pool</button>
+              </div>
+            <% end %>
+          </div>
         <% end %>
       </div>
     </div>
@@ -358,46 +411,46 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
       <div class="modal-overlay" phx-click="close_form">
         <div class="modal" phx-click="noop">
           <div class="modal-header">
-            <h3>Add Bank Account</h3>
+            <h3>{if @show_form == :edit, do: "Edit Bank Account", else: "Add Bank Account"}</h3>
           </div>
           <div class="modal-body">
-            <form phx-submit="save">
+            <form phx-submit={if @show_form == :edit, do: "update", else: "save"}>
               <div class="form-group">
                 <label class="form-label">Company *</label>
                 <select name="bank_account[company_id]" class="form-select" required>
                   <option value="">Select company</option>
                   <%= for c <- @companies do %>
-                    <option value={c.id}>{c.name}</option>
+                    <option value={c.id} selected={@editing_item && @editing_item.company_id == c.id}>{c.name}</option>
                   <% end %>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Bank Name *</label>
-                <input type="text" name="bank_account[bank_name]" class="form-input" required />
+                <input type="text" name="bank_account[bank_name]" class="form-input" required value={if @editing_item, do: @editing_item.bank_name} />
               </div>
               <div class="form-group">
                 <label class="form-label">Account Number</label>
-                <input type="text" name="bank_account[account_number]" class="form-input" />
+                <input type="text" name="bank_account[account_number]" class="form-input" value={if @editing_item, do: @editing_item.account_number} />
               </div>
               <div class="form-group">
                 <label class="form-label">IBAN</label>
-                <input type="text" name="bank_account[iban]" class="form-input" />
+                <input type="text" name="bank_account[iban]" class="form-input" value={if @editing_item, do: @editing_item.iban} />
               </div>
               <div class="form-group">
                 <label class="form-label">SWIFT</label>
-                <input type="text" name="bank_account[swift]" class="form-input" />
+                <input type="text" name="bank_account[swift]" class="form-input" value={if @editing_item, do: @editing_item.swift} />
               </div>
               <div class="form-group">
                 <label class="form-label">Currency</label>
-                <input type="text" name="bank_account[currency]" class="form-input" value="USD" />
+                <input type="text" name="bank_account[currency]" class="form-input" value={if @editing_item, do: @editing_item.currency, else: "USD"} />
               </div>
               <div class="form-group">
                 <label class="form-label">Account Type</label>
                 <select name="bank_account[account_type]" class="form-select">
-                  <option value="operating">Operating</option>
-                  <option value="savings">Savings</option>
-                  <option value="escrow">Escrow</option>
-                  <option value="trust">Trust</option>
+                  <option value="operating" selected={@editing_item && @editing_item.account_type == "operating"}>Operating</option>
+                  <option value="savings" selected={@editing_item && @editing_item.account_type == "savings"}>Savings</option>
+                  <option value="escrow" selected={@editing_item && @editing_item.account_type == "escrow"}>Escrow</option>
+                  <option value="trust" selected={@editing_item && @editing_item.account_type == "trust"}>Trust</option>
                 </select>
               </div>
               <div class="form-group">
@@ -407,11 +460,11 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
                   name="bank_account[balance]"
                   class="form-input"
                   step="any"
-                  value="0"
+                  value={if @editing_item, do: @editing_item.balance, else: "0"}
                 />
               </div>
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Add Account</button>
+                <button type="submit" class="btn btn-primary">{if @show_form == :edit, do: "Save Changes", else: "Add Account"}</button>
                 <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
               </div>
             </form>

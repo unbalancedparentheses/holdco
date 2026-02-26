@@ -20,15 +20,21 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
        companies: companies,
        pending: pending,
        overdue: overdue,
-       show_form: false
+       show_form: false,
+       editing_item: nil
      )}
   end
 
   @impl true
   def handle_event("noop", _, socket), do: {:noreply, socket}
 
-  def handle_event("show_form", _, socket), do: {:noreply, assign(socket, show_form: true)}
-  def handle_event("close_form", _, socket), do: {:noreply, assign(socket, show_form: false)}
+  def handle_event("show_form", _, socket) do
+    {:noreply, assign(socket, show_form: :add, editing_item: nil)}
+  end
+
+  def handle_event("close_form", _, socket) do
+    {:noreply, assign(socket, show_form: false, editing_item: nil)}
+  end
 
   def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
@@ -40,6 +46,15 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
 
   def handle_event("delete", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("update", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("edit", %{"id" => id}, socket) do
+    deadline = Compliance.get_tax_deadline!(String.to_integer(id))
+    {:noreply, assign(socket, show_form: :edit, editing_item: deadline)}
   end
 
   def handle_event("save", %{"tax_deadline" => params}, socket) do
@@ -54,12 +69,35 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
            deadlines: deadlines,
            pending: pending,
            overdue: overdue,
-           show_form: false
+           show_form: false,
+           editing_item: nil
          )
          |> put_flash(:info, "Deadline added")}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to add deadline")}
+    end
+  end
+
+  def handle_event("update", %{"tax_deadline" => params}, socket) do
+    case Compliance.update_tax_deadline(socket.assigns.editing_item.id, params) do
+      {:ok, _} ->
+        deadlines = Compliance.list_tax_deadlines()
+        pending = Enum.count(deadlines, &(&1.status == "pending"))
+        overdue = Enum.count(deadlines, &(&1.status == "overdue"))
+
+        {:noreply,
+         assign(socket,
+           deadlines: deadlines,
+           pending: pending,
+           overdue: overdue,
+           show_form: false,
+           editing_item: nil
+         )
+         |> put_flash(:info, "Deadline updated")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update deadline")}
     end
   end
 
@@ -139,10 +177,23 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
                 <td class="td-mono">{td.due_date}</td>
                 <td>{td.jurisdiction}</td>
                 <td class="td-name">{td.description}</td>
-                <td>{if td.company, do: td.company.name, else: "---"}</td>
+                <td>
+                  <%= if td.company do %>
+                    <.link navigate={~p"/companies/#{td.company.id}"} class="td-link">{td.company.name}</.link>
+                  <% else %>
+                    ---
+                  <% end %>
+                </td>
                 <td><span class={"tag #{status_tag(td.status)}"}>{td.status}</span></td>
                 <td>
                   <%= if @can_write do %>
+                    <button
+                      phx-click="edit"
+                      phx-value-id={td.id}
+                      class="btn btn-sm btn-secondary"
+                    >
+                      Edit
+                    </button>
                     <%= if td.status != "completed" do %>
                       <button
                         phx-click="mark_complete"
@@ -167,7 +218,13 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
           </tbody>
         </table>
         <%= if @deadlines == [] do %>
-          <div class="empty-state">No tax deadlines yet.</div>
+          <div class="empty-state">
+            <p>No tax deadlines have been created yet.</p>
+            <p class="empty-state-hint">Add upcoming tax filing dates, estimated payment deadlines, and other compliance due dates to keep track of obligations across all your companies.</p>
+            <%= if @can_write do %>
+              <button class="btn btn-primary" phx-click="show_form">Add Your First Deadline</button>
+            <% end %>
+          </div>
         <% end %>
       </div>
     </div>
@@ -189,14 +246,23 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
             <%= for af <- @annual_filings do %>
               <tr>
                 <td class="td-mono">{af.due_date}</td>
-                <td>{if af.company, do: af.company.name, else: "---"}</td>
+                <td>
+                  <%= if af.company do %>
+                    <.link navigate={~p"/companies/#{af.company.id}"} class="td-link">{af.company.name}</.link>
+                  <% else %>
+                    ---
+                  <% end %>
+                </td>
                 <td><span class={"tag #{status_tag(af.status)}"}>{af.status}</span></td>
               </tr>
             <% end %>
           </tbody>
         </table>
         <%= if @annual_filings == [] do %>
-          <div class="empty-state">No annual filings yet.</div>
+          <div class="empty-state">
+            <p>No annual filings recorded yet.</p>
+            <p class="empty-state-hint">Annual filings such as franchise tax reports and annual returns will appear here once created. These help ensure your companies stay in good standing with their respective jurisdictions.</p>
+          </div>
         <% end %>
       </div>
     </div>
@@ -205,26 +271,43 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
       <div class="modal-overlay" phx-click="close_form">
         <div class="modal" phx-click="noop">
           <div class="modal-header">
-            <h3>Add Tax Deadline</h3>
+            <h3>{if @show_form == :edit, do: "Edit Tax Deadline", else: "Add Tax Deadline"}</h3>
           </div>
           <div class="modal-body">
-            <form phx-submit="save">
+            <form phx-submit={if @show_form == :edit, do: "update", else: "save"}>
               <div class="form-group">
                 <label class="form-label">Company *</label>
                 <select name="tax_deadline[company_id]" class="form-select" required>
                   <option value="">Select company</option>
                   <%= for c <- @companies do %>
-                    <option value={c.id}>{c.name}</option>
+                    <option
+                      value={c.id}
+                      selected={@editing_item && @editing_item.company_id == c.id}
+                    >
+                      {c.name}
+                    </option>
                   <% end %>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Jurisdiction *</label>
-                <input type="text" name="tax_deadline[jurisdiction]" class="form-input" required />
+                <input
+                  type="text"
+                  name="tax_deadline[jurisdiction]"
+                  class="form-input"
+                  value={if @editing_item, do: @editing_item.jurisdiction, else: ""}
+                  required
+                />
               </div>
               <div class="form-group">
                 <label class="form-label">Description *</label>
-                <input type="text" name="tax_deadline[description]" class="form-input" required />
+                <input
+                  type="text"
+                  name="tax_deadline[description]"
+                  class="form-input"
+                  value={if @editing_item, do: @editing_item.description, else: ""}
+                  required
+                />
               </div>
               <div class="form-group">
                 <label class="form-label">Due Date *</label>
@@ -233,18 +316,24 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
                   name="tax_deadline[due_date]"
                   class="form-input"
                   placeholder="YYYY-MM-DD"
+                  value={if @editing_item, do: @editing_item.due_date, else: ""}
                   required
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">Notes</label><textarea
+                <label class="form-label">Notes</label>
+                <textarea
                   name="tax_deadline[notes]"
                   class="form-input"
-                ></textarea>
+                >{if @editing_item, do: @editing_item.notes, else: ""}</textarea>
               </div>
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Add Deadline</button>
-                <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                  {if @show_form == :edit, do: "Update Deadline", else: "Add Deadline"}
+                </button>
+                <button type="button" phx-click="close_form" class="btn btn-secondary">
+                  Cancel
+                </button>
               </div>
             </form>
           </div>

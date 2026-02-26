@@ -21,8 +21,31 @@ defmodule HoldcoWeb.AccountingLive.Journal do
        expanded: MapSet.new(),
        show_form: false,
        line_count: 2,
-       form_error: nil
+       form_error: nil,
+       filter_account_id: nil,
+       filter_account_name: nil
      )}
+  end
+
+  @impl true
+  def handle_params(params, _uri, socket) do
+    account_id = params["account_id"]
+
+    if account_id do
+      account_id = String.to_integer(account_id)
+      entries = filter_entries_by_account(socket.assigns.entries, account_id)
+      account = Enum.find(socket.assigns.accounts, &(&1.id == account_id))
+      account_name = if account, do: account.name, else: "Account ##{account_id}"
+
+      {:noreply,
+       assign(socket,
+         entries: entries,
+         filter_account_id: account_id,
+         filter_account_name: account_name
+       )}
+    else
+      {:noreply, assign(socket, filter_account_id: nil, filter_account_name: nil)}
+    end
   end
 
   @impl true
@@ -143,7 +166,21 @@ defmodule HoldcoWeb.AccountingLive.Journal do
 
     entries = Finance.list_journal_entries(company_id)
     accounts = Finance.list_accounts(company_id)
+
+    entries =
+      if socket.assigns[:filter_account_id] do
+        filter_entries_by_account(entries, socket.assigns.filter_account_id)
+      else
+        entries
+      end
+
     assign(socket, entries: entries, accounts: accounts)
+  end
+
+  defp filter_entries_by_account(entries, account_id) do
+    Enum.filter(entries, fn entry ->
+      Enum.any?(entry.lines || [], fn line -> line.account_id == account_id end)
+    end)
   end
 
   defp parse_float(nil), do: 0.0
@@ -212,6 +249,13 @@ defmodule HoldcoWeb.AccountingLive.Journal do
         </select>
       </form>
     </div>
+
+    <%= if @filter_account_id do %>
+      <div style="margin-bottom: 1rem; padding: 0.5rem 0.75rem; background: var(--color-bg-alt, #f0f0f0); border-radius: 4px; display: flex; align-items: center; gap: 0.5rem;">
+        <span>Filtered by account: <strong>{@filter_account_name}</strong></span>
+        <.link navigate={~p"/accounts/journal"} class="btn btn-secondary btn-sm">Clear filter</.link>
+      </div>
+    <% end %>
 
     <div class="section">
       <div class="section-head">

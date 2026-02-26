@@ -45,13 +45,13 @@ defmodule HoldcoWeb.TaxCalendarLiveIndexTest do
     test "renders empty state when no deadlines", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/tax-calendar")
 
-      assert html =~ "No tax deadlines yet."
+      assert html =~ "No tax deadlines have been created yet."
     end
 
     test "renders empty state when no annual filings", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/tax-calendar")
 
-      assert html =~ "No annual filings yet."
+      assert html =~ "No annual filings recorded yet."
     end
 
     test "renders existing tax deadlines", %{conn: conn} do

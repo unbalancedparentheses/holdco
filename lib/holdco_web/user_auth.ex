@@ -24,6 +24,7 @@ defmodule HoldcoWeb.UserAuth do
 
     if socket.assigns.current_scope && socket.assigns.current_scope.user do
       role = socket.assigns.current_scope.role
+      Process.put(:current_user_id, socket.assigns.current_scope.user.id)
 
       {:cont,
        socket

@@ -166,7 +166,7 @@ defmodule HoldcoWeb.AccountingLive.Reports do
             <%= for row <- @data do %>
               <tr>
                 <td class="td-mono">{row.code}</td>
-                <td>{row.name}</td>
+                <td><.link navigate={~p"/accounts/journal?account_id=#{row.id}"} class="td-link">{row.name}</.link></td>
                 <td><span class={"badge badge-#{row.account_type}"}>{row.account_type}</span></td>
                 <td class="td-num">{format_number(row.total_debit)}</td>
                 <td class="td-num">{format_number(row.total_credit)}</td>
@@ -231,7 +231,7 @@ defmodule HoldcoWeb.AccountingLive.Reports do
               <%= for a <- @data.assets do %>
                 <tr>
                   <td class="td-mono">{a.code}</td>
-                  <td>{a.name}</td>
+                  <td><.link navigate={~p"/accounts/journal?account_id=#{a.id}"} class="td-link">{a.name}</.link></td>
                   <td class="td-num">{format_number(a.balance)}</td>
                 </tr>
               <% end %>
@@ -261,7 +261,7 @@ defmodule HoldcoWeb.AccountingLive.Reports do
                 <%= for l <- @data.liabilities do %>
                   <tr>
                     <td class="td-mono">{l.code}</td>
-                    <td>{l.name}</td>
+                    <td><.link navigate={~p"/accounts/journal?account_id=#{l.id}"} class="td-link">{l.name}</.link></td>
                     <td class="td-num">{format_number(l.balance)}</td>
                   </tr>
                 <% end %>
@@ -290,7 +290,7 @@ defmodule HoldcoWeb.AccountingLive.Reports do
                 <%= for e <- @data.equity do %>
                   <tr>
                     <td class="td-mono">{e.code}</td>
-                    <td>{e.name}</td>
+                    <td><.link navigate={~p"/accounts/journal?account_id=#{e.id}"} class="td-link">{e.name}</.link></td>
                     <td class="td-num">{e.balance |> format_number()}</td>
                   </tr>
                 <% end %>
@@ -356,7 +356,7 @@ defmodule HoldcoWeb.AccountingLive.Reports do
               <%= for r <- @data.revenue do %>
                 <tr>
                   <td class="td-mono">{r.code}</td>
-                  <td>{r.name}</td>
+                  <td><.link navigate={~p"/accounts/journal?account_id=#{r.id}"} class="td-link">{r.name}</.link></td>
                   <td class="td-num num-positive">{format_number(r.amount)}</td>
                 </tr>
               <% end %>
@@ -385,7 +385,7 @@ defmodule HoldcoWeb.AccountingLive.Reports do
               <%= for e <- @data.expenses do %>
                 <tr>
                   <td class="td-mono">{e.code}</td>
-                  <td>{e.name}</td>
+                  <td><.link navigate={~p"/accounts/journal?account_id=#{e.id}"} class="td-link">{e.name}</.link></td>
                   <td class="td-num num-negative">{format_number(e.amount)}</td>
                 </tr>
               <% end %>

@@ -124,7 +124,9 @@ defmodule HoldcoWeb.Router do
       live "/holdings", HoldingsLive.Index, :index
       live "/holdings/:id", HoldingsLive.Show, :show
       live "/transactions", TransactionsLive.Index, :index
+      live "/transactions/:id", TransactionsLive.Show, :show
       live "/bank-accounts", BankAccountsLive.Index, :index
+      live "/bank-accounts/:id", BankAccountsLive.Show, :show
       live "/documents", DocumentsLive.Index, :index
       live "/tax-calendar", TaxCalendarLive.Index, :index
       live "/financials", FinancialsLive.Index, :index

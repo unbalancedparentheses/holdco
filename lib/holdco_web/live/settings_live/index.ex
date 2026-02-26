@@ -1,9 +1,9 @@
 defmodule HoldcoWeb.SettingsLive.Index do
   use HoldcoWeb, :live_view
 
-  alias Holdco.Platform
+  alias Holdco.{Platform, Accounts}
 
-  @tabs ~w(settings categories webhooks backups)
+  @tabs ~w(settings categories webhooks backups users)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -17,6 +17,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
        categories: Platform.list_categories(),
        webhooks: Platform.list_webhooks(),
        backups: Platform.list_backup_configs(),
+       users: Accounts.list_users(),
        active_tab: "settings",
        show_form: false
      )}
@@ -55,6 +56,9 @@ defmodule HoldcoWeb.SettingsLive.Index do
     do: {:noreply, put_flash(socket, :error, "Admin access required")}
 
   def handle_event("delete_backup", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("update_role", _params, %{assigns: %{can_admin: false}} = socket),
     do: {:noreply, put_flash(socket, :error, "Admin access required")}
 
   # --- Settings ---
@@ -128,6 +132,21 @@ defmodule HoldcoWeb.SettingsLive.Index do
     {:noreply, reload(socket) |> put_flash(:info, "Backup config deleted")}
   end
 
+  # --- User Role Update ---
+  def handle_event("update_role", %{"user_id" => user_id, "role" => role}, socket) do
+    user = Accounts.get_user!(String.to_integer(user_id))
+
+    case Accounts.set_user_role(user, role) do
+      {:ok, _} ->
+        {:noreply,
+         assign(socket, users: Accounts.list_users())
+         |> put_flash(:info, "Role updated for #{user.email}")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update role")}
+    end
+  end
+
   @impl true
   def handle_info(_, socket), do: {:noreply, reload(socket)}
 
@@ -136,7 +155,8 @@ defmodule HoldcoWeb.SettingsLive.Index do
       settings: Platform.list_settings(),
       categories: Platform.list_categories(),
       webhooks: Platform.list_webhooks(),
-      backups: Platform.list_backup_configs()
+      backups: Platform.list_backup_configs(),
+      users: Accounts.list_users()
     )
   end
 
@@ -172,6 +192,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
   defp tab_label("categories"), do: "Categories"
   defp tab_label("webhooks"), do: "Webhooks"
   defp tab_label("backups"), do: "Backups"
+  defp tab_label("users"), do: "Users"
 
   defp render_tab(%{active_tab: "settings"} = assigns) do
     ~H"""
@@ -213,7 +234,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
           </tbody>
         </table>
         <%= if @settings == [] do %>
-          <div class="empty-state">No settings configured yet.</div>
+          <div class="empty-state">No settings configured yet. Add key-value pairs to configure the application.</div>
         <% end %>
       </div>
     </div>
@@ -291,7 +312,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
           </tbody>
         </table>
         <%= if @categories == [] do %>
-          <div class="empty-state">No categories yet.</div>
+          <div class="empty-state">No categories yet. Categories help organize your companies by type.</div>
         <% end %>
       </div>
     </div>
@@ -368,7 +389,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
           </tbody>
         </table>
         <%= if @webhooks == [] do %>
-          <div class="empty-state">No webhooks configured yet.</div>
+          <div class="empty-state">No webhooks configured yet. Webhooks notify external services when actions occur.</div>
         <% end %>
       </div>
     </div>
@@ -459,7 +480,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
           </tbody>
         </table>
         <%= if @backups == [] do %>
-          <div class="empty-state">No backup configurations yet.</div>
+          <div class="empty-state">No backup configurations yet. Configure automated backups to protect your data.</div>
         <% end %>
       </div>
     </div>
@@ -512,6 +533,55 @@ defmodule HoldcoWeb.SettingsLive.Index do
         </div>
       </div>
     <% end %>
+    """
+  end
+
+  defp render_tab(%{active_tab: "users"} = assigns) do
+    ~H"""
+    <div class="section">
+      <div class="section-head">
+        <h2>Users</h2>
+        <span class="count">{length(@users)} users</span>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for u <- @users do %>
+              <tr>
+                <td class="td-name">{u.email}</td>
+                <td>
+                  <%= if @can_admin do %>
+                    <form phx-change="update_role" style="display: inline;">
+                      <input type="hidden" name="user_id" value={u.id} />
+                      <select name="role" class="form-select" style="width: auto; padding: 0.2rem 0.4rem; font-size: 0.85rem;">
+                        <option value="admin" selected={u.role == "admin"}>admin</option>
+                        <option value="editor" selected={u.role == "editor"}>editor</option>
+                        <option value="viewer" selected={u.role == "viewer"}>viewer</option>
+                      </select>
+                    </form>
+                  <% else %>
+                    <span class="tag tag-ink">{u.role}</span>
+                  <% end %>
+                </td>
+                <td class="td-mono">
+                  {if u.inserted_at, do: Calendar.strftime(u.inserted_at, "%Y-%m-%d")}
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <%= if @users == [] do %>
+          <div class="empty-state">No users yet.</div>
+        <% end %>
+      </div>
+    </div>
     """
   end
 end

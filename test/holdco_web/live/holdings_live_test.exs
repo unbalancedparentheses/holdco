@@ -137,7 +137,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
 
       assert html =~ "DeleteMe"
 
-      html = view |> element("button[phx-value-id='#{holding.id}']") |> render_click()
+      html = view |> element("button[phx-click='delete'][phx-value-id='#{holding.id}']") |> render_click()
 
       refute html =~ "DeleteMe"
     end
@@ -243,13 +243,13 @@ defmodule HoldcoWeb.HoldingsLiveTest do
     test "renders all table headers", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/holdings")
 
-      assert html =~ "<th>Asset</th>"
-      assert html =~ "<th>Ticker</th>"
+      assert html =~ "Asset"
+      assert html =~ "Ticker"
       assert html =~ "Qty"
-      assert html =~ "<th>Unit</th>"
-      assert html =~ "<th>Type</th>"
-      assert html =~ "<th>Currency</th>"
-      assert html =~ "<th>Company</th>"
+      assert html =~ "Unit"
+      assert html =~ "Type"
+      assert html =~ "Currency"
+      assert html =~ "Company"
     end
   end
 

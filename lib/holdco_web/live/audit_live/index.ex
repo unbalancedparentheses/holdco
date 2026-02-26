@@ -109,6 +109,23 @@ defmodule HoldcoWeb.AuditLive.Index do
     end)
   end
 
+  defp audit_link(_, nil), do: "#"
+  defp audit_link("companies", id), do: ~p"/companies/#{id}"
+  defp audit_link("asset_holdings", id), do: ~p"/holdings/#{id}"
+  defp audit_link("bank_accounts", id), do: ~p"/bank-accounts/#{id}"
+  defp audit_link("transactions", id), do: ~p"/transactions/#{id}"
+  defp audit_link(_, id), do: ~p"/audit-log?record=#{id}"
+
+  defp user_email(log) do
+    if is_map(log.user) and not is_nil(log.user) do
+      log.user.email
+    else
+      "---"
+    end
+  rescue
+    _ -> "---"
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -211,6 +228,7 @@ defmodule HoldcoWeb.AuditLive.Index do
           <thead>
             <tr>
               <th>Time</th>
+              <th>User</th>
               <th>Action</th>
               <th>Table</th>
               <th>Record ID</th>
@@ -221,9 +239,14 @@ defmodule HoldcoWeb.AuditLive.Index do
             <%= for log <- @logs do %>
               <tr>
                 <td class="td-mono">{format_time(log.inserted_at)}</td>
+                <td>{user_email(log)}</td>
                 <td><span class={"tag #{action_tag(log.action)}"}>{log.action}</span></td>
                 <td>{log.table_name}</td>
-                <td class="td-mono">#{log.record_id}</td>
+                <td class="td-mono">
+                  <.link navigate={audit_link(log.table_name, log.record_id)} class="td-link">
+                    #{log.record_id}
+                  </.link>
+                </td>
                 <td>{log.details}</td>
               </tr>
             <% end %>

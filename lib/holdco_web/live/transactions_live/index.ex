@@ -28,15 +28,24 @@ defmodule HoldcoWeb.TransactionsLive.Index do
        inflows: inflows,
        outflows: outflows,
        selected_company_id: "",
-       show_form: false
+       show_form: false,
+       editing_item: nil
      )}
   end
 
   @impl true
   def handle_event("noop", _, socket), do: {:noreply, socket}
 
-  def handle_event("show_form", _, socket), do: {:noreply, assign(socket, show_form: true)}
-  def handle_event("close_form", _, socket), do: {:noreply, assign(socket, show_form: false)}
+  def handle_event("show_form", _, socket),
+    do: {:noreply, assign(socket, show_form: :add, editing_item: nil)}
+
+  def handle_event("close_form", _, socket),
+    do: {:noreply, assign(socket, show_form: false, editing_item: nil)}
+
+  def handle_event("edit", %{"id" => id}, socket) do
+    transaction = Banking.get_transaction!(String.to_integer(id))
+    {:noreply, assign(socket, show_form: :edit, editing_item: transaction)}
+  end
 
   def handle_event("filter_company", %{"company_id" => id}, socket) do
     company_id = if id == "", do: nil, else: String.to_integer(id)
@@ -70,6 +79,10 @@ defmodule HoldcoWeb.TransactionsLive.Index do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
 
+  def handle_event("update", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
   def handle_event("delete", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
@@ -82,6 +95,21 @@ defmodule HoldcoWeb.TransactionsLive.Index do
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to add transaction")}
+    end
+  end
+
+  def handle_event("update", %{"transaction" => params}, socket) do
+    transaction = socket.assigns.editing_item
+
+    case Banking.update_transaction(transaction, params) do
+      {:ok, _} ->
+        {:noreply,
+         reload(socket)
+         |> put_flash(:info, "Transaction updated")
+         |> assign(show_form: false, editing_item: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update transaction")}
     end
   end
 
@@ -212,17 +240,26 @@ defmodule HoldcoWeb.TransactionsLive.Index do
                   {format_currency(tx.amount, tx.currency)}
                 </td>
                 <td>{tx.currency}</td>
-                <td>{if tx.company, do: tx.company.name, else: "---"}</td>
+                <td>
+                  <%= if tx.company do %>
+                    <.link navigate={~p"/companies/#{tx.company.id}"} class="td-link">{tx.company.name}</.link>
+                  <% else %>
+                    ---
+                  <% end %>
+                </td>
                 <td>
                   <%= if @can_write do %>
-                    <button
-                      phx-click="delete"
-                      phx-value-id={tx.id}
-                      class="btn btn-danger btn-sm"
-                      data-confirm="Delete?"
-                    >
-                      Del
-                    </button>
+                    <div style="display: flex; gap: 0.25rem;">
+                      <button phx-click="edit" phx-value-id={tx.id} class="btn btn-secondary btn-sm">Edit</button>
+                      <button
+                        phx-click="delete"
+                        phx-value-id={tx.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    </div>
                   <% end %>
                 </td>
               </tr>
@@ -230,7 +267,17 @@ defmodule HoldcoWeb.TransactionsLive.Index do
           </tbody>
         </table>
         <%= if @transactions == [] do %>
-          <div class="empty-state">No transactions yet.</div>
+          <div class="empty-state">
+            <p>No transactions yet.</p>
+            <p style="color: var(--muted); font-size: 0.9rem;">Transactions record money flowing in and out of your entities.</p>
+            <%= if @can_write do %>
+              <div style="margin-top: 0.75rem;">
+                <button class="btn btn-primary btn-sm" phx-click="show_form">Add your first transaction</button>
+                <span style="margin: 0 0.5rem; color: var(--muted);">or</span>
+                <.link navigate={~p"/import?type=transactions"} class="btn btn-secondary btn-sm">Import from CSV</.link>
+              </div>
+            <% end %>
+          </div>
         <% end %>
       </div>
     </div>
@@ -239,57 +286,45 @@ defmodule HoldcoWeb.TransactionsLive.Index do
       <div class="modal-overlay" phx-click="close_form">
         <div class="modal" phx-click="noop">
           <div class="modal-header">
-            <h3>Add Transaction</h3>
+            <h3>{if @show_form == :edit, do: "Edit Transaction", else: "Add Transaction"}</h3>
           </div>
           <div class="modal-body">
-            <form phx-submit="save">
+            <form phx-submit={if @show_form == :edit, do: "update", else: "save"}>
               <div class="form-group">
                 <label class="form-label">Company *</label>
                 <select name="transaction[company_id]" class="form-select" required>
                   <option value="">Select company</option>
                   <%= for c <- @companies do %>
-                    <option value={c.id}>{c.name}</option>
+                    <option value={c.id} selected={@editing_item && @editing_item.company_id == c.id}>{c.name}</option>
                   <% end %>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Date *</label>
-                <input
-                  type="text"
-                  name="transaction[date]"
-                  class="form-input"
-                  placeholder="YYYY-MM-DD"
-                  required
-                />
+                <input type="text" name="transaction[date]" class="form-input" placeholder="YYYY-MM-DD" required value={if @editing_item, do: @editing_item.date} />
               </div>
               <div class="form-group">
                 <label class="form-label">Type *</label>
-                <input type="text" name="transaction[transaction_type]" class="form-input" required />
+                <input type="text" name="transaction[transaction_type]" class="form-input" required value={if @editing_item, do: @editing_item.transaction_type} />
               </div>
               <div class="form-group">
                 <label class="form-label">Amount *</label>
-                <input
-                  type="number"
-                  name="transaction[amount]"
-                  class="form-input"
-                  step="any"
-                  required
-                />
+                <input type="number" name="transaction[amount]" class="form-input" step="any" required value={if @editing_item, do: @editing_item.amount} />
               </div>
               <div class="form-group">
                 <label class="form-label">Currency</label>
-                <input type="text" name="transaction[currency]" class="form-input" value="USD" />
+                <input type="text" name="transaction[currency]" class="form-input" value={if @editing_item, do: @editing_item.currency, else: "USD"} />
               </div>
               <div class="form-group">
                 <label class="form-label">Description</label>
-                <input type="text" name="transaction[description]" class="form-input" />
+                <input type="text" name="transaction[description]" class="form-input" value={if @editing_item, do: @editing_item.description} />
               </div>
               <div class="form-group">
                 <label class="form-label">Counterparty</label>
-                <input type="text" name="transaction[counterparty]" class="form-input" />
+                <input type="text" name="transaction[counterparty]" class="form-input" value={if @editing_item, do: @editing_item.counterparty} />
               </div>
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Add Transaction</button>
+                <button type="submit" class="btn btn-primary">{if @show_form == :edit, do: "Save Changes", else: "Add Transaction"}</button>
                 <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
               </div>
             </form>
