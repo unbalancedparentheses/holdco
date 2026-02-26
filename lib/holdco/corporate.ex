@@ -305,7 +305,9 @@ defmodule Holdco.Corporate do
       :compliance_checklists,
       :annual_filings,
       :esg_scores,
-      :sanctions_checks
+      :sanctions_checks,
+      :fatca_reports,
+      :withholding_taxes
     ])
   end
 

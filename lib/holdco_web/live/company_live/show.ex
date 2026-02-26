@@ -147,6 +147,90 @@ defmodule HoldcoWeb.CompanyLive.Show do
   def handle_event("update_company", _params, %{assigns: %{can_write: false}} = socket),
     do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
 
+  def handle_event("save_cap_table", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_cap_table", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_resolution", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_resolution", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_deal", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_deal", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_jv", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_jv", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_poa", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_poa", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_equity_plan", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_equity_plan", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_filing", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_filing", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_license", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_license", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_esg", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_esg", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_sanctions", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_sanctions", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_fatca", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_fatca", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_withholding", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_withholding", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_liability", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_liability", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_dividend", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_dividend", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
   # --- Holdings ---
   def handle_event("save_holding", %{"holding" => params}, socket) do
     params = Map.put(params, "company_id", socket.assigns.company.id)
@@ -385,6 +469,298 @@ defmodule HoldcoWeb.CompanyLive.Show do
     insurance_policy = Compliance.get_insurance_policy!(String.to_integer(id))
     Compliance.delete_insurance_policy(insurance_policy)
     {:noreply, reload_company(socket) |> put_flash(:info, "Insurance policy deleted")}
+  end
+
+  # --- Cap Table ---
+  def handle_event("save_cap_table", %{"cap_table" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Governance.create_cap_table_entry(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket) |> put_flash(:info, "Cap table entry added") |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add cap table entry")}
+    end
+  end
+
+  def handle_event("delete_cap_table", %{"id" => id}, socket) do
+    ct = Governance.get_cap_table_entry!(id)
+    Governance.delete_cap_table_entry(ct)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Cap table entry deleted")}
+  end
+
+  # --- Resolutions ---
+  def handle_event("save_resolution", %{"resolution" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Governance.create_shareholder_resolution(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket) |> put_flash(:info, "Resolution added") |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add resolution")}
+    end
+  end
+
+  def handle_event("delete_resolution", %{"id" => id}, socket) do
+    res = Governance.get_shareholder_resolution!(id)
+    Governance.delete_shareholder_resolution(res)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Resolution deleted")}
+  end
+
+  # --- Deals ---
+  def handle_event("save_deal", %{"deal" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Governance.create_deal(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket) |> put_flash(:info, "Deal added") |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add deal")}
+    end
+  end
+
+  def handle_event("delete_deal", %{"id" => id}, socket) do
+    deal = Governance.get_deal!(id)
+    Governance.delete_deal(deal)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Deal deleted")}
+  end
+
+  # --- Joint Ventures ---
+  def handle_event("save_jv", %{"jv" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Governance.create_joint_venture(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket) |> put_flash(:info, "Joint venture added") |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add joint venture")}
+    end
+  end
+
+  def handle_event("delete_jv", %{"id" => id}, socket) do
+    jv = Governance.get_joint_venture!(id)
+    Governance.delete_joint_venture(jv)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Joint venture deleted")}
+  end
+
+  # --- Powers of Attorney ---
+  def handle_event("save_poa", %{"poa" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Governance.create_power_of_attorney(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket)
+         |> put_flash(:info, "Power of attorney added")
+         |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add power of attorney")}
+    end
+  end
+
+  def handle_event("delete_poa", %{"id" => id}, socket) do
+    poa = Governance.get_power_of_attorney!(id)
+    Governance.delete_power_of_attorney(poa)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Power of attorney deleted")}
+  end
+
+  # --- Equity Plans ---
+  def handle_event("save_equity_plan", %{"equity_plan" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Governance.create_equity_incentive_plan(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket) |> put_flash(:info, "Equity plan added") |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add equity plan")}
+    end
+  end
+
+  def handle_event("delete_equity_plan", %{"id" => id}, socket) do
+    plan = Governance.get_equity_incentive_plan!(id)
+    Governance.delete_equity_incentive_plan(plan)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Equity plan deleted")}
+  end
+
+  # --- Regulatory Filings ---
+  def handle_event("save_filing", %{"filing" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Compliance.create_regulatory_filing(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket)
+         |> put_flash(:info, "Regulatory filing added")
+         |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add regulatory filing")}
+    end
+  end
+
+  def handle_event("delete_filing", %{"id" => id}, socket) do
+    filing = Compliance.get_regulatory_filing!(String.to_integer(id))
+    Compliance.delete_regulatory_filing(filing)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Regulatory filing deleted")}
+  end
+
+  # --- Regulatory Licenses ---
+  def handle_event("save_license", %{"license" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Compliance.create_regulatory_license(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket)
+         |> put_flash(:info, "Regulatory license added")
+         |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add regulatory license")}
+    end
+  end
+
+  def handle_event("delete_license", %{"id" => id}, socket) do
+    license = Compliance.get_regulatory_license!(String.to_integer(id))
+    Compliance.delete_regulatory_license(license)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Regulatory license deleted")}
+  end
+
+  # --- ESG Scores ---
+  def handle_event("save_esg", %{"esg" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Compliance.create_esg_score(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket) |> put_flash(:info, "ESG score added") |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add ESG score")}
+    end
+  end
+
+  def handle_event("delete_esg", %{"id" => id}, socket) do
+    esg = Compliance.get_esg_score!(String.to_integer(id))
+    Compliance.delete_esg_score(esg)
+    {:noreply, reload_company(socket) |> put_flash(:info, "ESG score deleted")}
+  end
+
+  # --- Sanctions Checks ---
+  def handle_event("save_sanctions", %{"sanctions" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Compliance.create_sanctions_check(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket)
+         |> put_flash(:info, "Sanctions check added")
+         |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add sanctions check")}
+    end
+  end
+
+  def handle_event("delete_sanctions", %{"id" => id}, socket) do
+    sc = Compliance.get_sanctions_check!(String.to_integer(id))
+    Compliance.delete_sanctions_check(sc)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Sanctions check deleted")}
+  end
+
+  # --- FATCA Reports ---
+  def handle_event("save_fatca", %{"fatca" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Compliance.create_fatca_report(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket)
+         |> put_flash(:info, "FATCA report added")
+         |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add FATCA report")}
+    end
+  end
+
+  def handle_event("delete_fatca", %{"id" => id}, socket) do
+    fatca = Compliance.get_fatca_report!(String.to_integer(id))
+    Compliance.delete_fatca_report(fatca)
+    {:noreply, reload_company(socket) |> put_flash(:info, "FATCA report deleted")}
+  end
+
+  # --- Withholding Taxes ---
+  def handle_event("save_withholding", %{"withholding" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Compliance.create_withholding_tax(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket)
+         |> put_flash(:info, "Withholding tax added")
+         |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add withholding tax")}
+    end
+  end
+
+  def handle_event("delete_withholding", %{"id" => id}, socket) do
+    wt = Compliance.get_withholding_tax!(String.to_integer(id))
+    Compliance.delete_withholding_tax(wt)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Withholding tax deleted")}
+  end
+
+  # --- Liabilities ---
+  def handle_event("save_liability", %{"liability" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Finance.create_liability(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket) |> put_flash(:info, "Liability added") |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add liability")}
+    end
+  end
+
+  def handle_event("delete_liability", %{"id" => id}, socket) do
+    liability = Finance.get_liability!(String.to_integer(id))
+    Finance.delete_liability(liability)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Liability deleted")}
+  end
+
+  # --- Dividends ---
+  def handle_event("save_dividend", %{"dividend" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+
+    case Finance.create_dividend(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket) |> put_flash(:info, "Dividend added") |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add dividend")}
+    end
+  end
+
+  def handle_event("delete_dividend", %{"id" => id}, socket) do
+    dividend = Finance.get_dividend!(String.to_integer(id))
+    Finance.delete_dividend(dividend)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Dividend deleted")}
   end
 
   # --- Accounts ---
@@ -1096,6 +1472,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <div class="section">
         <div class="section-head">
           <h2>Cap Table</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="cap_table">
+              Add
+            </button>
+          <% end %>
         </div>
         <div class="panel">
           <table>
@@ -1106,6 +1487,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <th>Shares</th>
                 <th>Amount</th>
                 <th>Date</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1116,6 +1498,18 @@ defmodule HoldcoWeb.CompanyLive.Show do
                   <td class="td-num">{ct.shares}</td>
                   <td class="td-num">{ct.amount_invested} {ct.currency}</td>
                   <td class="td-mono">{ct.date}</td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_cap_table"
+                        phx-value-id={ct.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -1126,6 +1520,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <div class="section">
         <div class="section-head">
           <h2>Resolutions</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="resolution">
+              Add
+            </button>
+          <% end %>
         </div>
         <div class="panel">
           <table>
@@ -1135,6 +1534,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <th>Type</th>
                 <th>Date</th>
                 <th>Passed</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1144,6 +1544,18 @@ defmodule HoldcoWeb.CompanyLive.Show do
                   <td>{res.resolution_type}</td>
                   <td class="td-mono">{res.date}</td>
                   <td>{if res.passed, do: "Yes", else: "No"}</td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_resolution"
+                        phx-value-id={res.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -1156,6 +1568,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <div class="section">
         <div class="section-head">
           <h2>Deals</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="deal">
+              Add
+            </button>
+          <% end %>
         </div>
         <div class="panel">
           <table>
@@ -1165,6 +1582,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <th>Counterparty</th>
                 <th>Value</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1174,6 +1592,18 @@ defmodule HoldcoWeb.CompanyLive.Show do
                   <td class="td-name">{deal.counterparty}</td>
                   <td class="td-num">{deal.value} {deal.currency}</td>
                   <td><span class="tag tag-ink">{deal.status}</span></td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_deal"
+                        phx-value-id={deal.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -1184,6 +1614,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <div class="section">
         <div class="section-head">
           <h2>Joint Ventures</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="jv">
+              Add
+            </button>
+          <% end %>
         </div>
         <div class="panel">
           <table>
@@ -1193,6 +1628,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <th>Partner</th>
                 <th>Ownership</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1202,6 +1638,18 @@ defmodule HoldcoWeb.CompanyLive.Show do
                   <td>{jv.partner}</td>
                   <td class="td-num">{jv.ownership_pct}%</td>
                   <td><span class={"tag #{status_tag(jv.status)}"}>{jv.status}</span></td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_jv"
+                        phx-value-id={jv.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -1213,6 +1661,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
     <div class="section">
       <div class="section-head">
         <h2>Powers of Attorney</h2>
+        <%= if @can_write do %>
+          <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="poa">
+            Add
+          </button>
+        <% end %>
       </div>
       <div class="panel">
         <table>
@@ -1224,6 +1677,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
               <th>Start</th>
               <th>End</th>
               <th>Status</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -1235,6 +1689,62 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <td class="td-mono">{poa.start_date}</td>
                 <td class="td-mono">{poa.end_date}</td>
                 <td><span class={"tag #{status_tag(poa.status)}"}>{poa.status}</span></td>
+                <td>
+                  <%= if @can_write do %>
+                    <button
+                      phx-click="delete_poa"
+                      phx-value-id={poa.id}
+                      class="btn btn-danger btn-sm"
+                      data-confirm="Delete?"
+                    >
+                      Del
+                    </button>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2>Equity Plans</h2>
+        <%= if @can_write do %>
+          <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="equity_plan">
+            Add
+          </button>
+        <% end %>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Plan Name</th>
+              <th>Total Pool</th>
+              <th>Vesting Schedule</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for ep <- @company.equity_plans do %>
+              <tr>
+                <td class="td-name">{ep.plan_name}</td>
+                <td class="td-num">{ep.total_pool}</td>
+                <td>{ep.vesting_schedule}</td>
+                <td>
+                  <%= if @can_write do %>
+                    <button
+                      phx-click="delete_equity_plan"
+                      phx-value-id={ep.id}
+                      class="btn btn-danger btn-sm"
+                      data-confirm="Delete?"
+                    >
+                      Del
+                    </button>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -1347,6 +1857,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <div class="section">
         <div class="section-head">
           <h2>Regulatory Filings</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="filing">
+              Add
+            </button>
+          <% end %>
         </div>
         <div class="panel">
           <table>
@@ -1356,6 +1871,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <th>Type</th>
                 <th>Due</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1365,6 +1881,18 @@ defmodule HoldcoWeb.CompanyLive.Show do
                   <td>{rf.filing_type}</td>
                   <td class="td-mono">{rf.due_date}</td>
                   <td><span class={"tag #{deadline_status_tag(rf.status)}"}>{rf.status}</span></td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_filing"
+                        phx-value-id={rf.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -1377,6 +1905,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <div class="section">
         <div class="section-head">
           <h2>Regulatory Licenses</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="license">
+              Add
+            </button>
+          <% end %>
         </div>
         <div class="panel">
           <table>
@@ -1386,6 +1919,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <th>Authority</th>
                 <th>Expiry</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1395,6 +1929,18 @@ defmodule HoldcoWeb.CompanyLive.Show do
                   <td>{rl.issuing_authority}</td>
                   <td class="td-mono">{rl.expiry_date}</td>
                   <td><span class={"tag #{status_tag(rl.status)}"}>{rl.status}</span></td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_license"
+                        phx-value-id={rl.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -1405,6 +1951,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <div class="section">
         <div class="section-head">
           <h2>ESG Scores</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="esg">
+              Add
+            </button>
+          <% end %>
         </div>
         <div class="panel">
           <table>
@@ -1415,6 +1966,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <th>S</th>
                 <th>G</th>
                 <th>Overall</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1425,6 +1977,162 @@ defmodule HoldcoWeb.CompanyLive.Show do
                   <td class="td-num">{esg.social_score}</td>
                   <td class="td-num">{esg.governance_score}</td>
                   <td class="td-num">{esg.overall_score}</td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_esg"
+                        phx-value-id={esg.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2>Sanctions Checks</h2>
+        <%= if @can_write do %>
+          <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="sanctions">
+            Add
+          </button>
+        <% end %>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Name Checked</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for sc <- @company.sanctions_checks do %>
+              <tr>
+                <td class="td-name">{sc.checked_name}</td>
+                <td><span class={"tag #{sanctions_status_tag(sc.status)}"}>{sc.status}</span></td>
+                <td class="td-mono">{Calendar.strftime(sc.inserted_at, "%Y-%m-%d")}</td>
+                <td>
+                  <%= if @can_write do %>
+                    <button
+                      phx-click="delete_sanctions"
+                      phx-value-id={sc.id}
+                      class="btn btn-danger btn-sm"
+                      data-confirm="Delete?"
+                    >
+                      Del
+                    </button>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="section">
+        <div class="section-head">
+          <h2>FATCA Reports</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="fatca">
+              Add
+            </button>
+          <% end %>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Jurisdiction</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for fr <- @company.fatca_reports do %>
+                <tr>
+                  <td class="td-mono">{fr.reporting_year}</td>
+                  <td>{fr.jurisdiction}</td>
+                  <td>{fr.report_type}</td>
+                  <td><span class={"tag #{deadline_status_tag(fr.status)}"}>{fr.status}</span></td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_fatca"
+                        phx-value-id={fr.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>Withholding Taxes</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="withholding">
+              Add
+            </button>
+          <% end %>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Payment Type</th>
+                <th>From</th>
+                <th>To</th>
+                <th class="th-num">Gross</th>
+                <th>Rate %</th>
+                <th class="th-num">Tax</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for wt <- @company.withholding_taxes do %>
+                <tr>
+                  <td class="td-mono">{wt.date}</td>
+                  <td>{wt.payment_type}</td>
+                  <td>{wt.country_from}</td>
+                  <td>{wt.country_to}</td>
+                  <td class="td-num">{wt.gross_amount}</td>
+                  <td class="td-num">{wt.rate}%</td>
+                  <td class="td-num">{wt.tax_amount}</td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_withholding"
+                        phx-value-id={wt.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -1495,6 +2203,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <div class="section">
         <div class="section-head">
           <h2>Liabilities</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="liability">
+              Add
+            </button>
+          <% end %>
         </div>
         <div class="panel">
           <table>
@@ -1506,6 +2219,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <th>Rate</th>
                 <th>Maturity</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1517,6 +2231,18 @@ defmodule HoldcoWeb.CompanyLive.Show do
                   <td class="td-num">{l.interest_rate}%</td>
                   <td class="td-mono">{l.maturity_date}</td>
                   <td><span class={"tag #{status_tag(l.status)}"}>{l.status}</span></td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_liability"
+                        phx-value-id={l.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -1527,6 +2253,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <div class="section">
         <div class="section-head">
           <h2>Dividends</h2>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="dividend">
+              Add
+            </button>
+          <% end %>
         </div>
         <div class="panel">
           <table>
@@ -1536,6 +2267,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <th>Recipient</th>
                 <th class="th-num">Amount</th>
                 <th>Type</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1545,6 +2277,18 @@ defmodule HoldcoWeb.CompanyLive.Show do
                   <td class="td-name">{d.recipient}</td>
                   <td class="td-num">{d.amount} {d.currency}</td>
                   <td>{d.dividend_type}</td>
+                  <td>
+                    <%= if @can_write do %>
+                      <button
+                        phx-click="delete_dividend"
+                        phx-value-id={d.id}
+                        class="btn btn-danger btn-sm"
+                        data-confirm="Delete?"
+                      >
+                        Del
+                      </button>
+                    <% end %>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
@@ -2433,6 +3177,539 @@ defmodule HoldcoWeb.CompanyLive.Show do
     """
   end
 
+  defp render_inline_form(%{show_form: "cap_table"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Cap Table Entry</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_cap_table">
+            <div class="form-group">
+              <label class="form-label">Investor *</label>
+              <input type="text" name="cap_table[investor]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Round Name</label>
+              <input type="text" name="cap_table[round_name]" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Shares</label>
+              <input type="number" name="cap_table[shares]" class="form-input" step="any" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Amount Invested</label>
+              <input type="number" name="cap_table[amount_invested]" class="form-input" step="any" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input type="text" name="cap_table[date]" class="form-input" placeholder="YYYY-MM-DD" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "resolution"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Resolution</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_resolution">
+            <div class="form-group">
+              <label class="form-label">Title *</label>
+              <input type="text" name="resolution[title]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date *</label>
+              <input type="text" name="resolution[date]" class="form-input" placeholder="YYYY-MM-DD" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Type</label>
+              <select name="resolution[resolution_type]" class="form-select">
+                <option value="ordinary">Ordinary</option>
+                <option value="special">Special</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "deal"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Deal</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_deal">
+            <div class="form-group">
+              <label class="form-label">Counterparty *</label>
+              <input type="text" name="deal[counterparty]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Deal Type</label>
+              <select name="deal[deal_type]" class="form-select">
+                <option value="acquisition">Acquisition</option>
+                <option value="divestiture">Divestiture</option>
+                <option value="merger">Merger</option>
+                <option value="investment">Investment</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Value</label>
+              <input type="number" name="deal[value]" class="form-input" step="any" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "jv"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Joint Venture</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_jv">
+            <div class="form-group">
+              <label class="form-label">Name *</label>
+              <input type="text" name="jv[name]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Partner *</label>
+              <input type="text" name="jv[partner]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ownership %</label>
+              <input type="number" name="jv[ownership_pct]" class="form-input" step="any" value="50" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "poa"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Power of Attorney</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_poa">
+            <div class="form-group">
+              <label class="form-label">Grantor *</label>
+              <input type="text" name="poa[grantor]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Grantee *</label>
+              <input type="text" name="poa[grantee]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Scope</label>
+              <input type="text" name="poa[scope]" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Start Date</label>
+              <input type="text" name="poa[start_date]" class="form-input" placeholder="YYYY-MM-DD" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">End Date</label>
+              <input type="text" name="poa[end_date]" class="form-input" placeholder="YYYY-MM-DD" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "equity_plan"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Equity Plan</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_equity_plan">
+            <div class="form-group">
+              <label class="form-label">Plan Name *</label>
+              <input type="text" name="equity_plan[plan_name]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Total Pool</label>
+              <input type="number" name="equity_plan[total_pool]" class="form-input" step="any" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vesting Schedule</label>
+              <input type="text" name="equity_plan[vesting_schedule]" class="form-input" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "filing"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Regulatory Filing</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_filing">
+            <div class="form-group">
+              <label class="form-label">Jurisdiction *</label>
+              <input type="text" name="filing[jurisdiction]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Filing Type *</label>
+              <input type="text" name="filing[filing_type]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Due Date *</label>
+              <input type="text" name="filing[due_date]" class="form-input" placeholder="YYYY-MM-DD" required />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "license"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Regulatory License</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_license">
+            <div class="form-group">
+              <label class="form-label">License Type *</label>
+              <input type="text" name="license[license_type]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Issuing Authority *</label>
+              <input type="text" name="license[issuing_authority]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">License Number</label>
+              <input type="text" name="license[license_number]" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Expiry Date</label>
+              <input type="text" name="license[expiry_date]" class="form-input" placeholder="YYYY-MM-DD" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "esg"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add ESG Score</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_esg">
+            <div class="form-group">
+              <label class="form-label">Period *</label>
+              <input type="text" name="esg[period]" class="form-input" placeholder="e.g. 2025" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Environmental Score</label>
+              <input type="number" name="esg[environmental_score]" class="form-input" step="any" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Social Score</label>
+              <input type="number" name="esg[social_score]" class="form-input" step="any" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Governance Score</label>
+              <input type="number" name="esg[governance_score]" class="form-input" step="any" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Overall Score</label>
+              <input type="number" name="esg[overall_score]" class="form-input" step="any" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "sanctions"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Sanctions Check</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_sanctions">
+            <div class="form-group">
+              <label class="form-label">Name to Check *</label>
+              <input type="text" name="sanctions[checked_name]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notes</label><textarea
+                name="sanctions[notes]"
+                class="form-input"
+              ></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "fatca"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add FATCA Report</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_fatca">
+            <div class="form-group">
+              <label class="form-label">Reporting Year *</label>
+              <input type="number" name="fatca[reporting_year]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Jurisdiction *</label>
+              <input type="text" name="fatca[jurisdiction]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Report Type</label>
+              <select name="fatca[report_type]" class="form-select">
+                <option value="fatca">FATCA</option>
+                <option value="crs">CRS</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "withholding"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Withholding Tax</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_withholding">
+            <div class="form-group">
+              <label class="form-label">Payment Type *</label>
+              <input type="text" name="withholding[payment_type]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Country From *</label>
+              <input type="text" name="withholding[country_from]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Country To *</label>
+              <input type="text" name="withholding[country_to]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Gross Amount *</label>
+              <input type="number" name="withholding[gross_amount]" class="form-input" step="any" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rate % *</label>
+              <input type="number" name="withholding[rate]" class="form-input" step="any" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tax Amount *</label>
+              <input type="number" name="withholding[tax_amount]" class="form-input" step="any" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date *</label>
+              <input type="text" name="withholding[date]" class="form-input" placeholder="YYYY-MM-DD" required />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "liability"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Liability</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_liability">
+            <div class="form-group">
+              <label class="form-label">Liability Type *</label>
+              <input type="text" name="liability[liability_type]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Creditor *</label>
+              <input type="text" name="liability[creditor]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Principal *</label>
+              <input type="number" name="liability[principal]" class="form-input" step="any" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Currency</label>
+              <input type="text" name="liability[currency]" class="form-input" value="USD" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Interest Rate %</label>
+              <input type="number" name="liability[interest_rate]" class="form-input" step="any" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Maturity Date</label>
+              <input type="text" name="liability[maturity_date]" class="form-input" placeholder="YYYY-MM-DD" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select name="liability[status]" class="form-select">
+                <option value="active">Active</option>
+                <option value="paid">Paid</option>
+                <option value="defaulted">Defaulted</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "dividend"} = assigns) do
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Dividend</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_dividend">
+            <div class="form-group">
+              <label class="form-label">Date *</label>
+              <input type="text" name="dividend[date]" class="form-input" placeholder="YYYY-MM-DD" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Recipient *</label>
+              <input type="text" name="dividend[recipient]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Amount *</label>
+              <input type="number" name="dividend[amount]" class="form-input" step="any" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Currency</label>
+              <input type="text" name="dividend[currency]" class="form-input" value="USD" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dividend Type</label>
+              <select name="dividend[dividend_type]" class="form-select">
+                <option value="interim">Interim</option>
+                <option value="final">Final</option>
+                <option value="special">Special</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   defp render_inline_form(assigns), do: ~H""
 
   defp parse_float(nil), do: 0.0
@@ -2480,6 +3757,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
   defp deadline_status_tag("pending"), do: "tag-lemon"
   defp deadline_status_tag("overdue"), do: "tag-crimson"
   defp deadline_status_tag(_), do: "tag-ink"
+
+  defp sanctions_status_tag("clear"), do: "tag-jade"
+  defp sanctions_status_tag("flagged"), do: "tag-crimson"
+  defp sanctions_status_tag("pending"), do: "tag-lemon"
+  defp sanctions_status_tag(_), do: "tag-ink"
 
   # --- File Upload Helpers ---
   defp process_doc_uploads(socket, document) do

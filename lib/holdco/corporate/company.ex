@@ -53,6 +53,8 @@ defmodule Holdco.Corporate.Company do
     has_many :powers_of_attorney, Holdco.Governance.PowerOfAttorney
     has_many :esg_scores, Holdco.Compliance.EsgScore
     has_many :sanctions_checks, Holdco.Compliance.SanctionsCheck
+    has_many :fatca_reports, Holdco.Compliance.FatcaReport
+    has_many :withholding_taxes, Holdco.Compliance.WithholdingTax
 
     timestamps(type: :utc_datetime)
   end
