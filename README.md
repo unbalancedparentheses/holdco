@@ -351,6 +351,20 @@ These extend existing data into immediately useful outputs.
   balances with translation adjustments posted to the P&L.
 - **Audit trail export.** Packaged export in standard formats for external
   auditors.
+- **Reporting currency switching.** View any report in any currency on the fly,
+  not just the entity's base currency.
+- **Segment reporting.** Slice financials by business segment, geography, or any
+  custom dimension.
+- **Multi-book accounting.** Maintain parallel books under IFRS, US GAAP, local
+  GAAP, or tax basis for the same entity.
+- **Minority interest and NCI tracking.** Non-controlling interests in partially
+  owned subsidiaries, required for proper consolidation.
+- **KPI tracking.** Define and track custom key performance indicators per entity
+  with targets, trends, and threshold alerts.
+- **Management reporting packages.** Customizable monthly and quarterly report
+  templates assembled from existing data.
+- **Interactive org chart.** Visual D3 or SVG entity structure diagram with
+  click-through to entity details, replacing the flat tree view.
 
 ### Phase 2 — Automation and integrations
 
@@ -385,6 +399,8 @@ Reduce manual data entry and connect to external systems.
   before settling, reducing the number of cross-border transfers.
 - **Sweep accounts and rebalancing rules.** Define target balances per account
   and generate transfer suggestions when thresholds are breached.
+- **Configurable alerts engine.** Rule-based triggers such as "alert when any
+  account balance drops below X" or "when a deadline is within Y days."
 
 ### Phase 3 — Advanced analytics and risk
 
@@ -411,6 +427,10 @@ Turn the platform into a decision-making tool.
 - **Custom dashboards.** User-configurable widgets instead of a fixed layout.
 - **FX hedging tracker.** Log forward contracts, options, and swaps against FX
   exposures the system already calculates.
+- **Risk register.** Formal risk register with likelihood, impact, mitigations,
+  owners, and review cycles.
+- **Option pricing.** Black-Scholes and binomial models to value options and
+  warrants for financial reporting.
 
 ### Phase 4 — Fund, LP, and tax structures
 
@@ -432,6 +452,16 @@ For holding companies with fund entities or complex tax planning needs.
   withholding taxes.
 - **Repatriation planning.** Track trapped cash per jurisdiction and model
   optimal repatriation routes considering withholding taxes and treaty networks.
+- **Withholding tax reclaim tracking.** Track treaty-based reclaims on dividends
+  and interest from foreign entities with status and aging.
+- **Tax provision and deferred tax.** Calculate deferred tax assets and
+  liabilities per entity for financial reporting.
+- **Data export for tax preparers.** Formatted exports that accountants can
+  import directly into tax preparation software.
+- **Intragroup service agreements.** Centralized view of all management fees,
+  shared services, and cost allocation arrangements across entities.
+- **Goodwill and impairment testing.** Track goodwill from acquisitions and
+  annual impairment reviews with fair value calculations.
 
 ### Phase 5 — Corporate lifecycle and governance
 
@@ -473,6 +503,30 @@ Full entity management from incorporation to dissolution.
   top of the existing insurance policies data.
 - **Payroll and compensation tracking.** Salaries, bonuses, and benefits for key
   personnel across entities.
+- **Multiple share classes.** Preferred, common, and A/B shares with different
+  voting rights and liquidation preferences per entity.
+- **Convertible instruments.** Track convertible notes, SAFEs, and warrants with
+  conversion scenario modeling.
+- **Capitalization waterfall.** Liquidation preference modeling showing who gets
+  paid in what order across share classes.
+- **409A and fair market value tracking.** Periodic valuations required for US
+  entities issuing stock options.
+- **Treasury stock and buybacks.** Share repurchase tracking and impact on cap
+  table and earnings per share.
+- **ESG reporting frameworks.** GRI, SASB, TCFD, and EU taxonomy alignment
+  beyond the existing simple ESG scores.
+- **Carbon and emissions tracking.** Scope 1, 2, and 3 emissions for
+  portfolio-level ESG reporting and regulatory compliance.
+- **Regulatory capital requirements.** Capital adequacy tracking for regulated
+  subsidiaries such as banks or insurance companies.
+- **Business continuity planning.** BCP documentation, testing schedules, and
+  recovery procedures per entity.
+- **Board director term tracking.** Election dates, term limits, independence
+  status, and committee assignments.
+- **Proxy voting.** Track voting decisions on shareholder resolutions at
+  portfolio companies.
+- **Whistleblower and ethics channel.** Anonymous reporting with case management
+  and investigation tracking.
 
 ### Phase 6 — Real assets, crypto, and DeFi
 
