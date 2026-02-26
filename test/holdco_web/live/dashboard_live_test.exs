@@ -450,4 +450,146 @@ defmodule HoldcoWeb.DashboardLiveTest do
       assert html =~ "test"
     end
   end
+
+  describe "change_currency event with different currencies" do
+    test "changing to USD sets fx_rate to 1 and shows dollar sign", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      # Change away first, then back
+      view |> form(~s(form[phx-change="change_currency"]), %{currency: "EUR"}) |> render_change()
+      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "USD"}) |> render_change()
+
+      assert html =~ "$"
+      refute html =~ "EUR "
+    end
+
+    test "changing currency preserves page structure", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "ARS"}) |> render_change()
+
+      assert html =~ "Portfolio Overview"
+      assert html =~ "metrics-strip"
+      assert html =~ "Net Asset Value"
+      assert html =~ "ARS "
+    end
+
+    test "changing currency updates all metric values with new symbol", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "GBP"}) |> render_change()
+
+      # GBP symbol should appear in metric values
+      assert html =~ "\u00A3"
+      assert html =~ "Liquid"
+      assert html =~ "Marketable"
+      assert html =~ "Illiquid"
+      assert html =~ "Liabilities"
+    end
+
+    test "switching between multiple currencies works", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "EUR"}) |> render_change()
+      assert html =~ "\u20AC"
+
+      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "JPY"}) |> render_change()
+      assert html =~ "\u00A5"
+      refute html =~ "\u20AC"
+
+      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "USD"}) |> render_change()
+      assert html =~ "$"
+    end
+  end
+
+  describe "empty state sections" do
+    test "shows empty state for upcoming deadlines when none exist", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "No upcoming deadlines"
+      assert html =~ "You&#39;re all clear!" or html =~ "all clear"
+    end
+
+    test "shows zero pending approvals message when none exist", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "No pending approvals"
+    end
+
+    test "shows 0 entities link when no companies exist", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "0 entities"
+    end
+
+    test "upcoming deadlines section renders when deadlines exist", %{conn: conn} do
+      tax_deadline_fixture(%{
+        description: "Q1 Tax Filing",
+        due_date: "2027-04-15",
+        status: "pending"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "Upcoming Deadlines"
+      assert html =~ "Q1 Tax Filing"
+      assert html =~ "pending"
+    end
+
+    test "empty recent transactions section renders headers", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "Recent Transactions"
+      assert html =~ "<th>Date</th>"
+      assert html =~ "0 latest"
+    end
+  end
+
+  describe "audit log format_time rendering" do
+    test "audit log with valid timestamp renders formatted time", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      log = %{id: 777, action: "update", table_name: "companies", record_id: 10, inserted_at: ~N[2024-06-15 09:30:45]}
+      send(view.pid, {:audit_log_created, log})
+      html = render(view)
+
+      assert html =~ "09:30:45"
+    end
+
+    test "audit log with nil inserted_at renders empty time cell", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      log = %{id: 776, action: "create", table_name: "holdings", record_id: 5, inserted_at: nil}
+      send(view.pid, {:audit_log_created, log})
+      html = render(view)
+
+      # Should not crash, page should still render
+      assert html =~ "holdings"
+      assert html =~ "create"
+    end
+
+    test "audit log format_time shows HH:MM:SS format", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      log = %{id: 775, action: "delete", table_name: "transactions", record_id: 3, inserted_at: ~N[2024-12-25 23:59:59]}
+      send(view.pid, {:audit_log_created, log})
+      html = render(view)
+
+      assert html =~ "23:59:59"
+    end
+
+    test "multiple audit logs render with correct times", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      log1 = %{id: 774, action: "create", table_name: "companies", record_id: 1, inserted_at: ~N[2024-01-01 08:00:00]}
+      log2 = %{id: 773, action: "update", table_name: "companies", record_id: 2, inserted_at: ~N[2024-01-01 16:30:00]}
+
+      send(view.pid, {:audit_log_created, log1})
+      send(view.pid, {:audit_log_created, log2})
+      html = render(view)
+
+      assert html =~ "08:00:00"
+      assert html =~ "16:30:00"
+    end
+  end
 end

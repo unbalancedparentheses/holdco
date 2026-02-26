@@ -2,6 +2,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
   use HoldcoWeb.ConnCase
 
   import Phoenix.LiveViewTest
+  import Holdco.HoldcoFixtures
 
   setup :register_and_log_in_user
 
@@ -130,6 +131,575 @@ defmodule HoldcoWeb.GovernanceLiveTest do
 
       # Governance is no longer in the nav bar (removed from Consolidated dropdown)
       assert html =~ "Governance"
+    end
+  end
+
+  # ── show_form / close_form / noop ──────────────────────────
+
+  describe "show_form and close_form events" do
+    test "show_form opens the modal overlay for an editor", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = view |> element("button", "Add") |> render_click()
+
+      assert html =~ "modal-overlay"
+      assert html =~ "Add Board Meeting"
+    end
+
+    test "close_form hides the modal overlay", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      # Open the form first
+      view |> element("button", "Add") |> render_click()
+
+      # Close it
+      html = view |> element("button", "Cancel") |> render_click()
+
+      refute html =~ "modal-overlay"
+    end
+
+    test "non-editor does not see the Add button", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/governance")
+
+      refute html =~ "phx-click=\"show_form\""
+    end
+  end
+
+  describe "noop event" do
+    test "noop keeps the modal open when clicking inside it", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      # Open the form
+      view |> element("button", "Add") |> render_click()
+
+      # The modal div has phx-click="noop"; triggering it should keep modal open
+      html = render_click(view, "noop", %{})
+
+      assert html =~ "modal-overlay"
+    end
+  end
+
+  # ── Tab content rendering ──────────────────────────────────
+
+  describe "tab content rendering" do
+    test "meetings tab shows board meeting data", %{conn: conn} do
+      company = company_fixture(%{name: "TabMeetingCo"})
+      board_meeting_fixture(%{company: company, scheduled_date: "2024-06-01", meeting_type: "annual"})
+
+      {:ok, _view, html} = live(conn, ~p"/governance")
+
+      assert html =~ "TabMeetingCo"
+      assert html =~ "2024-06-01"
+      assert html =~ "annual"
+    end
+
+    test "cap_table tab shows cap table entries", %{conn: conn} do
+      company = company_fixture(%{name: "TabCapCo"})
+
+      cap_table_entry_fixture(%{
+        company: company,
+        investor: "Sequoia Capital",
+        round_name: "Series B"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = view |> element(~s(button[phx-value-tab="cap_table"])) |> render_click()
+
+      assert html =~ "Sequoia Capital"
+      assert html =~ "Series B"
+      assert html =~ "TabCapCo"
+    end
+
+    test "resolutions tab shows resolution data", %{conn: conn} do
+      company = company_fixture(%{name: "TabResCo"})
+
+      shareholder_resolution_fixture(%{
+        company: company,
+        title: "Approve Q4 dividend",
+        date: "2024-12-01",
+        resolution_type: "special"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = view |> element(~s(button[phx-value-tab="resolutions"])) |> render_click()
+
+      assert html =~ "Approve Q4 dividend"
+      assert html =~ "special"
+      assert html =~ "2024-12-01"
+    end
+
+    test "deals tab shows deal data", %{conn: conn} do
+      company = company_fixture(%{name: "TabDealCo"})
+      deal_fixture(%{company: company, counterparty: "Acme Inc", deal_type: "acquisition"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = view |> element(~s(button[phx-value-tab="deals"])) |> render_click()
+
+      assert html =~ "Acme Inc"
+      assert html =~ "acquisition"
+    end
+
+    test "meetings tab shows empty state when no meetings exist", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/governance")
+
+      assert html =~ "No board meetings recorded yet."
+    end
+  end
+
+  # ── CRUD: Board Meetings ───────────────────────────────────
+
+  describe "board meetings CRUD" do
+    test "editor can create a board meeting", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "MeetingCRUDCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      # Open form
+      view |> element("button", "Add") |> render_click()
+
+      # Submit create form
+      html =
+        view
+        |> form("form[phx-submit=\"save_meeting\"]", %{
+          "board_meeting" => %{
+            "company_id" => company.id,
+            "scheduled_date" => "2025-01-15",
+            "meeting_type" => "special",
+            "notes" => "Quarterly review"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Meeting added"
+      assert html =~ "2025-01-15"
+      assert html =~ "special"
+      refute html =~ "modal-overlay"
+    end
+
+    test "editor can delete a board meeting", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "MeetingDelCo"})
+      bm = board_meeting_fixture(%{company: company, scheduled_date: "2024-09-01"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      assert render(view) =~ "2024-09-01"
+
+      html =
+        view
+        |> element(~s(button[phx-click="delete_meeting"][phx-value-id="#{bm.id}"]))
+        |> render_click()
+
+      assert html =~ "Meeting deleted"
+      refute html =~ "2024-09-01"
+    end
+
+    test "editor can edit and update a board meeting", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "MeetingEditCo"})
+      bm = board_meeting_fixture(%{company: company, scheduled_date: "2024-04-01", meeting_type: "regular"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      # Click edit
+      html =
+        view
+        |> element(~s(button[phx-click="edit_meeting"][phx-value-id="#{bm.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Board Meeting"
+      assert html =~ "modal-overlay"
+
+      # Submit update form
+      html =
+        view
+        |> form("form[phx-submit=\"update_meeting\"]", %{
+          "board_meeting" => %{
+            "company_id" => company.id,
+            "scheduled_date" => "2024-04-15",
+            "meeting_type" => "annual",
+            "notes" => "Updated notes"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Meeting updated"
+      assert html =~ "2024-04-15"
+      assert html =~ "annual"
+      refute html =~ "modal-overlay"
+    end
+
+    test "non-editor cannot save a meeting", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_click(view, "save_meeting", %{"board_meeting" => %{"scheduled_date" => "2025-01-01"}})
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot delete a meeting", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_click(view, "delete_meeting", %{"id" => "00000000-0000-0000-0000-000000000000"})
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot update a meeting", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_click(view, "update_meeting", %{"board_meeting" => %{"scheduled_date" => "2025-01-01"}})
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+  end
+
+  # ── CRUD: Cap Table ────────────────────────────────────────
+
+  describe "cap table CRUD" do
+    test "editor can create a cap table entry", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "CapCreateCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      # Switch to cap_table tab
+      view |> element(~s(button[phx-value-tab="cap_table"])) |> render_click()
+
+      # Open form
+      view |> element("button", "Add") |> render_click()
+
+      # Submit
+      html =
+        view
+        |> form("form[phx-submit=\"save_cap_table\"]", %{
+          "cap_table_entry" => %{
+            "company_id" => company.id,
+            "investor" => "Andreessen Horowitz",
+            "round_name" => "Series C",
+            "shares" => "25000",
+            "amount_invested" => "1000000",
+            "date" => "2025-03-01"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Entry added"
+      assert html =~ "Andreessen Horowitz"
+      assert html =~ "Series C"
+      refute html =~ "modal-overlay"
+    end
+
+    test "editor can delete a cap table entry", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "CapDelCo"})
+
+      ct =
+        cap_table_entry_fixture(%{
+          company: company,
+          investor: "SoftBank",
+          round_name: "Series D"
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      # Switch to cap_table tab
+      view |> element(~s(button[phx-value-tab="cap_table"])) |> render_click()
+
+      assert render(view) =~ "SoftBank"
+
+      html =
+        view
+        |> element(~s(button[phx-click="delete_cap_table"][phx-value-id="#{ct.id}"]))
+        |> render_click()
+
+      assert html =~ "Entry deleted"
+      refute html =~ "SoftBank"
+    end
+
+    test "editor can edit and update a cap table entry", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "CapEditCo"})
+
+      ct =
+        cap_table_entry_fixture(%{
+          company: company,
+          investor: "Original Investor",
+          round_name: "Seed"
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      # Switch tab
+      view |> element(~s(button[phx-value-tab="cap_table"])) |> render_click()
+
+      # Click edit
+      html =
+        view
+        |> element(~s(button[phx-click="edit_cap_table"][phx-value-id="#{ct.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Cap Table Entry"
+
+      # Submit update
+      html =
+        view
+        |> form("form[phx-submit=\"update_cap_table\"]", %{
+          "cap_table_entry" => %{
+            "company_id" => company.id,
+            "investor" => "Updated Investor",
+            "round_name" => "Series A",
+            "shares" => "50000",
+            "amount_invested" => "2000000",
+            "date" => "2025-06-01"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Entry updated"
+      assert html =~ "Updated Investor"
+      assert html =~ "Series A"
+    end
+
+    test "non-editor cannot save a cap table entry", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_click(view, "save_cap_table", %{"cap_table_entry" => %{"investor" => "X"}})
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot delete a cap table entry", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_click(view, "delete_cap_table", %{"id" => "00000000-0000-0000-0000-000000000000"})
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot update a cap table entry", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_click(view, "update_cap_table", %{"cap_table_entry" => %{"investor" => "X"}})
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+  end
+
+  # ── CRUD: Resolutions ──────────────────────────────────────
+
+  describe "resolutions CRUD" do
+    test "editor can create a resolution", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ResCreateCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      # Switch to resolutions tab
+      view |> element(~s(button[phx-value-tab="resolutions"])) |> render_click()
+
+      # Open form
+      view |> element("button", "Add") |> render_click()
+
+      # Submit
+      html =
+        view
+        |> form("form[phx-submit=\"save_resolution\"]", %{
+          "resolution" => %{
+            "company_id" => company.id,
+            "title" => "Approve stock split",
+            "date" => "2025-07-01",
+            "resolution_type" => "special"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Resolution added"
+      assert html =~ "Approve stock split"
+      assert html =~ "special"
+      refute html =~ "modal-overlay"
+    end
+
+    test "editor can delete a resolution", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ResDelCo"})
+
+      sr =
+        shareholder_resolution_fixture(%{
+          company: company,
+          title: "Dissolve subsidiary",
+          date: "2024-11-01"
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      # Switch tab
+      view |> element(~s(button[phx-value-tab="resolutions"])) |> render_click()
+
+      assert render(view) =~ "Dissolve subsidiary"
+
+      html =
+        view
+        |> element(~s(button[phx-click="delete_resolution"][phx-value-id="#{sr.id}"]))
+        |> render_click()
+
+      assert html =~ "Resolution deleted"
+      refute html =~ "Dissolve subsidiary"
+    end
+
+    test "editor can edit and update a resolution", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ResEditCo"})
+
+      sr =
+        shareholder_resolution_fixture(%{
+          company: company,
+          title: "Original title",
+          date: "2024-05-01",
+          resolution_type: "ordinary"
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      # Switch tab
+      view |> element(~s(button[phx-value-tab="resolutions"])) |> render_click()
+
+      # Click edit
+      html =
+        view
+        |> element(~s(button[phx-click="edit_resolution"][phx-value-id="#{sr.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Resolution"
+
+      # Submit update
+      html =
+        view
+        |> form("form[phx-submit=\"update_resolution\"]", %{
+          "resolution" => %{
+            "company_id" => company.id,
+            "title" => "Updated resolution title",
+            "date" => "2024-05-15",
+            "resolution_type" => "special"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Resolution updated"
+      assert html =~ "Updated resolution title"
+    end
+
+    test "non-editor cannot save a resolution", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_click(view, "save_resolution", %{"resolution" => %{"title" => "X"}})
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot delete a resolution", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_click(view, "delete_resolution", %{"id" => "00000000-0000-0000-0000-000000000000"})
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot update a resolution", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_click(view, "update_resolution", %{"resolution" => %{"title" => "X"}})
+
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+  end
+
+  # ── Permission guards for remaining types ──────────────────
+
+  describe "permission guards for deals" do
+    test "non-editor cannot save a deal", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "save_deal", %{"deal" => %{"counterparty" => "X"}})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot delete a deal", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "delete_deal", %{"id" => "00000000-0000-0000-0000-000000000000"})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot update a deal", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "update_deal", %{"deal" => %{"counterparty" => "X"}})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+  end
+
+  describe "permission guards for equity plans" do
+    test "non-editor cannot save an equity plan", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "save_equity_plan", %{"equity_plan" => %{"plan_name" => "X"}})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot delete an equity plan", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "delete_equity_plan", %{"id" => "00000000-0000-0000-0000-000000000000"})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot update an equity plan", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "update_equity_plan", %{"equity_plan" => %{"plan_name" => "X"}})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+  end
+
+  describe "permission guards for joint ventures" do
+    test "non-editor cannot save a joint venture", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "save_jv", %{"joint_venture" => %{"name" => "X"}})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot delete a joint venture", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "delete_jv", %{"id" => "00000000-0000-0000-0000-000000000000"})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot update a joint venture", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "update_jv", %{"joint_venture" => %{"name" => "X"}})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+  end
+
+  describe "permission guards for powers of attorney" do
+    test "non-editor cannot save a power of attorney", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "save_poa", %{"power_of_attorney" => %{"grantor" => "X"}})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot delete a power of attorney", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "delete_poa", %{"id" => "00000000-0000-0000-0000-000000000000"})
+      assert html =~ "You don&#39;t have permission to do that"
+    end
+
+    test "non-editor cannot update a power of attorney", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      html = render_click(view, "update_poa", %{"power_of_attorney" => %{"grantor" => "X"}})
+      assert html =~ "You don&#39;t have permission to do that"
     end
   end
 end

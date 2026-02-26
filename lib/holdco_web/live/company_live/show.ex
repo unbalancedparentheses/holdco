@@ -912,6 +912,27 @@ defmodule HoldcoWeb.CompanyLive.Show do
     end
   end
 
+  defp rows(assigns, field) do
+    if assigns.is_consolidated,
+      do: consolidated_with_company(assigns.company, assigns.sub_companies, field),
+      else: Enum.map(Map.get(assigns.company, field) || [], &{&1, nil})
+  end
+
+  attr :is_consolidated, :boolean, required: true
+  attr :name, :string, default: nil
+
+  defp company_col(assigns) do
+    ~H"""
+    <%= if @is_consolidated do %>
+      <%= if @name do %>
+        <td>{@name}</td>
+      <% else %>
+        <th>Company</th>
+      <% end %>
+    <% end %>
+    """
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -1214,12 +1235,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
   end
 
   defp render_tab(%{active_tab: "holdings"} = assigns) do
-    holdings =
-      if assigns.is_consolidated,
-        do: consolidated_with_company(assigns.company, assigns.sub_companies, :asset_holdings),
-        else: Enum.map(assigns.company.asset_holdings, &{&1, nil})
-
-    assigns = assign(assigns, holdings_rows: holdings)
+    assigns = assign(assigns, holdings_rows: rows(assigns, :asset_holdings))
 
     ~H"""
     <div class="section">
@@ -1235,7 +1251,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Asset</th>
               <th>Ticker</th>
               <th>Qty</th>
@@ -1248,7 +1264,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {h, company_name} <- @holdings_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-name">{h.asset}</td>
                 <td class="td-mono">{h.ticker}</td>
                 <td class="td-num">{h.quantity}</td>
@@ -1281,12 +1297,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
   end
 
   defp render_tab(%{active_tab: "bank_accounts"} = assigns) do
-    rows =
-      if assigns.is_consolidated,
-        do: consolidated_with_company(assigns.company, assigns.sub_companies, :bank_accounts),
-        else: Enum.map(assigns.company.bank_accounts, &{&1, nil})
-
-    assigns = assign(assigns, ba_rows: rows)
+    assigns = assign(assigns, ba_rows: rows(assigns, :bank_accounts))
 
     ~H"""
     <div class="section">
@@ -1302,7 +1313,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Bank</th>
               <th>Account #</th>
               <th>IBAN</th>
@@ -1315,7 +1326,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {ba, company_name} <- @ba_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-name">{ba.bank_name}</td>
                 <td class="td-mono">{ba.account_number}</td>
                 <td class="td-mono">{ba.iban}</td>
@@ -1348,12 +1359,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
   end
 
   defp render_tab(%{active_tab: "transactions"} = assigns) do
-    rows =
-      if assigns.is_consolidated,
-        do: consolidated_with_company(assigns.company, assigns.sub_companies, :transactions),
-        else: Enum.map(assigns.company.transactions, &{&1, nil})
-
-    assigns = assign(assigns, tx_rows: rows)
+    assigns = assign(assigns, tx_rows: rows(assigns, :transactions))
 
     ~H"""
     <div class="section">
@@ -1369,7 +1375,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Date</th>
               <th>Type</th>
               <th>Description</th>
@@ -1382,7 +1388,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {tx, company_name} <- @tx_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-mono">{tx.date}</td>
                 <td><span class="tag tag-ink">{tx.transaction_type}</span></td>
                 <td class="td-name">{tx.description}</td>
@@ -1417,12 +1423,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
   end
 
   defp render_tab(%{active_tab: "documents"} = assigns) do
-    rows =
-      if assigns.is_consolidated,
-        do: consolidated_with_company(assigns.company, assigns.sub_companies, :documents),
-        else: Enum.map(assigns.company.documents, &{&1, nil})
-
-    assigns = assign(assigns, doc_rows: rows)
+    assigns = assign(assigns, doc_rows: rows(assigns, :documents))
 
     ~H"""
     <div class="section">
@@ -1438,7 +1439,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Name</th>
               <th>Type</th>
               <th>URL</th>
@@ -1449,7 +1450,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {doc, company_name} <- @doc_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-name">{doc.name}</td>
                 <td><span class="tag tag-ink">{doc.doc_type}</span></td>
                 <td>{if doc.url, do: doc.url, else: "---"}</td>
@@ -1480,26 +1481,15 @@ defmodule HoldcoWeb.CompanyLive.Show do
   end
 
   defp render_tab(%{active_tab: "governance"} = assigns) do
-    cwc = &consolidated_with_company(assigns.company, assigns.sub_companies, &1)
-    wrap = fn field -> Enum.map(Map.get(assigns.company, field) || [], &{&1, nil}) end
-
-    bm_rows = if assigns.is_consolidated, do: cwc.(:board_meetings), else: wrap.(:board_meetings)
-    ct_rows = if assigns.is_consolidated, do: cwc.(:cap_table), else: wrap.(:cap_table)
-    res_rows = if assigns.is_consolidated, do: cwc.(:resolutions), else: wrap.(:resolutions)
-    deal_rows = if assigns.is_consolidated, do: cwc.(:deals), else: wrap.(:deals)
-    jv_rows = if assigns.is_consolidated, do: cwc.(:joint_ventures), else: wrap.(:joint_ventures)
-    poa_rows = if assigns.is_consolidated, do: cwc.(:powers_of_attorney), else: wrap.(:powers_of_attorney)
-    ep_rows = if assigns.is_consolidated, do: cwc.(:equity_plans), else: wrap.(:equity_plans)
-
     assigns =
       assign(assigns,
-        bm_rows: bm_rows,
-        ct_rows: ct_rows,
-        res_rows: res_rows,
-        deal_rows: deal_rows,
-        jv_rows: jv_rows,
-        poa_rows: poa_rows,
-        ep_rows: ep_rows
+        bm_rows: rows(assigns, :board_meetings),
+        ct_rows: rows(assigns, :cap_table),
+        res_rows: rows(assigns, :resolutions),
+        deal_rows: rows(assigns, :deals),
+        jv_rows: rows(assigns, :joint_ventures),
+        poa_rows: rows(assigns, :powers_of_attorney),
+        ep_rows: rows(assigns, :equity_plans)
       )
 
     ~H"""
@@ -1516,7 +1506,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Date</th>
               <th>Type</th>
               <th>Status</th>
@@ -1527,7 +1517,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {bm, company_name} <- @bm_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-mono">{bm.scheduled_date}</td>
                 <td>{bm.meeting_type}</td>
                 <td><span class={"tag #{meeting_status_tag(bm.status)}"}>{bm.status}</span></td>
@@ -1565,7 +1555,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Investor</th>
                 <th>Round</th>
                 <th>Shares</th>
@@ -1577,7 +1567,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {ct, company_name} <- @ct_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td class="td-name">{ct.investor}</td>
                   <td>{ct.round_name}</td>
                   <td class="td-num">{ct.shares}</td>
@@ -1615,7 +1605,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Title</th>
                 <th>Type</th>
                 <th>Date</th>
@@ -1626,7 +1616,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {res, company_name} <- @res_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td class="td-name">{res.title}</td>
                   <td>{res.resolution_type}</td>
                   <td class="td-mono">{res.date}</td>
@@ -1665,7 +1655,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Type</th>
                 <th>Counterparty</th>
                 <th>Value</th>
@@ -1676,7 +1666,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {deal, company_name} <- @deal_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td>{deal.deal_type}</td>
                   <td class="td-name">{deal.counterparty}</td>
                   <td class="td-num">{deal.value} {deal.currency}</td>
@@ -1713,7 +1703,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Name</th>
                 <th>Partner</th>
                 <th>Ownership</th>
@@ -1724,7 +1714,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {jv, company_name} <- @jv_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td class="td-name">{jv.name}</td>
                   <td>{jv.partner}</td>
                   <td class="td-num">{jv.ownership_pct}%</td>
@@ -1762,7 +1752,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Grantor</th>
               <th>Grantee</th>
               <th>Scope</th>
@@ -1775,7 +1765,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {poa, company_name} <- @poa_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-name">{poa.grantor}</td>
                 <td>{poa.grantee}</td>
                 <td>{poa.scope}</td>
@@ -1814,7 +1804,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Plan Name</th>
               <th>Total Pool</th>
               <th>Vesting Schedule</th>
@@ -1824,7 +1814,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {ep, company_name} <- @ep_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-name">{ep.plan_name}</td>
                 <td class="td-num">{ep.total_pool}</td>
                 <td>{ep.vesting_schedule}</td>
@@ -1851,19 +1841,16 @@ defmodule HoldcoWeb.CompanyLive.Show do
   end
 
   defp render_tab(%{active_tab: "compliance"} = assigns) do
-    cwc = &consolidated_with_company(assigns.company, assigns.sub_companies, &1)
-    wrap = fn field -> Enum.map(Map.get(assigns.company, field) || [], &{&1, nil}) end
-
     assigns =
       assign(assigns,
-        td_rows: if(assigns.is_consolidated, do: cwc.(:tax_deadlines), else: wrap.(:tax_deadlines)),
-        ip_rows: if(assigns.is_consolidated, do: cwc.(:insurance_policies), else: wrap.(:insurance_policies)),
-        rf_rows: if(assigns.is_consolidated, do: cwc.(:regulatory_filings), else: wrap.(:regulatory_filings)),
-        rl_rows: if(assigns.is_consolidated, do: cwc.(:regulatory_licenses), else: wrap.(:regulatory_licenses)),
-        esg_rows: if(assigns.is_consolidated, do: cwc.(:esg_scores), else: wrap.(:esg_scores)),
-        sc_rows: if(assigns.is_consolidated, do: cwc.(:sanctions_checks), else: wrap.(:sanctions_checks)),
-        fatca_rows: if(assigns.is_consolidated, do: cwc.(:fatca_reports), else: wrap.(:fatca_reports)),
-        wt_rows: if(assigns.is_consolidated, do: cwc.(:withholding_taxes), else: wrap.(:withholding_taxes))
+        td_rows: rows(assigns, :tax_deadlines),
+        ip_rows: rows(assigns, :insurance_policies),
+        rf_rows: rows(assigns, :regulatory_filings),
+        rl_rows: rows(assigns, :regulatory_licenses),
+        esg_rows: rows(assigns, :esg_scores),
+        sc_rows: rows(assigns, :sanctions_checks),
+        fatca_rows: rows(assigns, :fatca_reports),
+        wt_rows: rows(assigns, :withholding_taxes)
       )
 
     ~H"""
@@ -1880,7 +1867,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Jurisdiction</th>
               <th>Description</th>
               <th>Due Date</th>
@@ -1891,7 +1878,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {td, company_name} <- @td_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td>{td.jurisdiction}</td>
                 <td class="td-name">{td.description}</td>
                 <td class="td-mono">{td.due_date}</td>
@@ -1933,7 +1920,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Type</th>
                 <th>Provider</th>
                 <th>Coverage</th>
@@ -1944,7 +1931,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {ip, company_name} <- @ip_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td>{ip.policy_type}</td>
                   <td class="td-name">{ip.provider}</td>
                   <td class="td-num">{ip.coverage_amount} {ip.currency}</td>
@@ -1981,7 +1968,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Jurisdiction</th>
                 <th>Type</th>
                 <th>Due</th>
@@ -1992,7 +1979,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {rf, company_name} <- @rf_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td>{rf.jurisdiction}</td>
                   <td>{rf.filing_type}</td>
                   <td class="td-mono">{rf.due_date}</td>
@@ -2031,7 +2018,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Type</th>
                 <th>Authority</th>
                 <th>Expiry</th>
@@ -2042,7 +2029,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {rl, company_name} <- @rl_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td>{rl.license_type}</td>
                   <td>{rl.issuing_authority}</td>
                   <td class="td-mono">{rl.expiry_date}</td>
@@ -2079,7 +2066,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Period</th>
                 <th>E</th>
                 <th>S</th>
@@ -2091,7 +2078,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {esg, company_name} <- @esg_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td>{esg.period}</td>
                   <td class="td-num">{esg.environmental_score}</td>
                   <td class="td-num">{esg.social_score}</td>
@@ -2130,7 +2117,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Name Checked</th>
               <th>Status</th>
               <th>Date</th>
@@ -2140,7 +2127,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {sc, company_name} <- @sc_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-name">{sc.checked_name}</td>
                 <td><span class={"tag #{sanctions_status_tag(sc.status)}"}>{sc.status}</span></td>
                 <td class="td-mono">{Calendar.strftime(sc.inserted_at, "%Y-%m-%d")}</td>
@@ -2177,7 +2164,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Year</th>
                 <th>Jurisdiction</th>
                 <th>Type</th>
@@ -2188,7 +2175,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {fr, company_name} <- @fatca_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td class="td-mono">{fr.reporting_year}</td>
                   <td>{fr.jurisdiction}</td>
                   <td>{fr.report_type}</td>
@@ -2225,7 +2212,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Date</th>
                 <th>Payment Type</th>
                 <th>From</th>
@@ -2239,7 +2226,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {wt, company_name} <- @wt_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td class="td-mono">{wt.date}</td>
                   <td>{wt.payment_type}</td>
                   <td>{wt.country_from}</td>
@@ -2271,14 +2258,11 @@ defmodule HoldcoWeb.CompanyLive.Show do
   end
 
   defp render_tab(%{active_tab: "financials"} = assigns) do
-    cwc = &consolidated_with_company(assigns.company, assigns.sub_companies, &1)
-    wrap = fn field -> Enum.map(Map.get(assigns.company, field) || [], &{&1, nil}) end
-
     assigns =
       assign(assigns,
-        fin_rows: if(assigns.is_consolidated, do: cwc.(:financials), else: wrap.(:financials)),
-        liab_rows: if(assigns.is_consolidated, do: cwc.(:liabilities), else: wrap.(:liabilities)),
-        div_rows: if(assigns.is_consolidated, do: cwc.(:dividends), else: wrap.(:dividends))
+        fin_rows: rows(assigns, :financials),
+        liab_rows: rows(assigns, :liabilities),
+        div_rows: rows(assigns, :dividends)
       )
 
     ~H"""
@@ -2295,7 +2279,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Period</th>
               <th class="th-num">Revenue</th>
               <th class="th-num">Expenses</th>
@@ -2307,7 +2291,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {f, company_name} <- @fin_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-mono">{f.period}</td>
                 <td class="td-num num-positive">{f.revenue}</td>
                 <td class="td-num num-negative">{f.expenses}</td>
@@ -2351,7 +2335,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Type</th>
                 <th>Creditor</th>
                 <th class="th-num">Principal</th>
@@ -2364,7 +2348,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {l, company_name} <- @liab_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td>{l.liability_type}</td>
                   <td class="td-name">{l.creditor}</td>
                   <td class="td-num">{l.principal} {l.currency}</td>
@@ -2403,7 +2387,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <table>
             <thead>
               <tr>
-                <%= if @is_consolidated do %><th>Company</th><% end %>
+                <.company_col is_consolidated={@is_consolidated} />
                 <th>Date</th>
                 <th>Recipient</th>
                 <th class="th-num">Amount</th>
@@ -2414,7 +2398,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <tbody>
               <%= for {d, company_name} <- @div_rows do %>
                 <tr>
-                  <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                  <.company_col is_consolidated={@is_consolidated} name={company_name} />
                   <td class="td-mono">{d.date}</td>
                   <td class="td-name">{d.recipient}</td>
                   <td class="td-num">{d.amount} {d.currency}</td>
@@ -2443,16 +2427,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
   end
 
   defp render_tab(%{active_tab: "accounting"} = assigns) do
-    acct_rows =
-      if assigns.is_consolidated,
-        do: consolidated_with_company(assigns.company, assigns.sub_companies, :accounts),
-        else: Enum.map(assigns.company.accounts || [], &{&1, nil})
-
-    je_rows =
-      if assigns.is_consolidated,
-        do: consolidated_with_company(assigns.company, assigns.sub_companies, :journal_entries),
-        else: Enum.map(assigns.company.journal_entries || [], &{&1, nil})
-
+    acct_rows = rows(assigns, :accounts)
+    je_rows = rows(assigns, :journal_entries)
     acct_list = Enum.map(acct_rows, &elem(&1, 0))
     je_list = Enum.map(je_rows, &elem(&1, 0))
 
@@ -2499,7 +2475,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Code</th>
               <th>Name</th>
               <th>Type</th>
@@ -2510,7 +2486,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
           <tbody>
             <%= for {a, company_name} <- @acct_rows do %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-mono">{a.code}</td>
                 <td>{a.name}</td>
                 <td><span class={"badge badge-#{a.account_type}"}>{a.account_type}</span></td>
@@ -2550,7 +2526,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
         <table>
           <thead>
             <tr>
-              <%= if @is_consolidated do %><th>Company</th><% end %>
+              <.company_col is_consolidated={@is_consolidated} />
               <th>Date</th>
               <th>Reference</th>
               <th>Description</th>
@@ -2564,7 +2540,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
             <%= for {entry, company_name} <- @je_rows do %>
               <% {total_debit, total_credit} = entry_totals(entry) %>
               <tr>
-                <%= if @is_consolidated do %><td>{company_name}</td><% end %>
+                <.company_col is_consolidated={@is_consolidated} name={company_name} />
                 <td class="td-mono">{entry.date}</td>
                 <td>{entry.reference || "—"}</td>
                 <td>{entry.description}</td>

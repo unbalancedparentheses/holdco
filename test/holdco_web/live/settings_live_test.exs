@@ -238,4 +238,120 @@ defmodule HoldcoWeb.SettingsLiveTest do
       assert html =~ ~r/href="\/settings"[^>]*class="active"/s
     end
   end
+
+  describe "noop event" do
+    test "noop does not crash the view", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      render_hook(view, "noop", %{})
+      html = render(view)
+      assert html =~ "Settings"
+    end
+
+    test "noop on categories tab does not crash", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      view |> element(~s(button[phx-value-tab="categories"])) |> render_click()
+      render_hook(view, "noop", %{})
+      html = render(view)
+      assert html =~ "Categories"
+    end
+  end
+
+  describe "users tab rendering" do
+    test "users tab shows Users heading and user count", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html = view |> element(~s(button[phx-value-tab="users"])) |> render_click()
+
+      assert html =~ "Users"
+      assert html =~ "users"
+    end
+
+    test "users tab shows current user email", %{conn: conn, user: user} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html = view |> element(~s(button[phx-value-tab="users"])) |> render_click()
+
+      assert html =~ user.email
+    end
+
+    test "users tab shows Email, Role, and Joined headers", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html = view |> element(~s(button[phx-value-tab="users"])) |> render_click()
+
+      assert html =~ "Email"
+      assert html =~ "Role"
+      assert html =~ "Joined"
+    end
+
+    test "non-admin sees role as tag rather than dropdown", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html = view |> element(~s(button[phx-value-tab="users"])) |> render_click()
+
+      assert html =~ "tag tag-ink"
+      refute html =~ ~s(name="role")
+    end
+
+    test "admin sees role dropdown on users tab", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html = view |> element(~s(button[phx-value-tab="users"])) |> render_click()
+
+      assert html =~ ~s(name="role")
+      assert html =~ ~s(phx-change="update_role")
+      assert html =~ "admin"
+      assert html =~ "editor"
+      assert html =~ "viewer"
+    end
+  end
+
+  describe "update_role event" do
+    test "admin can update a user role", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      view |> element(~s(button[phx-value-tab="users"])) |> render_click()
+
+      html =
+        render_hook(view, "update_role", %{"user_id" => to_string(user.id), "role" => "editor"})
+
+      assert html =~ "Role updated"
+    end
+
+    test "non-admin cannot update role", %{conn: conn, user: user} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html =
+        render_hook(view, "update_role", %{"user_id" => to_string(user.id), "role" => "admin"})
+
+      assert html =~ "Admin access required"
+    end
+  end
+
+  describe "delete permission guards for non-admins" do
+    test "non-admin cannot delete a category", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html = render_hook(view, "delete_category", %{"id" => "1"})
+      assert html =~ "Admin access required"
+    end
+
+    test "non-admin cannot delete a webhook", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html = render_hook(view, "delete_webhook", %{"id" => "1"})
+      assert html =~ "Admin access required"
+    end
+
+    test "non-admin cannot delete a backup config", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html = render_hook(view, "delete_backup", %{"id" => "1"})
+      assert html =~ "Admin access required"
+    end
+  end
 end
