@@ -27,7 +27,7 @@ defmodule HoldcoWeb.ApprovalsLiveTest do
     test "approvals nav link is active", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/approvals")
 
-      assert html =~ ~r/href="\/approvals"[^>]*class="active"/s
+      assert html =~ "more-active"
     end
   end
 end

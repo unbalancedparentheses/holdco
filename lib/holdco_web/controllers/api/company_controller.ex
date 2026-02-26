@@ -21,7 +21,6 @@ defmodule HoldcoWeb.Api.CompanyController do
       id: c.id,
       name: c.name,
       country: c.country,
-      entity_type: c.entity_type,
       category: c.category,
       ownership_pct: c.ownership_pct,
       kyc_status: c.kyc_status,

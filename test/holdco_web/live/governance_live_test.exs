@@ -125,10 +125,10 @@ defmodule HoldcoWeb.GovernanceLiveTest do
   end
 
   describe "nav active state on governance page" do
-    test "governance nav link is highlighted", %{conn: conn} do
+    test "consolidated dropdown is highlighted when on governance", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/governance")
 
-      assert html =~ ~r/href="\/governance"[^>]*class="active"/s
+      assert html =~ "more-active"
     end
   end
 end

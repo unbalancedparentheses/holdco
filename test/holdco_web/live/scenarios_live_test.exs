@@ -22,7 +22,7 @@ defmodule HoldcoWeb.ScenariosLiveTest do
     test "scenarios nav link is active", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/scenarios")
 
-      assert html =~ ~r/href="\/scenarios"[^>]*class="active"/s
+      assert html =~ "more-active"
     end
   end
 end

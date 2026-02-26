@@ -28,7 +28,7 @@ defmodule HoldcoWeb.TaxCalendarLiveTest do
     test "tax nav link is active", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/tax-calendar")
 
-      assert html =~ ~r/href="\/tax-calendar"[^>]*class="active"/s
+      assert html =~ "more-active"
     end
   end
 end

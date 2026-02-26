@@ -121,7 +121,9 @@ defmodule Holdco.Platform do
       })
 
     # Fire-and-forget webhook delivery (skip for webhook events to avoid loops)
-    unless String.starts_with?(to_string(action), "webhook") do
+    # Skip entirely in test to avoid sandbox/HTTP issues
+    unless String.starts_with?(to_string(action), "webhook") or
+             Application.get_env(:holdco, :skip_async_webhooks, false) do
       Task.start(fn -> deliver_webhooks(action, table_name, record_id) end)
     end
 

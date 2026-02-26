@@ -7,10 +7,10 @@ defmodule HoldcoWeb.ExportController do
     companies = Corporate.list_companies()
 
     csv =
-      [["ID", "Name", "Country", "Entity Type", "Category", "Ownership %", "KYC Status"]]
+      [["ID", "Name", "Country", "Category", "Ownership %", "KYC Status"]]
       |> Enum.concat(
         Enum.map(companies, fn c ->
-          [c.id, c.name, c.country, c.entity_type, c.category, c.ownership_pct, c.kyc_status]
+          [c.id, c.name, c.country, c.category, c.ownership_pct, c.kyc_status]
         end)
       )
       |> csv_encode()
@@ -45,7 +45,7 @@ defmodule HoldcoWeb.ExportController do
     transactions = Banking.list_transactions()
 
     csv =
-      [["ID", "Date", "Description", "Amount", "Currency", "Category", "Company"]]
+      [["ID", "Date", "Description", "Amount", "Currency", "Type", "Company"]]
       |> Enum.concat(
         Enum.map(transactions, fn t ->
           [
@@ -54,7 +54,7 @@ defmodule HoldcoWeb.ExportController do
             t.description,
             t.amount,
             t.currency,
-            t.category,
+            t.transaction_type,
             if(t.company, do: t.company.name, else: "")
           ]
         end)

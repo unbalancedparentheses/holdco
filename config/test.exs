@@ -10,8 +10,10 @@ config :bcrypt_elixir, :log_rounds, 1
 # Run `mix help test` for more information.
 config :holdco, Holdco.Repo,
   database: Path.expand("../holdco_test.db", __DIR__),
-  pool_size: 5,
-  pool: Ecto.Adapters.SQL.Sandbox
+  pool_size: 1,
+  pool: Ecto.Adapters.SQL.Sandbox,
+  busy_timeout: 15000,
+  journal_mode: :wal
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
@@ -31,6 +33,9 @@ config :logger, level: :warning
 
 # Disable Oban in tests
 config :holdco, Oban, testing: :inline
+
+# Skip async webhook delivery to avoid sandbox connection issues
+config :holdco, :skip_async_webhooks, true
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime

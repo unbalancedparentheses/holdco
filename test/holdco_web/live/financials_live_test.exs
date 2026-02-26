@@ -27,7 +27,7 @@ defmodule HoldcoWeb.FinancialsLiveTest do
     test "financials nav link is active", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/financials")
 
-      assert html =~ ~r/href="\/financials"[^>]*class="active"/s
+      assert html =~ "more-active"
     end
   end
 end

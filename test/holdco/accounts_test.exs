@@ -104,12 +104,32 @@ defmodule Holdco.AccountsTest do
       # not authenticated
       refute Accounts.sudo_mode?(%User{})
     end
+
+    test "returns false when authenticated_at is nil" do
+      refute Accounts.sudo_mode?(%User{authenticated_at: nil})
+    end
+
+    test "custom minute override" do
+      now = DateTime.utc_now()
+      assert Accounts.sudo_mode?(%User{authenticated_at: DateTime.add(now, -5, :minute)}, -10)
+      refute Accounts.sudo_mode?(%User{authenticated_at: DateTime.add(now, -15, :minute)}, -10)
+    end
   end
 
   describe "change_user_email/3" do
     test "returns a user changeset" do
       assert %Ecto.Changeset{} = changeset = Accounts.change_user_email(%User{})
       assert changeset.required == [:email]
+    end
+
+    test "accepts valid email" do
+      changeset = Accounts.change_user_email(%User{}, %{email: "new@example.com"})
+      assert changeset.valid?
+    end
+
+    test "rejects invalid email" do
+      changeset = Accounts.change_user_email(%User{}, %{email: "not-valid"})
+      refute changeset.valid?
     end
   end
 
@@ -359,6 +379,13 @@ defmodule Holdco.AccountsTest do
         Accounts.login_user_by_magic_link(encoded_token)
       end
     end
+
+    test "raises or errors for invalid token" do
+      # An invalid token that can't be decoded causes a MatchError in verify_magic_link_token_query
+      assert_raise MatchError, fn ->
+        Accounts.login_user_by_magic_link("invalid_token")
+      end
+    end
   end
 
   describe "delete_user_session_token/1" do
@@ -386,6 +413,160 @@ defmodule Holdco.AccountsTest do
       assert user_token.user_id == user.id
       assert user_token.sent_to == user.email
       assert user_token.context == "login"
+    end
+  end
+
+  # ── TOTP ──────────────────────────────────────────────
+
+  describe "TOTP functions" do
+    test "generate_totp_secret returns a binary secret" do
+      secret = Accounts.generate_totp_secret()
+      assert is_binary(secret)
+      assert byte_size(secret) > 0
+    end
+
+    test "generate_totp_secret generates unique secrets" do
+      s1 = Accounts.generate_totp_secret()
+      s2 = Accounts.generate_totp_secret()
+      assert s1 != s2
+    end
+
+    test "enable and disable TOTP for user" do
+      user = user_fixture()
+      secret = Accounts.generate_totp_secret()
+
+      {:ok, enabled_user} = Accounts.enable_totp(user, secret)
+      assert enabled_user.totp_enabled == true
+      assert enabled_user.totp_secret == secret
+
+      {:ok, disabled_user} = Accounts.disable_totp(enabled_user)
+      assert disabled_user.totp_enabled == false
+      assert disabled_user.totp_secret == nil
+    end
+
+    test "valid_totp? returns false when user has no secret" do
+      refute Accounts.valid_totp?(%User{totp_secret: nil}, "123456")
+    end
+
+    test "valid_totp? returns false when code is not binary" do
+      refute Accounts.valid_totp?(%User{totp_secret: "secret"}, nil)
+    end
+
+    test "valid_totp? returns true for valid code" do
+      secret = Accounts.generate_totp_secret()
+      code = NimbleTOTP.verification_code(secret)
+      assert Accounts.valid_totp?(%User{totp_secret: secret}, code)
+    end
+
+    test "totp_uri generates otpauth URI" do
+      user = user_fixture()
+      secret = Accounts.generate_totp_secret()
+      uri = Accounts.totp_uri(user, secret)
+      assert String.starts_with?(uri, "otpauth://totp/")
+      assert String.contains?(uri, "Holdco")
+    end
+
+    test "totp_qr_svg generates SVG QR code" do
+      user = user_fixture()
+      secret = Accounts.generate_totp_secret()
+      svg = Accounts.totp_qr_svg(user, secret)
+      assert is_binary(svg)
+      assert String.contains?(svg, "<svg")
+    end
+  end
+
+  # ── User Roles ────────────────────────────────────────
+
+  describe "user roles" do
+    test "get_user_role returns viewer for user with no role set" do
+      user = user_fixture()
+      assert Accounts.get_user_role(user) == "viewer"
+    end
+
+    test "set_user_role and get_user_role" do
+      user = user_fixture()
+      {:ok, _} = Accounts.set_user_role(user, "admin")
+      assert Accounts.get_user_role(user) == "admin"
+
+      {:ok, _} = Accounts.set_user_role(user, "editor")
+      assert Accounts.get_user_role(user) == "editor"
+
+      {:ok, _} = Accounts.set_user_role(user, "viewer")
+      assert Accounts.get_user_role(user) == "viewer"
+    end
+
+    test "admin? and editor? predicates" do
+      user = user_fixture()
+
+      # Default (no role) -> viewer
+      refute Accounts.admin?(user)
+      refute Accounts.editor?(user)
+
+      {:ok, _} = Accounts.set_user_role(user, "admin")
+      assert Accounts.admin?(user)
+      assert Accounts.editor?(user)
+
+      {:ok, _} = Accounts.set_user_role(user, "editor")
+      refute Accounts.admin?(user)
+      assert Accounts.editor?(user)
+
+      {:ok, _} = Accounts.set_user_role(user, "viewer")
+      refute Accounts.admin?(user)
+      refute Accounts.editor?(user)
+    end
+  end
+
+  # ── API Keys ──────────────────────────────────────────
+
+  describe "api_keys" do
+    test "list_api_keys returns empty list when no keys exist" do
+      user = user_fixture()
+      assert Accounts.list_api_keys(user.id) == []
+    end
+
+    test "create_api_key creates and list_api_keys returns keys" do
+      user = user_fixture()
+      {:ok, key} = Accounts.create_api_key(user, "Test Key")
+
+      assert key.name == "Test Key"
+      assert key.user_id == user.id
+      assert is_binary(key.key)
+
+      keys = Accounts.list_api_keys(user.id)
+      assert length(keys) == 1
+      assert hd(keys).id == key.id
+    end
+
+    test "create_api_key generates unique keys" do
+      user = user_fixture()
+      {:ok, k1} = Accounts.create_api_key(user, "Key 1")
+      {:ok, k2} = Accounts.create_api_key(user, "Key 2")
+      assert k1.key != k2.key
+    end
+
+    test "delete_api_key deletes the key" do
+      user = user_fixture()
+      {:ok, key} = Accounts.create_api_key(user, "To Delete")
+      {:ok, _} = Accounts.delete_api_key(key)
+      assert Accounts.list_api_keys(user.id) == []
+    end
+
+    test "get_api_key! returns and raises appropriately" do
+      user = user_fixture()
+      {:ok, key} = Accounts.create_api_key(user, "Get Key")
+      assert Accounts.get_api_key!(key.id).id == key.id
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Accounts.get_api_key!(-1)
+      end
+    end
+
+    test "list_api_keys does not return keys for other users" do
+      user1 = user_fixture()
+      user2 = user_fixture()
+      {:ok, _} = Accounts.create_api_key(user1, "Key 1")
+
+      assert Accounts.list_api_keys(user2.id) == []
     end
   end
 

@@ -27,7 +27,7 @@ defmodule Holdco.QueryHelpers do
   def apply_filters(query, _), do: query
 
   defp has_field?(query, field) do
-    %{from: %{source: {_, schema}}} = query
+    %{from: %{source: {_, schema}}} = Ecto.Queryable.to_query(query)
     field in schema.__schema__(:fields)
   rescue
     _ -> false

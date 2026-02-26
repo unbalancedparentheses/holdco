@@ -11,7 +11,30 @@ defmodule Holdco.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      test_coverage: [
+        threshold: 90,
+        ignore_modules: [
+          # Template modules – only have compile-time `embed_templates` calls
+          HoldcoWeb.PageHTML,
+          HoldcoWeb.TotpVerificationHTML,
+          HoldcoWeb.UserRegistrationHTML,
+          HoldcoWeb.UserSettingsHTML,
+          HoldcoWeb.UserSessionHTML,
+          HoldcoWeb.ErrorHTML,
+          # Repo is just `use Ecto.Repo` – no custom code
+          Holdco.Repo,
+          # Mix task not relevant to runtime coverage
+          Mix.Tasks.Precommit,
+          # PageController only has compile-time lines
+          HoldcoWeb.PageController,
+          # Test support fixtures – not production code
+          Holdco.HoldcoFixtures,
+          Holdco.AccountsFixtures,
+          # Quickbooks integration – requires HTTP mocking not available
+          Holdco.Integrations.Quickbooks
+        ]
+      ]
     ]
   end
 

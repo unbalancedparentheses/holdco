@@ -85,6 +85,7 @@ defmodule Holdco.Portfolio do
     end
   end
 
+  def to_usd(nil, _currency), do: 0.0
   def to_usd(amount, "USD"), do: amount
 
   def to_usd(amount, currency) do

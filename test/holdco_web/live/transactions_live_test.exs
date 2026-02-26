@@ -30,7 +30,7 @@ defmodule HoldcoWeb.TransactionsLiveTest do
     test "transactions nav link is active", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/transactions")
 
-      assert html =~ ~r/href="\/transactions"[^>]*class="active"/s
+      assert html =~ "more-active"
     end
 
     test "shows export button", %{conn: conn} do

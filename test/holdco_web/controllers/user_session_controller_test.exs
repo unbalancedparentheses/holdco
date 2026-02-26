@@ -217,4 +217,67 @@ defmodule HoldcoWeb.UserSessionControllerTest do
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Logged out successfully"
     end
   end
+
+  describe "POST /users/log-in - email + password with TOTP enabled" do
+    test "redirects to TOTP verification when user has TOTP enabled", %{conn: conn, user: user} do
+      user = set_password(user)
+      secret = Accounts.generate_totp_secret()
+      {:ok, _user} = Accounts.enable_totp(user, secret)
+
+      conn =
+        post(conn, ~p"/users/log-in", %{
+          "user" => %{"email" => user.email, "password" => valid_user_password()}
+        })
+
+      assert redirected_to(conn) == ~p"/users/totp-verify"
+      assert get_session(conn, :totp_pending_user_id) == user.id
+    end
+
+    test "sets remember_me in session for TOTP flow", %{conn: conn, user: user} do
+      user = set_password(user)
+      secret = Accounts.generate_totp_secret()
+      {:ok, _user} = Accounts.enable_totp(user, secret)
+
+      conn =
+        post(conn, ~p"/users/log-in", %{
+          "user" => %{
+            "email" => user.email,
+            "password" => valid_user_password(),
+            "remember_me" => "true"
+          }
+        })
+
+      assert redirected_to(conn) == ~p"/users/totp-verify"
+      assert get_session(conn, :totp_pending_remember_me) == "true"
+    end
+  end
+
+  describe "POST /users/log-in - magic link with TOTP enabled" do
+    test "redirects to TOTP verification when user has TOTP enabled", %{conn: conn, user: user} do
+      secret = Accounts.generate_totp_secret()
+      {:ok, _user} = Accounts.enable_totp(user, secret)
+
+      {token, _hashed_token} = generate_user_magic_link_token(user)
+
+      conn =
+        post(conn, ~p"/users/log-in", %{
+          "user" => %{"token" => token}
+        })
+
+      assert redirected_to(conn) == ~p"/users/totp-verify"
+      assert get_session(conn, :totp_pending_user_id) == user.id
+    end
+  end
+
+  describe "POST /users/log-in - magic link request for non-existent user" do
+    test "shows same message for non-existent email (no enumeration)", %{conn: conn} do
+      conn =
+        post(conn, ~p"/users/log-in", %{
+          "user" => %{"email" => "nonexistent@example.com"}
+        })
+
+      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "If your email is in our system"
+      assert redirected_to(conn) == ~p"/users/log-in"
+    end
+  end
 end

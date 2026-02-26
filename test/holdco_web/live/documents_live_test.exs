@@ -21,7 +21,7 @@ defmodule HoldcoWeb.DocumentsLiveTest do
     test "documents nav link is active", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/documents")
 
-      assert html =~ ~r/href="\/documents"[^>]*class="active"/s
+      assert html =~ "more-active"
     end
   end
 end

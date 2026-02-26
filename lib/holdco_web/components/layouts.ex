@@ -87,10 +87,10 @@ defmodule HoldcoWeb.Layouts do
     <nav class="nav-bar">
       <div class="nav-inner">
         <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
-        <% acct_paths = ~w(/accounts/chart /accounts/journal /accounts/reports /accounts/integrations) %>
-        <% acct_active = Enum.any?(acct_paths, fn p -> String.starts_with?(@current_path || "", p) end) %>
-        <% more_paths = ~w(/compliance /approvals /financials /scenarios /reports /settings /notifications) %>
-        <% more_active = Enum.any?(more_paths, fn p -> (@current_path || "") == p or String.starts_with?(@current_path || "", p <> "/") end) %>
+        <% accounting_paths = ~w(/accounts/chart /accounts/journal /accounts/reports /accounts/integrations) %>
+        <% accounting_active = Enum.any?(accounting_paths, fn p -> String.starts_with?(@current_path || "", p) end) %>
+        <% consolidated_paths = ~w(/holdings /transactions /bank-accounts /documents /tax-calendar /governance /compliance /financials /scenarios /approvals /notifications) %>
+        <% consolidated_active = Enum.any?(consolidated_paths, fn p -> (@current_path || "") == p or String.starts_with?(@current_path || "", p <> "/") end) %>
         <div class="nav-links">
           <.link navigate={~p"/"} class={if @current_path == "/", do: "active"}>Overview</.link>
           <.link
@@ -99,35 +99,8 @@ defmodule HoldcoWeb.Layouts do
           >
             Companies
           </.link>
-          <.link navigate={~p"/holdings"} class={if @current_path == "/holdings", do: "active"}>
-            Holdings
-          </.link>
-          <.link
-            navigate={~p"/transactions"}
-            class={if @current_path == "/transactions", do: "active"}
-          >
-            Transactions
-          </.link>
-          <.link
-            navigate={~p"/bank-accounts"}
-            class={if @current_path == "/bank-accounts", do: "active"}
-          >
-            Banking
-          </.link>
-          <.link navigate={~p"/documents"} class={if @current_path == "/documents", do: "active"}>
-            Documents
-          </.link>
-          <.link
-            navigate={~p"/tax-calendar"}
-            class={if @current_path == "/tax-calendar", do: "active"}
-          >
-            Tax
-          </.link>
-          <.link navigate={~p"/governance"} class={if @current_path == "/governance", do: "active"}>
-            Governance
-          </.link>
           <div class="nav-dropdown">
-            <button class={"nav-dropdown-toggle #{if acct_active, do: "more-active"}"}>Accounting &#9662;</button>
+            <button class={"nav-dropdown-toggle #{if accounting_active, do: "more-active"}"}>Accounting &#9662;</button>
             <div class="nav-dropdown-menu">
               <.link navigate={~p"/accounts/chart"} class={if @current_path == "/accounts/chart", do: "active"}>
                 Chart of Accounts
@@ -136,7 +109,7 @@ defmodule HoldcoWeb.Layouts do
                 Journal Entries
               </.link>
               <.link navigate={~p"/accounts/reports"} class={if @current_path == "/accounts/reports", do: "active"}>
-                Reports
+                Accounting Reports
               </.link>
               <.link navigate={~p"/accounts/integrations"} class={if @current_path == "/accounts/integrations", do: "active"}>
                 Integrations
@@ -144,14 +117,28 @@ defmodule HoldcoWeb.Layouts do
             </div>
           </div>
           <div class="nav-dropdown">
-            <button class={"nav-dropdown-toggle #{if more_active, do: "more-active"}"}>More &#9662;</button>
+            <button class={"nav-dropdown-toggle #{if consolidated_active, do: "more-active"}"}>Consolidated &#9662;</button>
             <div class="nav-dropdown-menu">
+              <.link navigate={~p"/holdings"} class={if @current_path == "/holdings", do: "active"}>
+                Holdings
+              </.link>
+              <.link navigate={~p"/transactions"} class={if @current_path == "/transactions", do: "active"}>
+                Transactions
+              </.link>
+              <.link navigate={~p"/bank-accounts"} class={if @current_path == "/bank-accounts", do: "active"}>
+                Bank Accounts
+              </.link>
+              <.link navigate={~p"/documents"} class={if @current_path == "/documents", do: "active"}>
+                Documents
+              </.link>
+              <.link navigate={~p"/tax-calendar"} class={if @current_path == "/tax-calendar", do: "active"}>
+                Tax Calendar
+              </.link>
+              <.link navigate={~p"/governance"} class={if @current_path == "/governance", do: "active"}>
+                Governance
+              </.link>
               <.link navigate={~p"/compliance"} class={if @current_path == "/compliance", do: "active"}>
                 Compliance
-              </.link>
-              <% pending_count = Holdco.Platform.pending_approval_count() %>
-              <.link navigate={~p"/approvals"} class={if @current_path == "/approvals", do: "active"}>
-                Approvals<%= if pending_count > 0, do: " (#{pending_count})" %>
               </.link>
               <.link navigate={~p"/financials"} class={if @current_path == "/financials", do: "active"}>
                 Financials
@@ -162,17 +149,21 @@ defmodule HoldcoWeb.Layouts do
               >
                 Scenarios
               </.link>
-              <.link navigate={~p"/reports"} class={if @current_path == "/reports", do: "active"}>
-                Reports
-              </.link>
-              <.link navigate={~p"/settings"} class={if @current_path == "/settings", do: "active"}>
-                Settings
+              <% pending_count = Holdco.Platform.pending_approval_count() %>
+              <.link navigate={~p"/approvals"} class={if @current_path == "/approvals", do: "active"}>
+                Approvals<%= if pending_count > 0, do: " (#{pending_count})" %>
               </.link>
               <.link navigate={~p"/notifications"} class={if @current_path == "/notifications", do: "active"}>
                 Notifications
               </.link>
             </div>
           </div>
+          <.link navigate={~p"/reports"} class={if @current_path == "/reports", do: "active"}>
+            Reports
+          </.link>
+          <.link navigate={~p"/settings"} class={if @current_path == "/settings", do: "active"}>
+            Settings
+          </.link>
         </div>
         <div class="nav-utils">
           <form class="nav-search" action={~p"/search"} method="get">

@@ -119,19 +119,26 @@ defmodule HoldcoWeb.LayoutAndNavTest do
 
       assert html =~ "Overview"
       assert html =~ ~p"/companies"
+      # Accounting dropdown
+      assert html =~ "Accounting"
+      assert html =~ "Chart of Accounts"
+      assert html =~ "Journal Entries"
+      # Consolidated dropdown
+      assert html =~ "Consolidated"
       assert html =~ "Holdings"
       assert html =~ "Transactions"
-      assert html =~ "Accounts"
+      assert html =~ "Bank Accounts"
       assert html =~ "Documents"
-      assert html =~ "Tax"
+      assert html =~ "Tax Calendar"
       assert html =~ "Governance"
       assert html =~ "Compliance"
-      assert html =~ "Approvals"
       assert html =~ "Financials"
       assert html =~ "Scenarios"
+      assert html =~ "Approvals"
+      assert html =~ "Notifications"
+      # Direct links
       assert html =~ "Reports"
       assert html =~ "Settings"
-      assert html =~ "Notifications"
     end
 
     test "shows nav-utils with search and user info", %{conn: conn, user: user} do

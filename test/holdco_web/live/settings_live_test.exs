@@ -2,85 +2,232 @@ defmodule HoldcoWeb.SettingsLiveTest do
   use HoldcoWeb.ConnCase
 
   import Phoenix.LiveViewTest
+  import Holdco.HoldcoFixtures
 
   setup :register_and_log_in_user
 
   describe "GET /settings" do
-    test "renders settings page", %{conn: conn} do
+    test "renders settings page with title, deck, tabs, and tab-content", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/settings")
 
       assert html =~ "Settings"
-    end
-
-    test "renders page title", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/settings")
-
       assert html =~ "page-title"
-    end
-
-    test "renders tabs container", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/settings")
-
+      assert html =~ "Application settings, categories, API keys, webhooks, and backup configuration"
+      assert html =~ "page-title-rule"
       assert html =~ ~s(class="tabs")
-    end
-
-    test "renders all four settings tabs", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/settings")
-
       assert html =~ ~s(phx-value-tab="settings")
       assert html =~ ~s(phx-value-tab="categories")
       assert html =~ ~s(phx-value-tab="webhooks")
       assert html =~ ~s(phx-value-tab="backups")
-    end
-
-    test "settings tab is active by default", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/settings")
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="settings"/s
-    end
-
-    test "renders tab-content wrapper", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/settings")
-
       assert html =~ "tab-content"
+      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="settings"/s
+      assert html =~ "Application Settings"
+      assert html =~ "No settings configured yet."
+    end
+
+    test "displays existing settings in table", %{conn: conn} do
+      setting_fixture(%{key: "app_name", value: "My Holdco"})
+
+      {:ok, _view, html} = live(conn, ~p"/settings")
+
+      assert html =~ "app_name"
+      assert html =~ "My Holdco"
     end
   end
 
   describe "tab switching" do
-    test "clicking categories tab activates it", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      html = view |> element(~s(button[phx-value-tab="categories"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="categories"/s
-      assert html =~ ~r/class="tab "[^>]*phx-value-tab="settings"/s
-    end
-
-    test "clicking webhooks tab activates it", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      html = view |> element(~s(button[phx-value-tab="webhooks"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="webhooks"/s
-    end
-
-    test "clicking backups tab activates it", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      html = view |> element(~s(button[phx-value-tab="backups"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="backups"/s
-    end
-
-    test "switching tabs closes form", %{conn: conn, user: user} do
+    test "clicking each tab activates it, shows content, and switching closes modal", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "admin")
       {:ok, view, _html} = live(conn, ~p"/settings")
 
-      view |> element("button", "Add") |> render_click()
+      # Categories
+      html = view |> element(~s(button[phx-value-tab="categories"])) |> render_click()
+      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="categories"/s
+      assert html =~ "Categories"
+      assert html =~ "No categories yet."
 
+      # Webhooks
+      html = view |> element(~s(button[phx-value-tab="webhooks"])) |> render_click()
+      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="webhooks"/s
+      assert html =~ "Webhooks"
+      assert html =~ "No webhooks configured yet."
+
+      # Backups
+      html = view |> element(~s(button[phx-value-tab="backups"])) |> render_click()
+      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="backups"/s
+      assert html =~ "Backup Configurations"
+      assert html =~ "No backup configurations yet."
+
+      # Go back to settings and open form, then switch to close it
+      view |> element(~s(button[phx-value-tab="settings"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+      html = view |> element(~s(button[phx-value-tab="categories"])) |> render_click()
+      refute html =~ "modal-overlay"
+    end
+  end
+
+  describe "settings CRUD - admin" do
+    test "admin can add, view, and delete a setting", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      {:ok, view, html} = live(conn, ~p"/settings")
+
+      assert html =~ "Add Setting"
+
+      html = view |> element("button", "Add Setting") |> render_click()
+      assert html =~ "modal-overlay"
+      assert html =~ "Add/Update Setting"
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_setting"]), %{
+          "setting" => %{"key" => "timezone", "value" => "UTC"}
+        })
+        |> render_submit()
+
+      assert html =~ "timezone"
+      assert html =~ "UTC"
+
+      setting = Holdco.Platform.list_settings() |> Enum.find(&(&1.key == "timezone"))
+
+      html =
+        view
+        |> element(~s(button[phx-click="delete_setting"][phx-value-id="#{setting.id}"]))
+        |> render_click()
+
+      assert html =~ "Setting deleted"
+    end
+  end
+
+  describe "categories CRUD - admin" do
+    test "admin can view existing, add, and delete categories", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      cat = category_fixture(%{name: "Operating", color: "#00ff00"})
+
+      {:ok, view, _html} = live(conn, ~p"/settings")
       html = view |> element(~s(button[phx-value-tab="categories"])) |> render_click()
 
-      refute html =~ "modal-overlay"
+      assert html =~ "Operating"
+      assert html =~ "#00ff00"
+
+      view |> element("button", "Add Category") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_category"]), %{
+          "category" => %{"name" => "Real Estate", "color" => "#ff0000"}
+        })
+        |> render_submit()
+
+      assert html =~ "Real Estate"
+
+      html =
+        view
+        |> element(~s(button[phx-click="delete_category"][phx-value-id="#{cat.id}"]))
+        |> render_click()
+
+      assert html =~ "Category deleted"
+    end
+  end
+
+  describe "webhooks CRUD - admin" do
+    test "admin can add a webhook and delete an inactive webhook", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      wh = webhook_fixture(%{url: "https://existing.example.com/wh", is_active: false})
+
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      html = view |> element(~s(button[phx-value-tab="webhooks"])) |> render_click()
+
+      assert html =~ "existing.example.com"
+
+      # Delete webhook
+      html =
+        view
+        |> element(~s(button[phx-click="delete_webhook"][phx-value-id="#{wh.id}"]))
+        |> render_click()
+
+      assert html =~ "Webhook deleted"
+
+      # Add new webhook
+      view |> element("button", "Add Webhook") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_webhook"]), %{
+          "webhook" => %{"url" => "https://new.example.com/hook", "events" => "[]"}
+        })
+        |> render_submit()
+
+      assert html =~ "new.example.com"
+    end
+  end
+
+  describe "backups CRUD - admin" do
+    test "admin can view existing, add, and delete backup configs", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      bc = backup_config_fixture(%{
+        name: "Daily Prod",
+        destination_path: "/var/backups",
+        destination_type: "local",
+        schedule: "daily",
+        retention_days: 7,
+        is_active: true
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      html = view |> element(~s(button[phx-value-tab="backups"])) |> render_click()
+
+      assert html =~ "Daily Prod"
+      assert html =~ "/var/backups"
+      assert html =~ "7 days"
+
+      # Delete existing
+      html =
+        view
+        |> element(~s(button[phx-click="delete_backup"][phx-value-id="#{bc.id}"]))
+        |> render_click()
+
+      assert html =~ "Backup config deleted"
+
+      # Add new
+      view |> element("button", "Add Config") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_backup"]), %{
+          "backup_config" => %{
+            "name" => "Nightly",
+            "destination_type" => "local",
+            "destination_path" => "/backups/nightly",
+            "schedule" => "daily",
+            "retention_days" => "30"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Nightly"
+    end
+  end
+
+  describe "permission guards - non-admin" do
+    test "non-admin cannot see Add buttons and gets error on protected events", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/settings")
+
+      refute html =~ "Add Setting"
+
+      html = render_hook(view, "save_setting", %{"setting" => %{"key" => "t", "value" => "v"}})
+      assert html =~ "Admin access required"
+
+      html = render_hook(view, "delete_setting", %{"id" => "1"})
+      assert html =~ "Admin access required"
+
+      html = render_hook(view, "save_category", %{"category" => %{"name" => "test"}})
+      assert html =~ "Admin access required"
+
+      html = render_hook(view, "save_webhook", %{"webhook" => %{"url" => "https://example.com"}})
+      assert html =~ "Admin access required"
+
+      html = render_hook(view, "save_backup", %{"backup_config" => %{"name" => "test"}})
+      assert html =~ "Admin access required"
     end
   end
 

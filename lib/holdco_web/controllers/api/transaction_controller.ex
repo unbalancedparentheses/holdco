@@ -18,7 +18,7 @@ defmodule HoldcoWeb.Api.TransactionController do
       amount: t.amount,
       currency: t.currency,
       date: t.date,
-      category: t.category,
+      transaction_type: t.transaction_type,
       company_id: t.company_id,
       company_name: if(t.company, do: t.company.name),
       inserted_at: t.inserted_at,
