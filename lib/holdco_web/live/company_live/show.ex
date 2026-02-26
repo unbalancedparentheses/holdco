@@ -1527,8 +1527,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "holding"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Holding</h3>
         </div>
@@ -1581,8 +1581,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "bank_account"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Bank Account</h3>
         </div>
@@ -1640,8 +1640,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "transaction"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Transaction</h3>
         </div>
@@ -1690,8 +1690,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "document"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Document</h3>
         </div>
@@ -1747,8 +1747,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "board_meeting"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Board Meeting</h3>
         </div>
@@ -1791,8 +1791,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "key_personnel"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Key Personnel</h3>
         </div>
@@ -1831,8 +1831,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "beneficial_owner"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Beneficial Owner</h3>
         </div>
@@ -1877,8 +1877,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "service_provider"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Service Provider</h3>
         </div>
@@ -1917,8 +1917,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "tax_deadline"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Tax Deadline</h3>
         </div>
@@ -1961,8 +1961,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "financial"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Financial Period</h3>
         </div>
@@ -2009,8 +2009,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "insurance_policy"} = assigns) do
     ~H"""
-    <div class="modal-overlay">
-      <div class="modal" phx-click-away="close_form">
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>Add Insurance Policy</h3>
         </div>

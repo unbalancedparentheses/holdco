@@ -327,7 +327,7 @@ defmodule HoldcoWeb.FinancialsLive.Index do
 
     <%= if @show_transfer_form do %>
       <div class="modal-overlay" phx-click="close_transfer_form">
-        <div class="modal" phx-click-away="close_transfer_form">
+        <div class="modal" onclick="event.stopPropagation()">
           <div class="modal-header">
             <h3>Add Intercompany Transfer</h3>
           </div>
@@ -382,8 +382,8 @@ defmodule HoldcoWeb.FinancialsLive.Index do
     <% end %>
 
     <%= if @show_form do %>
-      <div class="modal-overlay">
-        <div class="modal" phx-click-away="close_form">
+      <div class="modal-overlay" phx-click="close_form">
+        <div class="modal" onclick="event.stopPropagation()">
           <div class="modal-header">
             <h3>Add Financial Period</h3>
           </div>
