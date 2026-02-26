@@ -344,4 +344,78 @@ defmodule Holdco.CSVParserTest do
       assert result =~ "c"
     end
   end
+
+  describe "to_line_docs/1" do
+    test "to_line_docs returns line docs for each row" do
+      csv = "H1,H2\nA,B\nC,D"
+      rows = Holdco.CSVParser.parse_string(csv, skip_headers: true)
+      assert length(rows) == 2
+    end
+  end
+
+  describe "dump_to_iodata/1 round trip with edge cases" do
+    test "round trip with empty strings" do
+      original = [["", "", ""]]
+      dumped = Holdco.CSVParser.dump_to_iodata(original) |> IO.iodata_to_binary()
+      parsed = Holdco.CSVParser.parse_string(dumped, skip_headers: false)
+      assert parsed == original
+    end
+
+    test "round trip with single column" do
+      original = [["hello"], ["world"]]
+      dumped = Holdco.CSVParser.dump_to_iodata(original) |> IO.iodata_to_binary()
+      parsed = Holdco.CSVParser.parse_string(dumped, skip_headers: false)
+      assert parsed == original
+    end
+
+    test "round trip with unicode characters" do
+      original = [["cafe", "USD"], ["ramen", "JPY"]]
+      dumped = Holdco.CSVParser.dump_to_iodata(original) |> IO.iodata_to_binary()
+      parsed = Holdco.CSVParser.parse_string(dumped, skip_headers: false)
+      assert parsed == original
+    end
+  end
+
+  describe "parse_enumerable/2 with stream input" do
+    test "parses a file-like stream" do
+      lines = ["Col1,Col2\n", "val1,val2\n", "val3,val4\n"]
+      stream = Stream.map(lines, & &1)
+      rows = Holdco.CSVParser.parse_enumerable(stream, skip_headers: true)
+      assert rows == [["val1", "val2"], ["val3", "val4"]]
+    end
+  end
+
+  describe "parse_stream/2 with complex data" do
+    test "parses stream with quoted fields containing commas" do
+      lines = ["Name,Bio\n", "\"Alice, Bob\",\"Line1\nLine2\"\n"]
+      stream = Stream.map(lines, & &1)
+      rows = Holdco.CSVParser.parse_stream(stream, skip_headers: true) |> Enum.to_list()
+      assert rows == [["Alice, Bob", "Line1\nLine2"]]
+    end
+
+    test "parses stream with empty rows" do
+      lines = ["H1,H2\n", ",\n", "a,b\n"]
+      stream = Stream.map(lines, & &1)
+      rows = Holdco.CSVParser.parse_stream(stream, skip_headers: true) |> Enum.to_list()
+      assert length(rows) == 2
+    end
+  end
+
+  describe "dump_to_iodata/1 with many columns" do
+    test "dumps row with 20 columns" do
+      row = Enum.map(1..20, &to_string/1)
+      iodata = Holdco.CSVParser.dump_to_iodata([row])
+      result = IO.iodata_to_binary(iodata)
+      assert result =~ "1"
+      assert result =~ "20"
+    end
+  end
+
+  describe "parse_string/2 with Windows line endings" do
+    test "handles Windows CRLF throughout" do
+      csv = "A,B\r\nval1,val2\r\nval3,val4\r\n"
+      rows = Holdco.CSVParser.parse_string(csv, skip_headers: true)
+      assert rows == [["val1", "val2"], ["val3", "val4"]]
+    end
+  end
 end

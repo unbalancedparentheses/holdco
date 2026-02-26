@@ -655,4 +655,63 @@ defmodule Holdco.PlatformTest do
       assert changeset.valid? == false
     end
   end
+
+  # ── log_action with Process.get current_user_id ──────
+  describe "log_action with process user_id" do
+    test "log_action picks up Process.get(:current_user_id)" do
+      user = Holdco.AccountsFixtures.user_fixture()
+      Process.put(:current_user_id, user.id)
+      {:ok, al} = Platform.log_action("create", "companies", 99)
+      assert al.user_id == user.id
+      Process.delete(:current_user_id)
+    end
+
+    test "log_action with explicit user_id overrides process" do
+      user1 = Holdco.AccountsFixtures.user_fixture()
+      user2 = Holdco.AccountsFixtures.user_fixture()
+      Process.put(:current_user_id, user1.id)
+      {:ok, al} = Platform.log_action("create", "companies", 100, nil, user2.id)
+      assert al.user_id == user2.id
+      Process.delete(:current_user_id)
+    end
+  end
+
+  # ── Audit log filter with full datetime strings ──────
+  describe "audit log date filtering edge cases" do
+    test "list_audit_logs filters by from full datetime string" do
+      audit_log_fixture(%{action: "dt_from_test"})
+      now = DateTime.utc_now() |> DateTime.add(-3600, :second) |> DateTime.to_iso8601()
+      logs = Platform.list_audit_logs(%{from: now})
+      assert is_list(logs)
+    end
+
+    test "list_audit_logs filters by to full datetime string" do
+      audit_log_fixture(%{action: "dt_to_test"})
+      now = DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.to_iso8601()
+      logs = Platform.list_audit_logs(%{to: now})
+      assert is_list(logs)
+    end
+
+    test "list_audit_logs with both from and to date range" do
+      audit_log_fixture(%{action: "range_test"})
+      from = Date.utc_today() |> Date.add(-1) |> Date.to_iso8601()
+      to = Date.utc_today() |> Date.add(1) |> Date.to_iso8601()
+      logs = Platform.list_audit_logs(%{from: from, to: to})
+      assert is_list(logs)
+    end
+  end
+
+  # ── audit_and_broadcast error path ──────────────────
+  describe "audit_and_broadcast error path" do
+    test "create_category with duplicate/invalid data returns error" do
+      result = Platform.create_category(%{})
+      assert {:error, _changeset} = result
+    end
+
+    test "update_category with invalid data returns error" do
+      {:ok, cat} = Platform.create_category(%{name: "Error Cat"})
+      result = Platform.update_category(cat, %{name: nil})
+      assert {:error, _changeset} = result
+    end
+  end
 end

@@ -492,4 +492,76 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       assert html =~ "permission"
     end
   end
+
+  describe "sort by company" do
+    test "sort by company field sorts alphabetically by company name", %{conn: conn} do
+      company_a = company_fixture(%{name: "Alpha Company"})
+      company_z = company_fixture(%{name: "Zulu Company"})
+      holding_fixture(%{company: company_a, asset: "AlphaCo Asset"})
+      holding_fixture(%{company: company_z, asset: "ZuluCo Asset"})
+
+      {:ok, view, _html} = live(conn, ~p"/holdings")
+
+      html = render_hook(view, "sort", %{"field" => "company"})
+      alpha_pos = :binary.match(html, "AlphaCo Asset") |> elem(0)
+      zulu_pos = :binary.match(html, "ZuluCo Asset") |> elem(0)
+      assert alpha_pos < zulu_pos
+    end
+
+    test "sort by unknown field falls back to asset sort", %{conn: conn} do
+      holding_fixture(%{asset: "Alpha Fallback"})
+      holding_fixture(%{asset: "Zulu Fallback"})
+
+      {:ok, view, _html} = live(conn, ~p"/holdings")
+
+      html = render_hook(view, "sort", %{"field" => "nonexistent"})
+      alpha_pos = :binary.match(html, "Alpha Fallback") |> elem(0)
+      zulu_pos = :binary.match(html, "Zulu Fallback") |> elem(0)
+      assert alpha_pos < zulu_pos
+    end
+  end
+
+  describe "save and update error paths" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "save with invalid data shows error flash", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/holdings")
+      view |> element("button", "Add Holding") |> render_click()
+
+      html =
+        view
+        |> form("form[phx-submit='save']", %{
+          "holding" => %{
+            "company_id" => "",
+            "asset" => ""
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add holding"
+    end
+
+    test "update with invalid data shows error flash", %{conn: conn} do
+      company = company_fixture(%{name: "UpdateErrCo"})
+      holding = holding_fixture(%{company: company, asset: "WillFailUpdate", ticker: "WFU"})
+
+      {:ok, view, _html} = live(conn, ~p"/holdings")
+      view |> element("button[phx-click='edit'][phx-value-id='#{holding.id}']") |> render_click()
+
+      html =
+        view
+        |> form("form[phx-submit='update']", %{
+          "holding" => %{
+            "company_id" => "",
+            "asset" => ""
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update holding"
+    end
+  end
 end

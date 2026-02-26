@@ -239,4 +239,57 @@ defmodule HoldcoWeb.ScenarioLiveShowTest do
       assert render(view) =~ "Test Scenario"
     end
   end
+
+  # ── Save Item Error ──────────────────────────────────────────
+
+  describe "save_item error path" do
+    setup [:create_scenario]
+
+    test "save_item with invalid data shows error flash", %{conn: conn, user: user, scenario: scenario} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/scenarios/#{scenario.id}")
+
+      view |> element("button", "Add Item") |> render_click()
+
+      # Submit without required name field
+      html =
+        render_hook(view, "save_item", %{
+          "item" => %{
+            "name" => "",
+            "item_type" => "revenue",
+            "amount" => "0"
+          }
+        })
+
+      assert html =~ "Failed to add item"
+    end
+  end
+
+  # ── Handle Info ──────────────────────────────────────────
+
+  describe "handle_info" do
+    setup [:create_scenario]
+
+    test "handle_info reloads data on any message", %{conn: conn, scenario: scenario} do
+      {:ok, view, _html} = live(conn, ~p"/scenarios/#{scenario.id}")
+
+      send(view.pid, :some_event)
+      html = render(view)
+      assert html =~ "Test Scenario"
+    end
+  end
+
+  # ── Scenario without description ─────────────────────────
+
+  describe "scenario without description" do
+    test "renders Financial projection default text", %{conn: conn} do
+      company = company_fixture(%{name: "NoDescCo"})
+      scenario = scenario_fixture(%{name: "No Desc Scenario", description: nil, company_id: company.id, projection_months: 6})
+
+      {:ok, _view, html} = live(conn, ~p"/scenarios/#{scenario.id}")
+
+      assert html =~ "Financial projection"
+      assert html =~ "6 months"
+    end
+  end
 end

@@ -207,4 +207,98 @@ defmodule HoldcoWeb.ConsolidatedLiveIndexTest do
       assert html =~ "Consolidated Financial Statements"
     end
   end
+
+  describe "with account data across entities" do
+    setup do
+      c1 = company_fixture(%{name: "Consol Parent", ownership_pct: 100})
+      c2 = company_fixture(%{name: "Consol Sub", ownership_pct: 60})
+
+      # Create accounts for c1
+      a1_asset = account_fixture(%{company: c1, account_type: "asset", code: "1200", name: "Receivables"})
+      a1_liability = account_fixture(%{company: c1, account_type: "liability", code: "2100", name: "Payables"})
+      a1_equity = account_fixture(%{company: c1, account_type: "equity", code: "3100", name: "Retained Earnings"})
+      a1_revenue = account_fixture(%{company: c1, account_type: "revenue", code: "4100", name: "Sales"})
+      a1_expense = account_fixture(%{company: c1, account_type: "expense", code: "5100", name: "COGS"})
+
+      # Create accounts for c2 (different codes to avoid unique constraint)
+      a2_asset = account_fixture(%{company: c2, account_type: "asset", code: "1201", name: "Receivables Sub"})
+      a2_revenue = account_fixture(%{company: c2, account_type: "revenue", code: "4101", name: "Sales Sub"})
+
+      # Create journal entries with lines
+      e1 = journal_entry_fixture(%{company: c1})
+      journal_line_fixture(%{entry: e1, account: a1_asset, debit: 50_000.0, credit: 0.0})
+      journal_line_fixture(%{entry: e1, account: a1_liability, debit: 0.0, credit: 20_000.0})
+      journal_line_fixture(%{entry: e1, account: a1_equity, debit: 0.0, credit: 30_000.0})
+      journal_line_fixture(%{entry: e1, account: a1_revenue, debit: 0.0, credit: 10_000.0})
+      journal_line_fixture(%{entry: e1, account: a1_expense, debit: 7_000.0, credit: 0.0})
+
+      e2 = journal_entry_fixture(%{company: c2})
+      journal_line_fixture(%{entry: e2, account: a2_asset, debit: 25_000.0, credit: 0.0})
+      journal_line_fixture(%{entry: e2, account: a2_revenue, debit: 0.0, credit: 5_000.0})
+
+      %{c1: c1, c2: c2}
+    end
+
+    test "balance sheet shows account rows with entity data", %{conn: conn, c1: c1, c2: c2} do
+      {:ok, _live, html} = live(conn, ~p"/consolidated")
+      assert html =~ "Consolidated Balance Sheet"
+      # Should show the short names of companies
+      assert html =~ "Consol Paren.." || html =~ "Consol Parent"
+    end
+
+    test "income statement shows revenue and expenses for multiple entities", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/consolidated")
+      html = render_click(live, "switch_tab", %{"tab" => "income_statement"})
+      assert html =~ "Total Revenue"
+      assert html =~ "Total Expenses"
+      assert html =~ "Net Income (Consolidated)"
+    end
+
+    test "eliminations tab shows NCI percentages for partially owned entity", %{conn: conn, c2: c2} do
+      {:ok, live, _html} = live(conn, ~p"/consolidated")
+      html = render_click(live, "switch_tab", %{"tab" => "eliminations"})
+      assert html =~ "60%"
+      assert html =~ "40%"
+    end
+
+    test "balance sheet shows consolidation columns", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/consolidated")
+      assert html =~ "Elim."
+      assert html =~ "NCI"
+      assert html =~ "Consolidated"
+    end
+  end
+
+  describe "with intercompany transfers and account data" do
+    setup do
+      c1 = company_fixture(%{name: "ICT Parent", ownership_pct: 100})
+      c2 = company_fixture(%{name: "ICT Sub", ownership_pct: 75})
+
+      inter_company_transfer_fixture(%{
+        from_company: c1,
+        to_company: c2,
+        amount: 50_000.0,
+        date: "2024-03-15",
+        description: "Capital injection",
+        currency: "USD"
+      })
+
+      %{c1: c1, c2: c2}
+    end
+
+    test "eliminations tab shows transfer details with companies and descriptions", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/consolidated")
+      html = render_click(live, "switch_tab", %{"tab" => "eliminations"})
+      assert html =~ "ICT Parent"
+      assert html =~ "ICT Sub"
+      assert html =~ "Capital injection"
+      assert html =~ "50,000"
+    end
+
+    test "income statement shows NCI share for partially owned entities", %{conn: conn, c2: c2} do
+      {:ok, live, _html} = live(conn, ~p"/consolidated")
+      html = render_click(live, "switch_tab", %{"tab" => "income_statement"})
+      assert html =~ "Attributable to NCI"
+    end
+  end
 end

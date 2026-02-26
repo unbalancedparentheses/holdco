@@ -99,6 +99,18 @@ defmodule Holdco.IntegrationsTest do
     end
   end
 
+  describe "subscribe/0" do
+    test "subscribes to integrations PubSub topic" do
+      assert :ok = Integrations.subscribe()
+    end
+  end
+
+  describe "broadcast/1" do
+    test "broadcasts a message" do
+      assert :ok = Integrations.broadcast({:test_event, %{}})
+    end
+  end
+
   describe "oauth integrations" do
     test "upsert_integration/2 creates new" do
       {:ok, i} = Integrations.upsert_integration("test_provider", %{"status" => "connected"})

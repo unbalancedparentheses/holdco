@@ -739,4 +739,46 @@ defmodule HoldcoWeb.DashboardLiveTest do
       assert html =~ "16:30:00"
     end
   end
+
+  describe "audit_link with nil record_id" do
+    test "audit log with nil record_id shows fallback link", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      log = %{id: 900, action: "create", table_name: "companies", record_id: nil, inserted_at: ~N[2024-01-01 12:00:00]}
+      send(view.pid, {:audit_log_created, log})
+      html = render(view)
+
+      assert html =~ "#"
+    end
+  end
+
+  describe "deadline with company" do
+    test "deadline with company shows company name link", %{conn: conn} do
+      company = company_fixture(%{name: "DeadlineOrgCo"})
+
+      tax_deadline_fixture(%{
+        company: company,
+        description: "Company Deadline",
+        due_date: "2027-03-15",
+        status: "pending"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "Company Deadline"
+      assert html =~ "DeadlineOrgCo"
+      assert html =~ "/companies/#{company.id}"
+    end
+  end
+
+  describe "transaction with negative amount in recent transactions" do
+    test "negative transaction has num-negative class", %{conn: conn} do
+      transaction_fixture(%{amount: -1500.0, description: "DashNeg", transaction_type: "debit"})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "DashNeg"
+      assert html =~ "num-negative"
+    end
+  end
 end

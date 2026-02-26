@@ -423,4 +423,198 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
       refute html =~ "EditorDelDoc"
     end
   end
+
+  describe "upload type detection edge cases" do
+    test "gif upload detected as image by extension", %{conn: conn} do
+      doc = document_fixture(%{name: "GifDoc"})
+      document_upload_fixture(%{document: doc, file_name: "animation.gif", content_type: ""})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "animation.gif"
+      # gif extension triggers image? => true, so img tag is rendered
+      assert html =~ "<img"
+    end
+
+    test "webp upload detected as image by extension", %{conn: conn} do
+      doc = document_fixture(%{name: "WebpDoc"})
+      document_upload_fixture(%{document: doc, file_name: "photo.webp", content_type: ""})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "photo.webp"
+      assert html =~ "<img"
+    end
+
+    test "jpeg upload detected as image by extension", %{conn: conn} do
+      doc = document_fixture(%{name: "JpegDoc"})
+      document_upload_fixture(%{document: doc, file_name: "scan.jpeg", content_type: ""})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "scan.jpeg"
+      assert html =~ "<img"
+    end
+
+    test "pdf upload detected by extension when content_type is empty", %{conn: conn} do
+      doc = document_fixture(%{name: "PdfExtDoc"})
+      document_upload_fixture(%{document: doc, file_name: "report.pdf", content_type: ""})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "report.pdf"
+      # PDF detected by extension triggers View button
+      assert html =~ "View"
+      assert html =~ "Download"
+    end
+
+    test "non-image non-pdf with nil content_type shows download only", %{conn: conn} do
+      doc = document_fixture(%{name: "DocxDoc"})
+      document_upload_fixture(%{document: doc, file_name: "letter.docx", content_type: ""})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "letter.docx"
+      assert html =~ "Download"
+      refute html =~ "<img"
+      refute html =~ ">View</a>"
+    end
+  end
+
+  describe "multiple uploads per document" do
+    test "shows all uploads for a single document", %{conn: conn} do
+      doc = document_fixture(%{name: "MultiUploadDoc"})
+      document_upload_fixture(%{document: doc, file_name: "image1.png", content_type: "image/png"})
+      document_upload_fixture(%{document: doc, file_name: "contract.pdf", content_type: "application/pdf"})
+      document_upload_fixture(%{document: doc, file_name: "data.xlsx", content_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "image1.png"
+      assert html =~ "contract.pdf"
+      assert html =~ "data.xlsx"
+      # Image should have img tag
+      assert html =~ "<img"
+      # PDF should have View button
+      assert html =~ "View"
+    end
+  end
+
+  describe "editor edit form with existing data" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "edit form shows existing url and notes", %{conn: conn} do
+      company = company_fixture(%{name: "EditFormCo"})
+      doc = document_fixture(%{
+        company: company,
+        name: "Full Doc",
+        doc_type: "certificate",
+        url: "https://example.com/cert",
+        notes: "Important certificate notes"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Document"
+      assert html =~ "Full Doc"
+      assert html =~ "certificate"
+      assert html =~ "https://example.com/cert"
+      assert html =~ "Important certificate notes"
+      assert html =~ "Update Document"
+    end
+
+    test "edit form shows company dropdown with correct selection", %{conn: conn} do
+      company1 = company_fixture(%{name: "EditSelectCo1"})
+      _company2 = company_fixture(%{name: "EditSelectCo2"})
+      doc = document_fixture(%{company: company1, name: "SelectDoc"})
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
+        |> render_click()
+
+      assert html =~ "EditSelectCo1"
+      assert html =~ "EditSelectCo2"
+    end
+  end
+
+  describe "viewer cannot see action buttons" do
+    test "viewer does not see Edit button for documents with uploads", %{conn: conn} do
+      doc = document_fixture(%{name: "ViewerUploadDoc"})
+      document_upload_fixture(%{document: doc, file_name: "file.pdf", content_type: "application/pdf"})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "ViewerUploadDoc"
+      assert html =~ "file.pdf"
+      refute html =~ ~s(phx-click="edit")
+      refute html =~ ~s(phx-click="delete")
+    end
+  end
+
+  describe "viewer update permission guard" do
+    test "viewer update event returns permission error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/documents")
+
+      render_hook(view, "update", %{"document" => %{"name" => "blocked"}})
+      assert render(view) =~ "permission"
+    end
+  end
+
+  describe "document rendering edge cases" do
+    test "renders doc_type as tag badge", %{conn: conn} do
+      document_fixture(%{name: "BadgeDoc", doc_type: "lease_agreement"})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "lease_agreement"
+      assert html =~ "tag tag-ink"
+    end
+
+    test "document with nil doc_type renders without error", %{conn: conn} do
+      document_fixture(%{name: "NilTypeDoc", doc_type: nil})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "NilTypeDoc"
+    end
+
+    test "document with nil url and nil notes renders without error", %{conn: conn} do
+      document_fixture(%{name: "NilFieldsDoc", url: nil, notes: nil})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "NilFieldsDoc"
+    end
+  end
+
+  describe "filter resets document count" do
+    test "filtered view shows correct document count", %{conn: conn} do
+      co1 = company_fixture(%{name: "CountFilterCo1"})
+      co2 = company_fixture(%{name: "CountFilterCo2"})
+      document_fixture(%{company: co1, name: "CFDoc1"})
+      document_fixture(%{company: co1, name: "CFDoc2"})
+      document_fixture(%{company: co2, name: "CFDoc3"})
+
+      {:ok, view, html} = live(conn, ~p"/documents")
+      assert html =~ "3 documents in the library"
+
+      html =
+        view
+        |> form("form[phx-change=\"filter_company\"]", %{"company_id" => to_string(co1.id)})
+        |> render_change()
+
+      assert html =~ "2 documents in the library"
+    end
+  end
 end

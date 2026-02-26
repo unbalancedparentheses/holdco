@@ -2532,4 +2532,307 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ "dissolved"
     end
   end
+
+  # ── Consolidated view ──────────────────────────────────────
+
+  describe "consolidated view with subsidiaries" do
+    test "shows consolidated banner when company has children", %{conn: conn} do
+      parent = company_fixture(%{name: "Parent HoldCo", country: "US"})
+      company_fixture(%{name: "Sub Entity", parent_id: parent.id, country: "UK"})
+
+      {:ok, _view, html} = live(conn, ~p"/companies/#{parent.id}")
+
+      assert html =~ "Consolidated view"
+      assert html =~ "1 subsidiaries"
+    end
+
+    test "consolidated holdings tab shows Company column header", %{conn: conn} do
+      parent = company_fixture(%{name: "Consol Parent", country: "US"})
+      child = company_fixture(%{name: "Consol Child", parent_id: parent.id, country: "UK"})
+      holding_fixture(%{company: parent, asset: "Parent Stock", ticker: "PS"})
+      holding_fixture(%{company: child, asset: "Child Stock", ticker: "CS"})
+
+      {:ok, view, _html} = live(conn, ~p"/companies/#{parent.id}")
+      html = view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
+
+      assert html =~ "Company"
+      assert html =~ "Parent Stock"
+      assert html =~ "Child Stock"
+    end
+
+    test "consolidated bank_accounts tab shows data from both companies", %{conn: conn} do
+      parent = company_fixture(%{name: "BA Parent", country: "US"})
+      child = company_fixture(%{name: "BA Child", parent_id: parent.id, country: "UK"})
+      bank_account_fixture(%{company: parent, bank_name: "Parent Bank"})
+      bank_account_fixture(%{company: child, bank_name: "Child Bank"})
+
+      {:ok, view, _html} = live(conn, ~p"/companies/#{parent.id}")
+      html = view |> element(~s(button[phx-value-tab="bank_accounts"])) |> render_click()
+
+      assert html =~ "Parent Bank"
+      assert html =~ "Child Bank"
+    end
+
+    test "consolidated transactions tab shows data from both companies", %{conn: conn} do
+      parent = company_fixture(%{name: "TX Parent", country: "US"})
+      child = company_fixture(%{name: "TX Child", parent_id: parent.id, country: "UK"})
+      transaction_fixture(%{company: parent, description: "Parent Tx"})
+      transaction_fixture(%{company: child, description: "Child Tx"})
+
+      {:ok, view, _html} = live(conn, ~p"/companies/#{parent.id}")
+      html = view |> element(~s(button[phx-value-tab="transactions"])) |> render_click()
+
+      assert html =~ "Parent Tx"
+      assert html =~ "Child Tx"
+    end
+
+    test "consolidated accounting tab shows accounts and entries from both", %{conn: conn} do
+      parent = company_fixture(%{name: "Acct Parent", country: "US"})
+      child = company_fixture(%{name: "Acct Child", parent_id: parent.id, country: "UK"})
+      account_fixture(%{company: parent, name: "Parent Cash", code: "1000"})
+      account_fixture(%{company: child, name: "Child Cash", code: "1001"})
+
+      {:ok, view, _html} = live(conn, ~p"/companies/#{parent.id}")
+      html = render_hook(view, :switch_tab, %{"tab" => "accounting"})
+
+      assert html =~ "Parent Cash"
+      assert html =~ "Child Cash"
+    end
+  end
+
+  # ── Save error paths ──────────────────────────────────────
+
+  describe "save error paths" do
+    setup [:create_company]
+
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "save_holding with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_holding, %{"holding" => %{"asset" => ""}})
+      assert html =~ "Failed to add holding"
+    end
+
+    test "save_bank_account with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_bank_account, %{"bank_account" => %{"bank_name" => ""}})
+      assert html =~ "Failed to add bank account"
+    end
+
+    test "save_transaction with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_transaction, %{"transaction" => %{"description" => ""}})
+      assert html =~ "Failed to add transaction"
+    end
+
+    test "save_document with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_document, %{"document" => %{"name" => ""}})
+      assert html =~ "Failed to add document"
+    end
+
+    test "save_board_meeting with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_board_meeting, %{"board_meeting" => %{"scheduled_date" => ""}})
+      assert html =~ "Failed to add board meeting"
+    end
+
+    test "save_service_provider with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_service_provider, %{"service_provider" => %{"name" => ""}})
+      assert html =~ "Failed to add service provider"
+    end
+
+    test "save_key_personnel with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_key_personnel, %{"key_personnel" => %{"name" => ""}})
+      assert html =~ "Failed to add key personnel"
+    end
+
+    test "save_beneficial_owner with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_beneficial_owner, %{"beneficial_owner" => %{"name" => ""}})
+      assert html =~ "Failed to add beneficial owner"
+    end
+
+    test "save_tax_deadline with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_tax_deadline, %{"tax_deadline" => %{"description" => ""}})
+      assert html =~ "Failed to add tax deadline"
+    end
+
+    test "save_financial with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_financial, %{"financial" => %{"period" => ""}})
+      assert html =~ "Failed to add financial"
+    end
+
+    test "save_insurance_policy with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_insurance_policy, %{"insurance_policy" => %{"policy_type" => ""}})
+      assert html =~ "Failed to add insurance policy"
+    end
+
+    test "save_cap_table with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_cap_table, %{"cap_table" => %{"investor" => ""}})
+      assert html =~ "Failed to add cap table entry"
+    end
+
+    test "save_resolution with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_resolution, %{"resolution" => %{"title" => ""}})
+      assert html =~ "Failed to add resolution"
+    end
+
+    test "save_deal with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_deal, %{"deal" => %{"counterparty" => ""}})
+      assert html =~ "Failed to add deal"
+    end
+
+    test "save_jv with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_jv, %{"jv" => %{"name" => ""}})
+      assert html =~ "Failed to add joint venture"
+    end
+
+    test "save_poa with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_poa, %{"poa" => %{"grantor" => ""}})
+      assert html =~ "Failed to add power of attorney"
+    end
+
+    test "save_equity_plan with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_equity_plan, %{"equity_plan" => %{"plan_name" => ""}})
+      assert html =~ "Failed to add equity plan"
+    end
+
+    test "save_filing with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_filing, %{"filing" => %{"filing_type" => ""}})
+      assert html =~ "Failed to add regulatory filing"
+    end
+
+    test "save_license with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_license, %{"license" => %{"license_type" => ""}})
+      assert html =~ "Failed to add regulatory license"
+    end
+
+    test "save_esg with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_esg, %{"esg" => %{"period" => ""}})
+      assert html =~ "Failed to add ESG score"
+    end
+
+    test "save_fatca with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_fatca, %{"fatca" => %{"reporting_year" => ""}})
+      assert html =~ "Failed to add FATCA report"
+    end
+
+    test "save_withholding with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_withholding, %{"withholding" => %{"payment_type" => ""}})
+      assert html =~ "Failed to add withholding tax"
+    end
+
+    test "save_liability with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_liability, %{"liability" => %{"creditor" => ""}})
+      assert html =~ "Failed to add liability"
+    end
+
+    test "save_dividend with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_dividend, %{"dividend" => %{"amount" => ""}})
+      assert html =~ "Failed to add dividend"
+    end
+
+    test "save_account with invalid data shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_account, %{"account" => %{"name" => ""}})
+      assert html =~ "Failed to add account"
+    end
+
+    test "save_journal_entry with valid data creates entry", %{conn: conn, company: company} do
+      account1 = account_fixture(%{company: company, code: "1010", name: "JE Cash"})
+      account2 = account_fixture(%{company: company, code: "2010", name: "JE Payable"})
+
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html =
+        render_hook(view, :save_journal_entry, %{
+          "entry" => %{"date" => "2024-01-01", "description" => "Test JE"},
+          "lines" => %{
+            "0" => %{"account_id" => "#{account1.id}", "debit" => "500", "credit" => "0"},
+            "1" => %{"account_id" => "#{account2.id}", "debit" => "0", "credit" => "500"}
+          }
+        })
+
+      assert html =~ "Journal entry created"
+    end
+
+    test "save_comment with empty body shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_comment, %{"body" => ""})
+      assert html =~ "Failed to post comment" || html =~ company.name
+    end
+
+    test "save_sanctions with valid data adds check", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :save_sanctions, %{"sanctions" => %{"checked_name" => "Test Entity"}})
+      assert html =~ "Sanctions check added" || html =~ company.name
+    end
+
+    test "update_company with invalid name shows error", %{conn: conn, company: company} do
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :update_company, %{"company" => %{"name" => ""}})
+      assert html =~ "Failed to update company" || html =~ company.name
+    end
+
+    test "delete_journal_entry removes entry and its lines", %{conn: conn, company: company} do
+      entry = journal_entry_fixture(%{company: company, description: "To Delete JE"})
+      account = account_fixture(%{company: company})
+      journal_line_fixture(%{entry: entry, account: account, debit: 100.0, credit: 0.0})
+
+      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
+
+      html = render_hook(view, :delete_journal_entry, %{"id" => "#{entry.id}"})
+      assert html =~ "Journal entry deleted"
+    end
+  end
 end

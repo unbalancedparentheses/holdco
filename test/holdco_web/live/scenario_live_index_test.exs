@@ -201,4 +201,85 @@ defmodule HoldcoWeb.ScenarioLiveIndexTest do
       assert render(view) =~ "Scenarios"
     end
   end
+
+  # ── Save error ────────────────────────────────────────────
+
+  describe "save error case" do
+    test "save with invalid data shows error flash", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+
+      {:ok, view, _html} = live(conn, ~p"/scenarios/new")
+
+      # Submit without a name (required field)
+      view
+      |> form(~s(form[phx-submit="save"]), %{
+        "scenario" => %{
+          "name" => "",
+          "projection_months" => "12"
+        }
+      })
+      |> render_submit()
+
+      assert render(view) =~ "Failed to create scenario"
+    end
+  end
+
+  # ── Status tag variants ──────────────────────────────────
+
+  describe "status tags" do
+    test "renders active status with tag-jade", %{conn: conn} do
+      scenario_fixture(%{name: "Active Scen", status: "active"})
+
+      {:ok, _view, html} = live(conn, ~p"/scenarios")
+
+      assert html =~ "tag-jade"
+      assert html =~ "active"
+    end
+
+    test "renders archived status with tag-ink", %{conn: conn} do
+      scenario_fixture(%{name: "Archived Scen", status: "archived"})
+
+      {:ok, _view, html} = live(conn, ~p"/scenarios")
+
+      assert html =~ "tag-ink"
+      assert html =~ "archived"
+    end
+
+    test "renders scenario with nil company as ---", %{conn: conn} do
+      scenario_fixture(%{name: "No Company Scen", company_id: nil})
+
+      {:ok, _view, html} = live(conn, ~p"/scenarios")
+
+      assert html =~ "---"
+    end
+  end
+
+  # ── PubSub handle_info ────────────────────────────────────
+
+  describe "handle_info PubSub" do
+    test "refreshes scenarios on PubSub message", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/scenarios")
+
+      # Simulate a PubSub message
+      send(view.pid, {:scenarios_created, %{}})
+
+      html = render(view)
+      assert html =~ "Scenarios"
+    end
+  end
+
+  # ── Company dropdown in form ──────────────────────────────
+
+  describe "form company dropdown" do
+    test "form shows company options", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company_fixture(%{name: "FormDropCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/scenarios/new")
+
+      html = render(view)
+      assert html =~ "FormDropCo"
+      assert html =~ "All companies"
+    end
+  end
 end

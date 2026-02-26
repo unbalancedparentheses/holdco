@@ -161,6 +161,65 @@ defmodule Holdco.ComplianceTest do
     end
   end
 
+  describe "list functions without company filter" do
+    test "list_regulatory_filings/0 returns all" do
+      company = company_fixture()
+      {:ok, rf} = Compliance.create_regulatory_filing(%{company_id: company.id, jurisdiction: "DE", filing_type: "Annual", due_date: "2025-03-01"})
+      assert Enum.any?(Compliance.list_regulatory_filings(), &(&1.id == rf.id))
+    end
+
+    test "list_regulatory_licenses/0 returns all" do
+      company = company_fixture()
+      {:ok, rl} = Compliance.create_regulatory_license(%{company_id: company.id, license_type: "money_services", issuing_authority: "FinCEN"})
+      assert Enum.any?(Compliance.list_regulatory_licenses(), &(&1.id == rl.id))
+    end
+
+    test "list_compliance_checklists/0 returns all" do
+      company = company_fixture()
+      {:ok, cc} = Compliance.create_compliance_checklist(%{company_id: company.id, jurisdiction: "EU", item: "GDPR check"})
+      assert Enum.any?(Compliance.list_compliance_checklists(), &(&1.id == cc.id))
+    end
+
+    test "list_insurance_policies/0 returns all" do
+      company = company_fixture()
+      {:ok, ip} = Compliance.create_insurance_policy(%{company_id: company.id, policy_type: "D&O", provider: "Lloyd's"})
+      assert Enum.any?(Compliance.list_insurance_policies(), &(&1.id == ip.id))
+    end
+
+    test "list_withholding_taxes/0 returns all" do
+      company = company_fixture()
+      {:ok, wt} = Compliance.create_withholding_tax(%{
+        company_id: company.id, payment_type: "interest", country_from: "US", country_to: "UK",
+        gross_amount: 5000.0, rate: 0.10, tax_amount: 500.0, date: "2024-06-01"
+      })
+      assert Enum.any?(Compliance.list_withholding_taxes(), &(&1.id == wt.id))
+    end
+
+    test "list_fatca_reports/0 returns all" do
+      company = company_fixture()
+      {:ok, fr} = Compliance.create_fatca_report(%{company_id: company.id, reporting_year: 2025, jurisdiction: "UK"})
+      assert Enum.any?(Compliance.list_fatca_reports(), &(&1.id == fr.id))
+    end
+
+    test "list_esg_scores/0 returns all" do
+      company = company_fixture()
+      {:ok, es} = Compliance.create_esg_score(%{company_id: company.id, period: "2025", overall_score: 75.0})
+      assert Enum.any?(Compliance.list_esg_scores(), &(&1.id == es.id))
+    end
+
+    test "list_sanctions_checks/0 returns all" do
+      company = company_fixture()
+      {:ok, sc} = Compliance.create_sanctions_check(%{company_id: company.id, checked_name: "AllCheck Corp"})
+      assert Enum.any?(Compliance.list_sanctions_checks(), &(&1.id == sc.id))
+    end
+  end
+
+  describe "subscribe/0" do
+    test "subscribes to compliance PubSub topic" do
+      assert :ok = Compliance.subscribe()
+    end
+  end
+
   describe "sanctions" do
     test "sanctions lists CRUD" do
       {:ok, sl} = Compliance.create_sanctions_list(%{name: "OFAC SDN", list_type: "SDN"})

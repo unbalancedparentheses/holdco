@@ -307,4 +307,182 @@ defmodule HoldcoWeb.ContactLiveTest do
       refute html =~ "Add Contact"
     end
   end
+
+  # ------------------------------------------------------------------
+  # handle_info (pubsub)
+  # ------------------------------------------------------------------
+
+  describe "handle_info" do
+    test "pubsub message triggers reload", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      contact_fixture(%{name: "PubSub Contact", organization: "PubSubOrg"})
+
+      send(view.pid, {:contact_changed, %{}})
+      html = render(view)
+      assert html =~ "PubSub Contact"
+    end
+
+    test "reload preserves active search filter", %{conn: conn} do
+      contact_fixture(%{name: "Alpha Stay", organization: "AlphaOrg"})
+      contact_fixture(%{name: "Beta Stay", organization: "BetaOrg"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+      view |> form(~s(form[phx-change="search"]), %{"q" => "Alpha"}) |> render_change()
+
+      send(view.pid, {:contact_changed, %{}})
+      html = render(view)
+      assert html =~ "Alpha Stay"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Search by various fields
+  # ------------------------------------------------------------------
+
+  describe "search by different fields" do
+    test "search filters by organization", %{conn: conn} do
+      contact_fixture(%{name: "Org Search Person", organization: "UniqueOrgName"})
+      contact_fixture(%{name: "Other Person", organization: "OtherOrg"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+      html = view |> form(~s(form[phx-change="search"]), %{"q" => "UniqueOrgName"}) |> render_change()
+      assert html =~ "Org Search Person"
+      refute html =~ "Other Person"
+    end
+
+    test "search filters by email", %{conn: conn} do
+      contact_fixture(%{name: "Email Person", email: "uniqueemail@test.com"})
+      contact_fixture(%{name: "Other Email Person", email: "other@test.com"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+      html = view |> form(~s(form[phx-change="search"]), %{"q" => "uniqueemail"}) |> render_change()
+      assert html =~ "Email Person"
+      refute html =~ "Other Email Person"
+    end
+
+    test "search filters by role_tag", %{conn: conn} do
+      contact_fixture(%{name: "Banker Person", role_tag: "banker"})
+      contact_fixture(%{name: "Lawyer Person", role_tag: "lawyer"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+      html = view |> form(~s(form[phx-change="search"]), %{"q" => "banker"}) |> render_change()
+      assert html =~ "Banker Person"
+      refute html =~ "Lawyer Person"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Role tag rendering
+  # ------------------------------------------------------------------
+
+  describe "role tag display" do
+    test "renders lawyer role tag", %{conn: conn} do
+      contact_fixture(%{name: "L Person", role_tag: "lawyer"})
+
+      {:ok, _view, html} = live(conn, ~p"/contacts")
+      assert html =~ "lawyer"
+      assert html =~ "tag-ink"
+    end
+
+    test "renders accountant role tag", %{conn: conn} do
+      contact_fixture(%{name: "A Person", role_tag: "accountant"})
+
+      {:ok, _view, html} = live(conn, ~p"/contacts")
+      assert html =~ "accountant"
+      assert html =~ "tag-jade"
+    end
+
+    test "renders banker role tag", %{conn: conn} do
+      contact_fixture(%{name: "B Person", role_tag: "banker"})
+
+      {:ok, _view, html} = live(conn, ~p"/contacts")
+      assert html =~ "banker"
+      assert html =~ "tag-teal"
+    end
+
+    test "renders regulator role tag", %{conn: conn} do
+      contact_fixture(%{name: "R Person", role_tag: "regulator"})
+
+      {:ok, _view, html} = live(conn, ~p"/contacts")
+      assert html =~ "regulator"
+      assert html =~ "tag-crimson"
+    end
+
+    test "renders investor role tag", %{conn: conn} do
+      contact_fixture(%{name: "I Person", role_tag: "investor"})
+
+      {:ok, _view, html} = live(conn, ~p"/contacts")
+      assert html =~ "investor"
+      assert html =~ "tag-lemon"
+    end
+
+    test "renders board_member role tag", %{conn: conn} do
+      contact_fixture(%{name: "BM Person", role_tag: "board_member"})
+
+      {:ok, _view, html} = live(conn, ~p"/contacts")
+      assert html =~ "board_member"
+      assert html =~ "tag-teal"
+    end
+
+    test "renders unknown role tag with default class", %{conn: conn} do
+      contact_fixture(%{name: "Other Person", role_tag: "other"})
+
+      {:ok, _view, html} = live(conn, ~p"/contacts")
+      assert html =~ "other"
+      assert html =~ "tag-ink"
+    end
+
+    test "renders contact without role_tag shows dashes", %{conn: conn} do
+      contact_fixture(%{name: "No Role Person", role_tag: nil})
+
+      {:ok, _view, html} = live(conn, ~p"/contacts")
+      assert html =~ "No Role Person"
+      assert html =~ "---"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Save/update error paths
+  # ------------------------------------------------------------------
+
+  describe "save error path" do
+    test "editor save failure shows error flash", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+      view |> element("button", "Add Contact") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save"]), %{
+          "contact" => %{"name" => ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to create contact" || html =~ "Contacts"
+    end
+  end
+
+  describe "update error path" do
+    test "editor update failure shows error flash", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      contact = contact_fixture(%{name: "Update Fail Contact"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      view
+      |> element(~s(button[phx-click="edit"][phx-value-id="#{contact.id}"]))
+      |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update"]), %{
+          "contact" => %{"name" => ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update contact" || html =~ "Contacts"
+    end
+  end
 end

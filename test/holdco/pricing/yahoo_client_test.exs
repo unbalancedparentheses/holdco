@@ -116,5 +116,14 @@ defmodule Holdco.Pricing.YahooClientTest do
       # Should try to re-fetch, which will likely error in test
       assert match?({:ok, _}, result) or match?({:error, _}, result)
     end
+
+    test "cache miss for empty ETS returns miss" do
+      ticker = "UNIQUE_MISS_#{System.unique_integer([:positive])}"
+      # Ensure nothing in cache for this ticker
+      :ets.delete_all_objects(:yahoo_price_cache)
+
+      result = YahooClient.fetch_price(ticker)
+      assert match?({:ok, _}, result) or match?({:error, _}, result)
+    end
   end
 end

@@ -570,6 +570,137 @@ defmodule Holdco.AccountsTest do
     end
   end
 
+  describe "list_users/0" do
+    test "returns all users with roles" do
+      user = user_fixture()
+      users = Accounts.list_users()
+      assert Enum.any?(users, &(&1.id == user.id))
+      found = Enum.find(users, &(&1.id == user.id))
+      assert Map.has_key?(found, :role)
+    end
+  end
+
+  describe "User changesets" do
+    test "email_changeset validates email format" do
+      changeset = User.email_changeset(%User{}, %{email: "bad"})
+      assert %{email: ["must have the @ sign and no spaces"]} = errors_on(changeset)
+    end
+
+    test "email_changeset validates email length" do
+      long = String.duplicate("a", 161)
+      changeset = User.email_changeset(%User{}, %{email: long})
+      assert "should be at most 160 character(s)" in errors_on(changeset).email
+    end
+
+    test "email_changeset with validate_unique: false skips unique check" do
+      changeset = User.email_changeset(%User{}, %{email: "new@example.com"}, validate_unique: false)
+      assert changeset.valid?
+    end
+
+    test "email_changeset detect email not changed for existing user" do
+      user = user_fixture()
+      changeset = User.email_changeset(user, %{email: user.email})
+      assert "did not change" in errors_on(changeset).email
+    end
+
+    test "password_changeset validates password length" do
+      changeset = User.password_changeset(%User{}, %{password: "short"})
+      assert "should be at least 12 character(s)" in errors_on(changeset).password
+    end
+
+    test "password_changeset validates password confirmation mismatch" do
+      changeset = User.password_changeset(%User{}, %{password: "valid_password_123", password_confirmation: "different"})
+      assert "does not match password" in errors_on(changeset).password_confirmation
+    end
+
+    test "password_changeset with hash_password: false does not hash" do
+      changeset = User.password_changeset(%User{}, %{password: "valid_password_123"}, hash_password: false)
+      assert changeset.valid?
+      assert Ecto.Changeset.get_change(changeset, :password) == "valid_password_123"
+      refute Ecto.Changeset.get_change(changeset, :hashed_password)
+    end
+
+    test "password_changeset with hash_password: true hashes and clears password" do
+      changeset = User.password_changeset(%User{}, %{password: "valid_password_123"}, hash_password: true)
+      assert changeset.valid?
+      refute Ecto.Changeset.get_change(changeset, :password)
+      assert Ecto.Changeset.get_change(changeset, :hashed_password)
+    end
+
+    test "confirm_changeset sets confirmed_at" do
+      changeset = User.confirm_changeset(%User{})
+      assert Ecto.Changeset.get_change(changeset, :confirmed_at)
+    end
+
+    test "totp_changeset sets totp fields" do
+      changeset = User.totp_changeset(%User{}, %{totp_secret: "secret", totp_enabled: true})
+      assert Ecto.Changeset.get_change(changeset, :totp_secret) == "secret"
+      assert Ecto.Changeset.get_change(changeset, :totp_enabled) == true
+    end
+
+    test "valid_password? returns false for nil user" do
+      refute User.valid_password?(nil, "password")
+    end
+
+    test "valid_password? returns false for empty password" do
+      user = user_fixture() |> set_password()
+      refute User.valid_password?(user, "")
+    end
+  end
+
+  describe "UserToken" do
+    test "build_session_token creates token with session context" do
+      user = user_fixture()
+      {token, user_token} = UserToken.build_session_token(user)
+      assert is_binary(token)
+      assert user_token.context == "session"
+      assert user_token.user_id == user.id
+    end
+
+    test "build_session_token uses user's authenticated_at" do
+      auth_time = DateTime.utc_now(:second)
+      user = %User{id: 1, authenticated_at: auth_time}
+      {_token, user_token} = UserToken.build_session_token(user)
+      assert user_token.authenticated_at == auth_time
+    end
+
+    test "build_session_token falls back to utc_now when authenticated_at is nil" do
+      user = %User{id: 1, authenticated_at: nil}
+      {_token, user_token} = UserToken.build_session_token(user)
+      assert user_token.authenticated_at
+    end
+
+    test "build_email_token creates hashed token" do
+      user = user_fixture()
+      {encoded, user_token} = UserToken.build_email_token(user, "login")
+      assert is_binary(encoded)
+      assert user_token.context == "login"
+      assert user_token.sent_to == user.email
+    end
+
+    test "verify_session_token_query returns query" do
+      assert {:ok, _query} = UserToken.verify_session_token_query("some_token")
+    end
+
+    test "verify_magic_link_token_query with invalid base64 returns error" do
+      assert :error = UserToken.verify_magic_link_token_query("!!!invalid!!!")
+    end
+
+    test "verify_magic_link_token_query with valid base64 returns query" do
+      token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+      assert {:ok, _query} = UserToken.verify_magic_link_token_query(token)
+    end
+
+    test "verify_change_email_token_query with invalid base64 returns error" do
+      assert :error = UserToken.verify_change_email_token_query("!!!invalid!!!", "change:old@example.com")
+    end
+
+    test "verify_change_email_token_query with valid base64 returns query" do
+      token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+      assert {:ok, _query} = UserToken.verify_change_email_token_query(token, "change:old@example.com")
+    end
+  end
+
   describe "inspect/2 for the User module" do
     test "does not include password" do
       refute inspect(%User{password: "123456"}) =~ "password: \"123456\""

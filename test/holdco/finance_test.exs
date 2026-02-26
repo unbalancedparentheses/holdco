@@ -194,4 +194,119 @@ defmodule Holdco.FinanceTest do
       assert is_number(Finance.total_liabilities())
     end
   end
+
+  describe "list functions without company filter" do
+    test "list_financials/0 returns all" do
+      company = company_fixture()
+      {:ok, f} = Finance.create_financial(%{company_id: company.id, period: "2024-Q2", revenue: 50_000.0})
+      assert Enum.any?(Finance.list_financials(), &(&1.id == f.id))
+    end
+
+    test "list_accounts/0 returns all" do
+      company = company_fixture()
+      {:ok, a} = Finance.create_account(%{company_id: company.id, name: "AR", account_type: "asset", code: "#{System.unique_integer([:positive])}"})
+      assert Enum.any?(Finance.list_accounts(), &(&1.id == a.id))
+    end
+
+    test "list_journal_entries/0 returns all" do
+      company = company_fixture()
+      {:ok, je} = Finance.create_journal_entry(%{company_id: company.id, date: "2024-03-01", description: "All entries"})
+      assert Enum.any?(Finance.list_journal_entries(), &(&1.id == je.id))
+    end
+
+    test "list_dividends/0 returns all" do
+      company = company_fixture()
+      {:ok, d} = Finance.create_dividend(%{company_id: company.id, amount: 500.0, date: "2024-07-01"})
+      assert Enum.any?(Finance.list_dividends(), &(&1.id == d.id))
+    end
+
+    test "list_capital_contributions/0 returns all" do
+      company = company_fixture()
+      {:ok, cc} = Finance.create_capital_contribution(%{company_id: company.id, contributor: "AllInvestor", amount: 10_000.0, date: "2024-02-01"})
+      assert Enum.any?(Finance.list_capital_contributions(), &(&1.id == cc.id))
+    end
+
+    test "list_tax_payments/0 returns all" do
+      company = company_fixture()
+      {:ok, tp} = Finance.create_tax_payment(%{company_id: company.id, jurisdiction: "UK", tax_type: "vat", amount: 2000.0, date: "2024-05-01"})
+      assert Enum.any?(Finance.list_tax_payments(), &(&1.id == tp.id))
+    end
+
+    test "list_budgets/0 returns all" do
+      company = company_fixture()
+      {:ok, b} = Finance.create_budget(%{company_id: company.id, period: "2025", category: "Ops"})
+      assert Enum.any?(Finance.list_budgets(), &(&1.id == b.id))
+    end
+
+    test "list_liabilities/0 returns all" do
+      company = company_fixture()
+      {:ok, l} = Finance.create_liability(%{company_id: company.id, liability_type: "loan", creditor: "AllBank", principal: 100_000.0})
+      assert Enum.any?(Finance.list_liabilities(), &(&1.id == l.id))
+    end
+  end
+
+  describe "segments" do
+    test "CRUD operations" do
+      company = company_fixture()
+      {:ok, s} = Finance.create_segment(%{company_id: company.id, name: "APAC"})
+
+      assert Enum.any?(Finance.list_segments(company.id), &(&1.id == s.id))
+      assert Enum.any?(Finance.list_segments(), &(&1.id == s.id))
+      assert Finance.get_segment!(s.id).id == s.id
+
+      {:ok, updated} = Finance.update_segment(s, %{name: "EMEA"})
+      assert updated.name == "EMEA"
+
+      {:ok, _} = Finance.delete_segment(updated)
+    end
+  end
+
+  describe "leases" do
+    test "CRUD operations" do
+      company = company_fixture()
+      {:ok, l} = Finance.create_lease(%{company_id: company.id, lessor: "PropCo"})
+
+      assert Enum.any?(Finance.list_leases(company.id), &(&1.id == l.id))
+      assert Enum.any?(Finance.list_leases(), &(&1.id == l.id))
+      assert Finance.get_lease!(l.id).id == l.id
+
+      {:ok, updated} = Finance.update_lease(l, %{lessor: "NewPropCo"})
+      assert updated.lessor == "NewPropCo"
+
+      {:ok, _} = Finance.delete_lease(updated)
+    end
+  end
+
+  describe "trial_balance_by_segment" do
+    test "returns results for a segment" do
+      company = company_fixture()
+      {:ok, s} = Finance.create_segment(%{company_id: company.id, name: "North America"})
+      result = Finance.trial_balance_by_segment(s.id)
+      assert is_list(result)
+    end
+  end
+
+  describe "reports without company filter" do
+    test "trial_balance/0 returns all accounts" do
+      assert is_list(Finance.trial_balance())
+    end
+
+    test "balance_sheet/0 returns all" do
+      result = Finance.balance_sheet()
+      assert is_map(result)
+      assert Map.has_key?(result, :assets)
+    end
+
+    test "income_statement/0 returns all" do
+      result = Finance.income_statement()
+      assert is_map(result)
+      assert Map.has_key?(result, :revenue)
+    end
+  end
+
+  describe "subscribe/0" do
+    test "subscribes to finance PubSub topic" do
+      assert :ok = Finance.subscribe()
+    end
+  end
 end

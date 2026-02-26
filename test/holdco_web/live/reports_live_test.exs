@@ -39,5 +39,56 @@ defmodule HoldcoWeb.ReportsLiveTest do
       assert html =~ "grid-3"
       assert html =~ "panel"
     end
+
+    test "shows Save as PDF buttons", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/reports")
+
+      assert html =~ "Save as PDF"
+    end
+
+    test "shows Generate Report links", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/reports")
+
+      assert html =~ "Generate Report"
+      assert html =~ "/reports/portfolio"
+      assert html =~ "/reports/financial"
+      assert html =~ "/reports/compliance"
+    end
+
+    test "shows Scenarios card", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/reports")
+
+      assert html =~ "Scenarios"
+      assert html =~ "what-if scenarios"
+    end
+
+    test "shows Management Reports card", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/reports")
+
+      assert html =~ "Management Reports"
+      assert html =~ "/management-reports"
+    end
+
+    test "shows Audit Package card", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/reports")
+
+      assert html =~ "Audit Package"
+      assert html =~ "Download Package"
+    end
+
+    test "shows print instructions in footer section", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/reports")
+
+      assert html =~ "Reports open in a new tab"
+      assert html =~ "print dialog"
+    end
+
+    test "print_page event pushes js-print event", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/reports")
+
+      # The print_page event pushes a JS event - should not crash
+      render_hook(view, "print_page", %{})
+      assert render(view) =~ "Reports"
+    end
   end
 end

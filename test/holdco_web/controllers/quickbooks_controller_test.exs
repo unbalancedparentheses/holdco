@@ -74,5 +74,25 @@ defmodule HoldcoWeb.QuickbooksControllerTest do
       # Depending on the network result, it will either flash error or info
       # The key test is that it redirects properly and doesn't crash
     end
+
+    test "error flash includes failure reason on exchange error", %{conn: conn} do
+      Application.put_env(:holdco, Holdco.Integrations.Quickbooks,
+        client_id: "bad_id",
+        client_secret: "bad_secret",
+        redirect_uri: "http://localhost:4000/auth/quickbooks/callback",
+        environment: :sandbox
+      )
+
+      conn =
+        get(conn, ~p"/auth/quickbooks/callback", %{
+          "code" => "invalid_code",
+          "realmId" => "99999"
+        })
+
+      assert redirected_to(conn) == ~p"/accounts/integrations"
+      flash = Phoenix.Flash.get(conn.assigns.flash, :error)
+      # The error flash should be set (exchange will fail)
+      assert flash =~ "Failed to connect QuickBooks"
+    end
   end
 end

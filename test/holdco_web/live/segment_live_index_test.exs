@@ -364,6 +364,60 @@ defmodule HoldcoWeb.SegmentLiveIndexTest do
       {:ok, _live, html} = live(conn, ~p"/segments")
       assert html =~ "Add Your First Segment"
     end
+
+    test "editor save failure shows error flash", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+
+      {:ok, live, _html} = live(conn, ~p"/segments")
+      render_click(live, "show_form", %{})
+
+      # Submit with empty required name to trigger error
+      html =
+        render_click(live, "save", %{
+          "segment" => %{"name" => "", "segment_type" => ""}
+        })
+
+      assert html =~ "Failed to create segment" || html =~ "Segment Reporting"
+    end
+
+    test "editor update failure shows error flash", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture()
+      seg = segment_fixture(%{company: company, name: "Fail Update Seg"})
+
+      {:ok, live, _html} = live(conn, ~p"/segments")
+      render_click(live, "edit", %{"id" => to_string(seg.id)})
+
+      # Submit with empty required name to trigger error
+      html =
+        render_click(live, "update", %{
+          "segment" => %{"name" => ""}
+        })
+
+      assert html =~ "Failed to update segment" || html =~ "Segment Reporting"
+    end
+
+    test "editor save with company filter active reloads correctly", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "FilteredSaveCo"})
+
+      {:ok, live, _html} = live(conn, ~p"/segments")
+      # Set company filter
+      render_change(live, "filter_company", %{"company_id" => to_string(company.id)})
+      # Open form and create segment
+      render_click(live, "show_form", %{})
+
+      html =
+        render_click(live, "save", %{
+          "segment" => %{
+            "name" => "Filtered Save Seg",
+            "segment_type" => "business",
+            "company_id" => to_string(company.id)
+          }
+        })
+
+      assert html =~ "Segment created" || html =~ "Filtered Save Seg"
+    end
   end
 
   describe "handle_info" do

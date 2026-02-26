@@ -203,5 +203,112 @@ defmodule HoldcoWeb.DebtMaturityLiveIndexTest do
       {:ok, _live, html} = live(conn, ~p"/debt-maturity")
       assert html =~ "Test Creditor"
     end
+
+    test "renders liability with empty maturity date as No Maturity", %{conn: conn} do
+      company = company_fixture()
+      liability_fixture(%{company: company, status: "active", principal: 50_000.0, creditor: "Empty Date Creditor", maturity_date: ""})
+
+      {:ok, _live, html} = live(conn, ~p"/debt-maturity")
+      assert html =~ "Empty Date Creditor"
+      assert html =~ "No Maturity"
+    end
+
+    test "renders liability with invalid maturity date as No Maturity", %{conn: conn} do
+      company = company_fixture()
+      liability_fixture(%{company: company, status: "active", principal: 50_000.0, creditor: "Bad Date Cred", maturity_date: "not-a-date"})
+
+      {:ok, _live, html} = live(conn, ~p"/debt-maturity")
+      assert html =~ "Bad Date Cred"
+      assert html =~ "No Maturity"
+    end
+
+    test "5+ Years bucket for far future maturity", %{conn: conn} do
+      company = company_fixture()
+      far_future = Date.utc_today() |> Date.add(2200) |> Date.to_iso8601()
+
+      liability_fixture(%{
+        company: company,
+        status: "active",
+        principal: 200_000.0,
+        maturity_date: far_future,
+        creditor: "Far Future Bank"
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/debt-maturity")
+      assert html =~ "5+ Years"
+      assert html =~ "Far Future Bank"
+    end
+
+    test "1-3 Years bucket for medium term maturity", %{conn: conn} do
+      company = company_fixture()
+      mid_date = Date.utc_today() |> Date.add(600) |> Date.to_iso8601()
+
+      liability_fixture(%{
+        company: company,
+        status: "active",
+        principal: 150_000.0,
+        maturity_date: mid_date,
+        creditor: "Mid Term Bank"
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/debt-maturity")
+      assert html =~ "1-3 Years"
+      assert html =~ "Mid Term Bank"
+    end
+
+    test "renders composition chart with multiple liability types", %{conn: conn} do
+      company = company_fixture()
+      liability_fixture(%{company: company, status: "active", principal: 100_000.0, liability_type: "loan", creditor: "Loan Bank"})
+      liability_fixture(%{company: company, status: "active", principal: 200_000.0, liability_type: "bond", creditor: "Bond Holder"})
+
+      {:ok, _live, html} = live(conn, ~p"/debt-maturity")
+      assert html =~ "debt-composition-chart"
+      assert html =~ "Loan Bank"
+      assert html =~ "Bond Holder"
+    end
+
+    test "shows percentage of total for each bucket", %{conn: conn} do
+      company = company_fixture()
+      near_date = Date.utc_today() |> Date.add(180) |> Date.to_iso8601()
+
+      liability_fixture(%{
+        company: company,
+        status: "active",
+        principal: 100_000.0,
+        maturity_date: near_date
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/debt-maturity")
+      assert html =~ "% of Total"
+    end
+
+    test "past maturity dates are still in 0-1 year bucket", %{conn: conn} do
+      company = company_fixture()
+      past_date = Date.utc_today() |> Date.add(-30) |> Date.to_iso8601()
+
+      liability_fixture(%{
+        company: company,
+        status: "active",
+        principal: 50_000.0,
+        maturity_date: past_date,
+        creditor: "Past Due Bank"
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/debt-maturity")
+      assert html =~ "Past Due Bank"
+      assert html =~ "0-1 Year"
+    end
+
+    test "calculates avg maturity with invalid date entries", %{conn: conn} do
+      company = company_fixture()
+      valid_date = Date.utc_today() |> Date.add(365) |> Date.to_iso8601()
+
+      liability_fixture(%{company: company, status: "active", principal: 100_000.0, maturity_date: valid_date})
+      liability_fixture(%{company: company, status: "active", principal: 50_000.0, maturity_date: "bad-date"})
+
+      {:ok, _live, html} = live(conn, ~p"/debt-maturity")
+      # Should still compute avg maturity from valid entries
+      assert html =~ "yr"
+    end
   end
 end

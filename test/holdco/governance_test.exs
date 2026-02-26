@@ -390,4 +390,31 @@ defmodule Holdco.GovernanceTest do
       assert :ok == Governance.subscribe()
     end
   end
+
+  # ── audit_and_broadcast ────────────────────────────────
+
+  describe "audit_and_broadcast" do
+    test "broadcasts on create" do
+      Governance.subscribe()
+      company = company_fixture()
+      {:ok, bm} = Governance.create_board_meeting(%{company_id: company.id, scheduled_date: "2024-11-01"})
+      assert_receive {:board_meetings_created, ^bm}
+    end
+
+    test "broadcasts on update" do
+      company = company_fixture()
+      {:ok, bm} = Governance.create_board_meeting(%{company_id: company.id, scheduled_date: "2024-11-01"})
+      Governance.subscribe()
+      {:ok, updated} = Governance.update_board_meeting(bm, %{status: "cancelled"})
+      assert_receive {:board_meetings_updated, ^updated}
+    end
+
+    test "broadcasts on delete" do
+      company = company_fixture()
+      {:ok, bm} = Governance.create_board_meeting(%{company_id: company.id, scheduled_date: "2024-11-01"})
+      Governance.subscribe()
+      {:ok, deleted} = Governance.delete_board_meeting(bm)
+      assert_receive {:board_meetings_deleted, ^deleted}
+    end
+  end
 end

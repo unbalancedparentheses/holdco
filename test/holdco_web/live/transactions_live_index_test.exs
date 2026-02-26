@@ -341,4 +341,84 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
       refute html =~ "MetricTx2"
     end
   end
+
+  describe "edit event (editor)" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "clicking edit opens the edit form modal with pre-filled data", %{conn: conn} do
+      company = company_fixture(%{name: "EditCo"})
+
+      tx =
+        transaction_fixture(%{
+          company: company,
+          description: "Editable transaction",
+          transaction_type: "credit",
+          amount: 750.0,
+          currency: "EUR",
+          date: "2024-05-10",
+          counterparty: "Partner Inc"
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/transactions")
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit"][phx-value-id="#{tx.id}"]))
+        |> render_click()
+
+      assert html =~ "modal-overlay"
+      assert html =~ "Edit Transaction"
+      assert html =~ ~s(phx-submit="update")
+      assert html =~ "Save Changes"
+    end
+
+    test "submitting the edit form updates a transaction", %{conn: conn} do
+      company = company_fixture(%{name: "UpdateCo"})
+
+      tx =
+        transaction_fixture(%{
+          company: company,
+          description: "Original desc",
+          transaction_type: "debit",
+          amount: 100.0,
+          date: "2024-01-01"
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/transactions")
+
+      # Open edit form
+      view
+      |> element(~s(button[phx-click="edit"][phx-value-id="#{tx.id}"]))
+      |> render_click()
+
+      # Submit update
+      html =
+        view
+        |> form(~s(form[phx-submit="update"]), %{
+          "transaction" => %{
+            "company_id" => to_string(company.id),
+            "date" => "2024-02-01",
+            "transaction_type" => "credit",
+            "amount" => "200.0",
+            "description" => "Updated desc"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Transaction updated"
+      refute html =~ "modal-overlay"
+    end
+  end
+
+  describe "viewer update permission guard" do
+    test "viewer update event returns permission error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/transactions")
+
+      html = render_hook(view, "update", %{"transaction" => %{"description" => "blocked"}})
+      assert html =~ "permission"
+    end
+  end
 end

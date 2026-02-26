@@ -398,4 +398,97 @@ defmodule HoldcoWeb.KpiLiveIndexTest do
       assert html_after =~ "KPI Tracking"
     end
   end
+
+  describe "editor error paths" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "save KPI with invalid data shows error", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/kpis")
+      render_click(live, "show_form", %{})
+
+      html =
+        render_submit(live, "save", %{
+          "kpi" => %{
+            "name" => "",
+            "metric_type" => "",
+            "target_value" => ""
+          }
+        })
+
+      assert html =~ "Failed to create KPI"
+    end
+
+    test "update KPI with invalid data shows error", %{conn: conn} do
+      company = company_fixture()
+      kpi = kpi_fixture(%{company: company, name: "Update Fail KPI", metric_type: "currency", target_value: 100.0})
+
+      {:ok, live, _html} = live(conn, ~p"/kpis")
+      render_click(live, "edit", %{"id" => to_string(kpi.id)})
+
+      html =
+        render_submit(live, "update", %{
+          "kpi" => %{
+            "name" => "",
+            "metric_type" => ""
+          }
+        })
+
+      assert html =~ "Failed to update KPI"
+    end
+
+    test "save snapshot with invalid data shows error", %{conn: conn} do
+      company = company_fixture()
+      kpi = kpi_fixture(%{company: company, name: "Snap Fail KPI"})
+
+      {:ok, live, _html} = live(conn, ~p"/kpis")
+      render_click(live, "select_kpi", %{"id" => to_string(kpi.id)})
+      render_click(live, "show_snapshot_form", %{})
+
+      html =
+        render_submit(live, "save_snapshot", %{
+          "snapshot" => %{
+            "date" => "not-a-date",
+            "current_value" => "not-a-number"
+          }
+        })
+
+      assert html =~ "Failed to record snapshot"
+    end
+  end
+
+  describe "handle_info" do
+    test "handle_info reloads KPIs", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/kpis")
+      send(live.pid, :some_event)
+      html = render(live)
+      assert html =~ "KPI Tracking"
+    end
+  end
+
+  describe "trend indicator equal values" do
+    test "shows dash when values are equal", %{conn: conn} do
+      company = company_fixture()
+      kpi = kpi_fixture(%{company: company, name: "Flat KPI"})
+      kpi_snapshot_fixture(%{kpi: kpi, current_value: 100.0, date: "2024-01-15"})
+      kpi_snapshot_fixture(%{kpi: kpi, current_value: 100.0, date: "2024-02-15"})
+
+      {:ok, _live, html} = live(conn, ~p"/kpis")
+      assert html =~ "Flat KPI"
+    end
+  end
+
+  describe "format_value with nil and empty unit" do
+    test "nil unit shows raw number", %{conn: conn} do
+      company = company_fixture()
+      kpi = kpi_fixture(%{company: company, name: "No Unit KPI", unit: nil, target_value: 500.0})
+      kpi_snapshot_fixture(%{kpi: kpi, current_value: 250.0, date: "2024-06-01"})
+
+      {:ok, _live, html} = live(conn, ~p"/kpis")
+      assert html =~ "No Unit KPI"
+      assert html =~ "250"
+    end
+  end
 end

@@ -131,5 +131,63 @@ defmodule HoldcoWeb.TransactionsLiveTest do
       assert html =~ "Counterparty"
       assert html =~ "Acme Corp"
     end
+
+    test "shows negative amount with negative styling", %{conn: conn} do
+      transaction =
+        transaction_fixture(%{
+          amount: -1500.0,
+          currency: "USD",
+          transaction_type: "debit",
+          description: "Negative amount txn"
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/transactions/#{transaction.id}")
+
+      assert html =~ "num-negative"
+      assert html =~ "1,500"
+    end
+
+    test "shows positive amount with positive styling", %{conn: conn} do
+      transaction =
+        transaction_fixture(%{
+          amount: 2500.0,
+          currency: "USD",
+          transaction_type: "credit",
+          description: "Positive amount txn"
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/transactions/#{transaction.id}")
+
+      assert html =~ "num-positive"
+      assert html =~ "2,500"
+    end
+
+    test "displays currency in details", %{conn: conn} do
+      transaction =
+        transaction_fixture(%{
+          amount: 100.0,
+          currency: "GBP",
+          transaction_type: "credit",
+          description: "GBP txn"
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/transactions/#{transaction.id}")
+
+      assert html =~ "Currency"
+      assert html =~ "GBP"
+    end
+
+    test "uses description as page title", %{conn: conn} do
+      transaction =
+        transaction_fixture(%{
+          description: "Custom Title Txn",
+          amount: 100.0,
+          transaction_type: "credit"
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/transactions/#{transaction.id}")
+
+      assert html =~ "Custom Title Txn"
+    end
   end
 end

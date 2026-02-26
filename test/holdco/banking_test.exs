@@ -98,4 +98,23 @@ defmodule Holdco.BankingTest do
       assert is_number(Banking.total_balance())
     end
   end
+
+  describe "list_transactions/1 with filters" do
+    test "filters transactions by company_id" do
+      c1 = company_fixture(%{name: "TxFilterCo1"})
+      c2 = company_fixture(%{name: "TxFilterCo2"})
+      t1 = transaction_fixture(%{company: c1, description: "Tx for Co1"})
+      _t2 = transaction_fixture(%{company: c2, description: "Tx for Co2"})
+
+      results = Banking.list_transactions(%{company_id: c1.id})
+      assert Enum.any?(results, &(&1.id == t1.id))
+      refute Enum.any?(results, &(&1.description == "Tx for Co2"))
+    end
+  end
+
+  describe "subscribe/0" do
+    test "subscribes to banking PubSub topic" do
+      assert :ok = Banking.subscribe()
+    end
+  end
 end

@@ -292,4 +292,111 @@ defmodule HoldcoWeb.HoldingsLiveShowTest do
       assert html =~ "Quantity"
     end
   end
+
+  describe "price history display with data" do
+    test "holding with ticker and price history shows chart section", %{conn: conn} do
+      holding = holding_fixture(%{asset: "Bitcoin", ticker: "BTC", asset_type: "crypto", quantity: 2.5})
+      # Record some price history for BTC
+      price_history_fixture(%{ticker: "BTC", price: 45000.0, currency: "USD"})
+      price_history_fixture(%{ticker: "BTC", price: 46000.0, currency: "USD"})
+      price_history_fixture(%{ticker: "BTC", price: 47000.0, currency: "USD"})
+
+      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
+
+      assert html =~ "Price History"
+      assert html =~ "data points"
+      assert html =~ "price-history-chart"
+      assert html =~ "ChartHook"
+    end
+  end
+
+  describe "gains and losses with sold lots" do
+    test "shows unrealized and realized gains with mixed lots", %{conn: conn} do
+      holding = holding_fixture(%{asset: "Mixed Gains Stock", ticker: "MGS", quantity: 200.0, asset_type: "equity"})
+
+      # Lot 1: bought 100 at $10, sold 50 at $15 (realized gain = 50 * 5 = 250)
+      cost_basis_lot_fixture(%{
+        holding: holding,
+        quantity: 100.0,
+        price_per_unit: 10.0,
+        purchase_date: "2024-01-01",
+        sold_quantity: 50.0,
+        sold_price: 15.0
+      })
+
+      # Lot 2: bought 100 at $20, sold 30 at $15 (realized loss = 30 * -5 = -150)
+      cost_basis_lot_fixture(%{
+        holding: holding,
+        quantity: 100.0,
+        price_per_unit: 20.0,
+        purchase_date: "2024-02-01",
+        sold_quantity: 30.0,
+        sold_price: 15.0
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
+
+      assert html =~ "Unrealized G/L"
+      assert html =~ "Realized G/L"
+      assert html =~ "Total Cost Basis"
+      assert html =~ "Total Gain/Loss"
+      assert html =~ "2 lots"
+    end
+
+    test "shows cost basis for unsold lots only", %{conn: conn} do
+      holding = holding_fixture(%{asset: "Cost Basis Test", ticker: "CBT", quantity: 100.0})
+
+      # Fully sold lot - should not count in cost basis
+      cost_basis_lot_fixture(%{
+        holding: holding,
+        quantity: 50.0,
+        price_per_unit: 10.0,
+        sold_quantity: 50.0,
+        sold_price: 12.0
+      })
+
+      # Partially unsold lot - remaining 30 should count
+      cost_basis_lot_fixture(%{
+        holding: holding,
+        quantity: 50.0,
+        price_per_unit: 15.0,
+        sold_quantity: 20.0,
+        sold_price: 18.0
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
+      assert html =~ "Total Cost Basis"
+    end
+  end
+
+  describe "holding with custodian" do
+    test "shows custodian details when associated", %{conn: conn} do
+      holding = holding_fixture(%{asset: "Custodied Asset"})
+      custodian_account_fixture(%{holding: holding, bank: "JP Morgan", account_number: "ACC-12345"})
+
+      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
+
+      assert html =~ "JP Morgan"
+      assert html =~ "ACC-12345"
+    end
+  end
+
+  describe "format_decimal edge cases" do
+    test "lot with zero quantity shows 0", %{conn: conn} do
+      holding = holding_fixture(%{asset: "Zero Lot Asset"})
+      cost_basis_lot_fixture(%{holding: holding, quantity: 0.0, price_per_unit: 100.0})
+
+      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
+      assert html =~ "Zero Lot Asset"
+    end
+  end
+
+  describe "integer value formatting" do
+    test "holding with integer quantity displays correctly", %{conn: conn} do
+      holding = holding_fixture(%{asset: "Integer Qty", quantity: 100.0})
+      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
+
+      assert html =~ "100"
+    end
+  end
 end

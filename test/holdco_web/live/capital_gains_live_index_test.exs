@@ -151,5 +151,73 @@ defmodule HoldcoWeb.CapitalGainsLiveIndexTest do
       assert html =~ "ST Unrealized"
       assert html =~ "LT Unrealized"
     end
+
+    test "method selector shows all three options in form", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/tax/capital-gains")
+      assert html =~ ~s(value="fifo")
+      assert html =~ ~s(value="lifo")
+      assert html =~ ~s(value="specific")
+    end
+
+    test "gain_class renders no num-positive class for zero gains", %{conn: conn} do
+      # With no holdings, all gains are zero, so gain_class(0.0) returns ""
+      {:ok, _live, html} = live(conn, ~p"/tax/capital-gains")
+      # The gain metric values should not have num-positive class when all gains are zero
+      refute html =~ "num-positive"
+    end
+
+    test "renders positive gains with num-positive class", %{conn: conn} do
+      company = company_fixture()
+      holding = holding_fixture(%{company: company, asset: "GainStock", ticker: "GS", quantity: 100.0})
+      # Purchase at low price, lots with sold_quantity at higher price for realized gain
+      cost_basis_lot_fixture(%{
+        holding: holding,
+        purchase_date: "2022-01-01",
+        quantity: 100.0,
+        price_per_unit: 50.0,
+        sold_quantity: 50.0,
+        sold_price: 150.0
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/tax/capital-gains")
+      assert html =~ "num-positive"
+    end
+
+    test "renders negative gains with num-negative class", %{conn: conn} do
+      company = company_fixture()
+      holding = holding_fixture(%{company: company, asset: "LossStock", ticker: "LS", quantity: 100.0})
+      # Purchase at high price, sell at lower price for a loss
+      cost_basis_lot_fixture(%{
+        holding: holding,
+        purchase_date: "2022-01-01",
+        quantity: 100.0,
+        price_per_unit: 200.0,
+        sold_quantity: 50.0,
+        sold_price: 50.0
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/tax/capital-gains")
+      assert html =~ "num-negative"
+    end
+
+    test "renders company name in results table", %{conn: conn} do
+      company = company_fixture(%{name: "Capital Corp"})
+      holding = holding_fixture(%{company: company, asset: "CapAsset", ticker: "CA", quantity: 50.0})
+      cost_basis_lot_fixture(%{holding: holding, purchase_date: "2023-01-01", quantity: 50.0, price_per_unit: 100.0})
+
+      {:ok, _live, html} = live(conn, ~p"/tax/capital-gains")
+      assert html =~ "Capital Corp"
+      assert html =~ "CapAsset"
+    end
+
+    test "shows ticker in parentheses next to asset name", %{conn: conn} do
+      company = company_fixture()
+      holding = holding_fixture(%{company: company, asset: "Apple Inc", ticker: "AAPL", quantity: 10.0})
+      cost_basis_lot_fixture(%{holding: holding, purchase_date: "2023-01-01", quantity: 10.0, price_per_unit: 150.0})
+
+      {:ok, _live, html} = live(conn, ~p"/tax/capital-gains")
+      assert html =~ "Apple Inc"
+      assert html =~ "(AAPL)"
+    end
   end
 end

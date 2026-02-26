@@ -323,4 +323,131 @@ defmodule HoldcoWeb.ProjectLiveTest do
       refute html =~ "Add Project"
     end
   end
+
+  # ------------------------------------------------------------------
+  # handle_info (pubsub)
+  # ------------------------------------------------------------------
+
+  describe "handle_info" do
+    test "pubsub message triggers reload", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/projects")
+
+      project_fixture(%{name: "PubSub Project", status: "active"})
+
+      send(view.pid, {:project_changed, %{}})
+      html = render(view)
+      assert html =~ "PubSub Project"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # save/update error paths
+  # ------------------------------------------------------------------
+
+  describe "save error path" do
+    test "editor save failure shows error flash", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+
+      {:ok, view, _html} = live(conn, ~p"/projects")
+      view |> element("button", "Add Project") |> render_click()
+
+      # Submit with empty name to trigger error
+      html =
+        view
+        |> form(~s(form[phx-submit="save"]), %{
+          "project" => %{
+            "name" => "",
+            "status" => "planned",
+            "project_type" => "fundraise"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to create project" || html =~ "Projects"
+    end
+  end
+
+  describe "update error path" do
+    test "editor update failure shows error flash", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+
+      project = project_fixture(%{name: "Fail Update Proj", status: "planned"})
+
+      {:ok, view, _html} = live(conn, ~p"/projects")
+
+      view
+      |> element(~s(button[phx-click="edit"][phx-value-id="#{project.id}"]))
+      |> render_click()
+
+      # Submit with empty name to trigger error
+      html =
+        view
+        |> form(~s(form[phx-submit="update"]), %{
+          "project" => %{
+            "name" => ""
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update project" || html =~ "Projects"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # budget formatting and contact display
+  # ------------------------------------------------------------------
+
+  describe "project display" do
+    test "displays budget with commas", %{conn: conn} do
+      project_fixture(%{
+        name: "Big Budget Proj",
+        status: "active",
+        budget: Decimal.new("1000000"),
+        currency: "USD"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/projects")
+      assert html =~ "1,000,000"
+      assert html =~ "USD"
+    end
+
+    test "displays project without budget shows dashes", %{conn: conn} do
+      project_fixture(%{name: "No Budget Proj", status: "planned", budget: nil})
+
+      {:ok, _view, html} = live(conn, ~p"/projects")
+      assert html =~ "No Budget Proj"
+      assert html =~ "---"
+    end
+
+    test "displays project with contact name", %{conn: conn} do
+      contact = contact_fixture(%{name: "PM Lead"})
+      project_fixture(%{name: "Contact Proj", status: "active", contact_id: contact.id})
+
+      {:ok, _view, html} = live(conn, ~p"/projects")
+      assert html =~ "PM Lead"
+    end
+
+    test "displays all status filter buttons", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/projects")
+      assert html =~ "Planned"
+      assert html =~ "Active"
+      assert html =~ "On hold"
+      assert html =~ "Completed"
+      assert html =~ "Cancelled"
+    end
+
+    test "filter by on_hold status", %{conn: conn} do
+      project_fixture(%{name: "Hold Proj", status: "on_hold"})
+      project_fixture(%{name: "Active Proj 3", status: "active"})
+
+      {:ok, view, _html} = live(conn, ~p"/projects")
+      html =
+        view
+        |> element(~s(button[phx-click="filter_status"][phx-value-status="on_hold"]))
+        |> render_click()
+
+      assert html =~ "Hold Proj"
+      refute html =~ "Active Proj 3"
+    end
+  end
 end

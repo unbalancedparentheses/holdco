@@ -299,4 +299,135 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       assert render(view) =~ "Approvals"
     end
   end
+
+  # ── handle_info PubSub ──────────────────────────────────
+
+  describe "handle_info" do
+    test "handles PubSub broadcast by reloading", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/approvals")
+
+      # Create an approval request after mount
+      approval_request_fixture(%{
+        requested_by: "pubsub@test.com",
+        table_name: "companies",
+        action: "create",
+        status: "pending"
+      })
+
+      # Sending any message should trigger reload
+      send(view.pid, {:platform_changed, %{}})
+      html = render(view)
+      assert html =~ "pubsub@test.com"
+    end
+  end
+
+  # ── Reviewed request rendering ──────────────────────────
+
+  describe "reviewed requests rendering" do
+    test "renders rejected request in reviewed section", %{conn: conn} do
+      approval_request_fixture(%{
+        requested_by: "rejected@test.com",
+        table_name: "holdings",
+        action: "delete",
+        status: "rejected",
+        reviewed_by: "reviewer@test.com"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/approvals")
+
+      assert html =~ "rejected@test.com"
+      assert html =~ "rejected"
+      assert html =~ "reviewer@test.com"
+    end
+
+    test "renders request with record_id", %{conn: conn} do
+      approval_request_fixture(%{
+        requested_by: "record@test.com",
+        table_name: "companies",
+        action: "update",
+        record_id: 42,
+        status: "pending"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/approvals")
+
+      assert html =~ "#42"
+    end
+
+    test "renders request without record_id shows dash", %{conn: conn} do
+      approval_request_fixture(%{
+        requested_by: "norecord@test.com",
+        table_name: "companies",
+        action: "create",
+        record_id: nil,
+        status: "pending"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/approvals")
+
+      assert html =~ "norecord@test.com"
+    end
+
+    test "action tags render correctly for delete action", %{conn: conn} do
+      approval_request_fixture(%{
+        requested_by: "delaction@test.com",
+        table_name: "companies",
+        action: "delete",
+        status: "pending"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/approvals")
+
+      assert html =~ "tag-crimson"
+    end
+
+    test "action tags render correctly for update action", %{conn: conn} do
+      approval_request_fixture(%{
+        requested_by: "updaction@test.com",
+        table_name: "companies",
+        action: "update",
+        status: "pending"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/approvals")
+
+      assert html =~ "tag-lemon"
+    end
+
+    test "reviewed_at datetime is formatted", %{conn: conn} do
+      approval_request_fixture(%{
+        requested_by: "datetime@test.com",
+        table_name: "companies",
+        action: "create",
+        status: "approved",
+        reviewed_by: "admin@test.com",
+        reviewed_at: ~U[2025-06-15 14:30:00Z]
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/approvals")
+
+      assert html =~ "2025-06-15 14:30"
+    end
+
+    test "status tags render correctly for approved, rejected, and unknown", %{conn: conn} do
+      approval_request_fixture(%{
+        requested_by: "approved@test.com",
+        table_name: "companies",
+        action: "create",
+        status: "approved"
+      })
+
+      approval_request_fixture(%{
+        requested_by: "rejected2@test.com",
+        table_name: "companies",
+        action: "create",
+        status: "rejected"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/approvals")
+
+      assert html =~ "tag-jade"
+      assert html =~ "tag-crimson"
+    end
+  end
 end

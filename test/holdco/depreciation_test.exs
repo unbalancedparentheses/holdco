@@ -167,5 +167,92 @@ defmodule Holdco.DepreciationTest do
       # With zero useful life, no depreciation should occur - all entries have 0 depreciation
       assert Enum.all?(schedule, fn row -> row.depreciation == 0.0 end)
     end
+
+    test "handles nil purchase_date" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 6_000.0,
+          salvage_value: 0.0,
+          useful_life_months: 6,
+          depreciation_method: "straight_line",
+          purchase_date: nil
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 6
+    end
+
+    test "handles nil purchase_price and salvage_value" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: nil,
+          salvage_value: nil,
+          useful_life_months: 3,
+          depreciation_method: "straight_line",
+          purchase_date: "2024-01-01"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 3
+      assert Enum.all?(schedule, fn row -> row.depreciation == 0.0 end)
+    end
+
+    test "handles nil useful_life_months" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 5_000.0,
+          salvage_value: 0.0,
+          useful_life_months: nil,
+          depreciation_method: "straight_line",
+          purchase_date: "2024-01-01"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 1
+    end
+
+    test "handles nil depreciation_method defaults to straight_line" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 3_000.0,
+          salvage_value: 0.0,
+          useful_life_months: 3,
+          depreciation_method: nil,
+          purchase_date: "2024-01-01"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 3
+      # Should be straight line: 1000 per month
+      assert hd(schedule).depreciation == 1_000.0
+    end
+
+    test "declining balance with zero useful_life" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 5_000.0,
+          salvage_value: 0.0,
+          useful_life_months: 0,
+          depreciation_method: "declining_balance"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert Enum.all?(schedule, fn row -> row.depreciation == 0.0 end)
+    end
+
+    test "handles invalid purchase_date string" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 5_000.0,
+          salvage_value: 0.0,
+          useful_life_months: 3,
+          depreciation_method: "straight_line",
+          purchase_date: "not-a-date"
+        })
+
+      # parse_date returns nil for invalid strings, falls back to Date.utc_today()
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 3
+    end
   end
 end

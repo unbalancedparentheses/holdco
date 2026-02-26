@@ -186,4 +186,93 @@ defmodule HoldcoWeb.EntityComparisonLiveIndexTest do
       assert html =~ "Entity Comparison"
     end
   end
+
+  describe "balance sheet with journal entries" do
+    test "shows account balances side by side", %{conn: conn} do
+      c1 = company_fixture(%{name: "BSJournalA"})
+      c2 = company_fixture(%{name: "BSJournalB"})
+
+      a1 = account_fixture(%{company: c1, account_type: "asset", code: "1100", name: "Cash A"})
+      a2 = account_fixture(%{company: c1, account_type: "equity", code: "3100", name: "Equity A"})
+      a3 = account_fixture(%{company: c2, account_type: "asset", code: "1200", name: "Cash B"})
+      a4 = account_fixture(%{company: c2, account_type: "liability", code: "2200", name: "Loan B"})
+
+      e1 = journal_entry_fixture(%{company: c1})
+      journal_line_fixture(%{entry: e1, account: a1, debit: 5000.0, credit: 0.0})
+      journal_line_fixture(%{entry: e1, account: a2, debit: 0.0, credit: 5000.0})
+
+      e2 = journal_entry_fixture(%{company: c2})
+      journal_line_fixture(%{entry: e2, account: a3, debit: 3000.0, credit: 0.0})
+      journal_line_fixture(%{entry: e2, account: a4, debit: 0.0, credit: 3000.0})
+
+      {:ok, live, _html} = live(conn, ~p"/compare")
+      render_click(live, "toggle_company", %{"id" => to_string(c1.id)})
+      html = render_click(live, "toggle_company", %{"id" => to_string(c2.id)})
+
+      assert html =~ "BSJournalA"
+      assert html =~ "BSJournalB"
+      assert html =~ "Assets"
+      assert html =~ "Total Assets"
+      assert html =~ "5,000" || html =~ "5000"
+    end
+  end
+
+  describe "income statement with journal entries" do
+    test "shows revenue and expense comparison", %{conn: conn} do
+      c1 = company_fixture(%{name: "ISJournalA"})
+      c2 = company_fixture(%{name: "ISJournalB"})
+
+      rev1 = account_fixture(%{company: c1, account_type: "revenue", code: "4100", name: "Sales A"})
+      exp1 = account_fixture(%{company: c1, account_type: "expense", code: "5100", name: "COGS A"})
+      rev2 = account_fixture(%{company: c2, account_type: "revenue", code: "4200", name: "Sales B"})
+
+      e1 = journal_entry_fixture(%{company: c1})
+      journal_line_fixture(%{entry: e1, account: rev1, debit: 0.0, credit: 2000.0})
+      journal_line_fixture(%{entry: e1, account: exp1, debit: 2000.0, credit: 0.0})
+
+      e2 = journal_entry_fixture(%{company: c2})
+      journal_line_fixture(%{entry: e2, account: rev2, debit: 0.0, credit: 1500.0})
+      journal_line_fixture(%{entry: e2, account: account_fixture(%{company: c2, account_type: "expense", code: "5200", name: "COGS B"}), debit: 1500.0, credit: 0.0})
+
+      {:ok, live, _html} = live(conn, ~p"/compare")
+      render_click(live, "toggle_company", %{"id" => to_string(c1.id)})
+      render_click(live, "toggle_company", %{"id" => to_string(c2.id)})
+
+      html = render_click(live, "switch_tab", %{"tab" => "income_statement"})
+      assert html =~ "Revenue"
+      assert html =~ "Expenses"
+      assert html =~ "Net Income"
+      assert html =~ "ISJournalA"
+      assert html =~ "ISJournalB"
+    end
+  end
+
+  describe "checkmark and selected display" do
+    test "selected companies show checkmark", %{conn: conn} do
+      c1 = company_fixture(%{name: "CheckCo"})
+
+      {:ok, live, _html} = live(conn, ~p"/compare")
+      html = render_click(live, "toggle_company", %{"id" => to_string(c1.id)})
+      assert html =~ "Selected:"
+      assert html =~ "CheckCo"
+    end
+  end
+
+  describe "three companies comparison" do
+    test "three companies can be selected and compared", %{conn: conn} do
+      c1 = company_fixture(%{name: "TriA"})
+      c2 = company_fixture(%{name: "TriB"})
+      c3 = company_fixture(%{name: "TriC"})
+
+      {:ok, live, _html} = live(conn, ~p"/compare")
+      render_click(live, "toggle_company", %{"id" => to_string(c1.id)})
+      render_click(live, "toggle_company", %{"id" => to_string(c2.id)})
+      html = render_click(live, "toggle_company", %{"id" => to_string(c3.id)})
+
+      assert html =~ "TriA"
+      assert html =~ "TriB"
+      assert html =~ "TriC"
+      assert html =~ "Balance Sheet"
+    end
+  end
 end

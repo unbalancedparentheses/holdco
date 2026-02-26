@@ -399,4 +399,93 @@ defmodule HoldcoWeb.LeaseLiveIndexTest do
       assert html =~ "Add Your First Lease"
     end
   end
+
+  describe "edge cases" do
+    test "lease with zero discount rate shows PV as payment * months", %{conn: conn} do
+      company = company_fixture()
+      lease = lease_fixture(%{
+        company: company,
+        lessor: "Zero Rate Lessor",
+        monthly_payment: 1000.0,
+        discount_rate: 0.0,
+        start_date: "2024-01-01",
+        end_date: "2025-12-31"
+      })
+
+      {:ok, live, _html} = live(conn, ~p"/leases")
+      html = render_click(live, "select_lease", %{"id" => to_string(lease.id)})
+      assert html =~ "Zero Rate Lessor"
+      assert html =~ "Amortization Schedule"
+    end
+
+    test "lease with nil asset description shows lessor name", %{conn: conn} do
+      company = company_fixture()
+      lease = lease_fixture(%{
+        company: company,
+        lessor: "NoDesc Lessor",
+        asset_description: nil,
+        monthly_payment: 2000.0,
+        discount_rate: 0.05,
+        start_date: "2024-01-01",
+        end_date: "2026-12-31"
+      })
+
+      {:ok, live, _html} = live(conn, ~p"/leases")
+      html = render_click(live, "select_lease", %{"id" => to_string(lease.id)})
+      assert html =~ "NoDesc Lessor"
+    end
+
+    test "lease with nil lease_type shows Operating by default", %{conn: conn} do
+      company = company_fixture()
+      lease_fixture(%{
+        company: company,
+        lessor: "Nil Type Lessor",
+        lease_type: nil
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/leases")
+      assert html =~ "Operating"
+    end
+
+    test "lease with missing dates shows zero PV", %{conn: conn} do
+      company = company_fixture()
+      lease_fixture(%{
+        company: company,
+        lessor: "No Dates PV",
+        start_date: "",
+        end_date: "",
+        monthly_payment: 5000.0
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/leases")
+      assert html =~ "No Dates PV"
+    end
+
+    test "lease with nil discount rate uses default 5%", %{conn: conn} do
+      company = company_fixture()
+      lease_fixture(%{
+        company: company,
+        lessor: "Nil Rate Lessor",
+        discount_rate: nil,
+        monthly_payment: 3000.0,
+        start_date: "2024-01-01",
+        end_date: "2028-12-31"
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/leases")
+      assert html =~ "Nil Rate Lessor"
+    end
+
+    test "lease format_rate with nil shows 0.00", %{conn: conn} do
+      company = company_fixture()
+      lease_fixture(%{
+        company: company,
+        lessor: "NilFmtRate",
+        discount_rate: nil
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/leases")
+      assert html =~ "0.00"
+    end
+  end
 end

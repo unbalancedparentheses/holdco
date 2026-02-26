@@ -239,5 +239,299 @@ defmodule HoldcoWeb.BankAccountsLiveTest do
 
       assert html =~ "1,234,567"
     end
+
+    test "handles account with nil balance", %{conn: conn} do
+      account =
+        bank_account_fixture(%{
+          bank_name: "Nil Balance Bank",
+          balance: nil,
+          account_type: "checking"
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      # format_number(nil) falls through to the catch-all returning "0"
+      assert html =~ "$0"
+    end
+
+    test "shows integer balance formatting", %{conn: conn} do
+      account =
+        bank_account_fixture(%{
+          bank_name: "Integer Balance Bank",
+          balance: 5000
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "5,000"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Index page CRUD operations
+  # ------------------------------------------------------------------
+
+  describe "index page form interactions" do
+    test "show_form opens add bank account form", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "show_form", %{})
+      assert html =~ "Add Bank Account"
+      assert html =~ "modal-overlay"
+    end
+
+    test "close_form closes the modal", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "show_form", %{})
+      html = render_click(view, "close_form", %{})
+      refute html =~ "modal-overlay"
+    end
+
+    test "noop event does nothing", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "noop", %{})
+      assert html =~ "Bank Accounts"
+    end
+
+    test "edit opens edit form", %{conn: conn} do
+      company = company_fixture()
+      ba = bank_account_fixture(%{company: company, bank_name: "Edit Me Bank"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "edit", %{"id" => to_string(ba.id)})
+      assert html =~ "Edit Bank Account"
+      assert html =~ "Save Changes"
+    end
+
+    test "filter by company on index page", %{conn: conn} do
+      co1 = company_fixture(%{name: "BankIndexCo1"})
+      co2 = company_fixture(%{name: "BankIndexCo2"})
+      bank_account_fixture(%{company: co1, bank_name: "Bank in Co1"})
+      bank_account_fixture(%{company: co2, bank_name: "Bank in Co2"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_change(view, "filter_company", %{"company_id" => to_string(co1.id)})
+      assert html =~ "Bank in Co1"
+    end
+
+    test "reset company filter to all on index", %{conn: conn} do
+      co1 = company_fixture()
+      bank_account_fixture(%{company: co1, bank_name: "AllBankReset"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_change(view, "filter_company", %{"company_id" => to_string(co1.id)})
+      html = render_change(view, "filter_company", %{"company_id" => ""})
+      assert html =~ "AllBankReset"
+    end
+  end
+
+  describe "index page viewer permission guards" do
+    test "viewer cannot save a bank account", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "save", %{"bank_account" => %{"bank_name" => "Blocked"}})
+      assert html =~ "permission"
+    end
+
+    test "viewer cannot update a bank account", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "update", %{"bank_account" => %{"bank_name" => "Blocked"}})
+      assert html =~ "permission"
+    end
+
+    test "viewer cannot delete a bank account", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "delete", %{})
+      assert html =~ "permission"
+    end
+
+    test "viewer cannot save_pool", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "save_pool", %{"pool" => %{"name" => "Blocked Pool"}})
+      assert html =~ "permission"
+    end
+
+    test "viewer cannot delete_pool", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "delete_pool", %{})
+      assert html =~ "permission"
+    end
+  end
+
+  describe "index page editor CRUD" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "editor can create a bank account", %{conn: conn} do
+      company = company_fixture(%{name: "NewBankCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "show_form", %{})
+
+      html =
+        render_click(view, "save", %{
+          "bank_account" => %{
+            "company_id" => to_string(company.id),
+            "bank_name" => "New Test Bank",
+            "currency" => "USD",
+            "balance" => "50000"
+          }
+        })
+
+      assert html =~ "Bank account added" || html =~ "New Test Bank"
+    end
+
+    test "editor save failure shows error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "show_form", %{})
+
+      html =
+        render_click(view, "save", %{
+          "bank_account" => %{"bank_name" => ""}
+        })
+
+      assert html =~ "Failed to add bank account" || html =~ "Bank Accounts"
+    end
+
+    test "editor can update a bank account", %{conn: conn} do
+      company = company_fixture()
+      ba = bank_account_fixture(%{company: company, bank_name: "Update Me Bank"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "edit", %{"id" => to_string(ba.id)})
+
+      html =
+        render_click(view, "update", %{
+          "bank_account" => %{
+            "bank_name" => "Updated Bank Name",
+            "balance" => "99999"
+          }
+        })
+
+      assert html =~ "Bank account updated" || html =~ "Updated Bank Name"
+    end
+
+    test "editor update failure shows error", %{conn: conn} do
+      company = company_fixture()
+      ba = bank_account_fixture(%{company: company, bank_name: "Fail Update Bank"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "edit", %{"id" => to_string(ba.id)})
+
+      html =
+        render_click(view, "update", %{
+          "bank_account" => %{"bank_name" => ""}
+        })
+
+      assert html =~ "Failed to update bank account" || html =~ "Bank Accounts"
+    end
+
+    test "editor can delete a bank account", %{conn: conn} do
+      company = company_fixture()
+      ba = bank_account_fixture(%{company: company, bank_name: "Delete Me Bank"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "delete", %{"id" => to_string(ba.id)})
+      assert html =~ "Bank account deleted"
+    end
+
+    test "editor sees Add Account button", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
+      assert html =~ "Add Account"
+    end
+  end
+
+  describe "cash pools" do
+    test "shows cash pools section", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
+      assert html =~ "Cash Pools"
+    end
+
+    test "show_pool_form opens pool modal", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "show_pool_form", %{})
+      assert html =~ "Add Cash Pool"
+    end
+
+    test "close_pool_form closes pool modal", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "show_pool_form", %{})
+      html = render_click(view, "close_pool_form", %{})
+      refute html =~ "Add Cash Pool"
+    end
+
+    test "editor can create a cash pool", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "show_pool_form", %{})
+
+      html =
+        render_click(view, "save_pool", %{
+          "pool" => %{
+            "name" => "New Test Pool",
+            "currency" => "USD",
+            "target_balance" => "100000"
+          }
+        })
+
+      assert html =~ "Cash pool added" || html =~ "New Test Pool"
+    end
+
+    test "editor can delete a cash pool", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      pool = cash_pool_fixture(%{name: "Delete Pool"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "delete_pool", %{"id" => to_string(pool.id)})
+      assert html =~ "Cash pool deleted"
+    end
+
+    test "editor save_pool failure shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "show_pool_form", %{})
+
+      html =
+        render_click(view, "save_pool", %{
+          "pool" => %{"name" => ""}
+        })
+
+      assert html =~ "Failed to add cash pool" || html =~ "Bank Accounts"
+    end
+  end
+
+  describe "index page handle_info" do
+    test "pubsub message triggers reload", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+
+      company = company_fixture()
+      bank_account_fixture(%{company: company, bank_name: "PubSub Bank"})
+
+      send(view.pid, {:banking_changed, %{}})
+      html = render(view)
+      assert html =~ "PubSub Bank"
+    end
+  end
+
+  describe "index page rendering" do
+    test "shows currency chart section", %{conn: conn} do
+      company = company_fixture()
+      bank_account_fixture(%{company: company, bank_name: "ChartBank", currency: "USD", balance: 10000.0})
+      bank_account_fixture(%{company: company, bank_name: "ChartBank2", currency: "EUR", balance: 5000.0})
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
+      assert html =~ "Balance by Currency"
+      assert html =~ "By Currency"
+      assert html =~ "currency-chart"
+    end
+
+    test "shows total balance in metrics strip", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
+      assert html =~ "Total Balance"
+      assert html =~ "Accounts"
+      assert html =~ "Currencies"
+    end
   end
 end

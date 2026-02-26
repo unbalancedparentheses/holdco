@@ -654,4 +654,171 @@ defmodule HoldcoWeb.ImportLiveTest do
       assert html =~ "CSV Parse Error"
     end
   end
+
+  describe "multiple row import (editor)" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "importing multiple companies in one CSV", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      csv_content = "Name,Country,Entity Type,Category,Ownership\nBulkCoA,US,LLC,Operating,100\nBulkCoB,UK,Ltd,SPV,50"
+
+      csv_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "companies.csv",
+            content: csv_content,
+            type: "text/csv"
+          }
+        ])
+
+      render_upload(csv_file, "companies.csv")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "2 created"
+    end
+
+    test "importing companies with mixed valid and duplicate shows partial results", %{conn: conn} do
+      company_fixture(%{name: "MixedExisting"})
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      csv_content = "Name,Country,Entity Type,Category,Ownership\nMixedNew,US,LLC,Operating,100\nMixedExisting,US,LLC,Holding,50"
+
+      csv_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "companies.csv",
+            content: csv_content,
+            type: "text/csv"
+          }
+        ])
+
+      render_upload(csv_file, "companies.csv")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "1 created"
+      assert html =~ "1 errors"
+    end
+
+    test "importing holdings with multiple rows including errors", %{conn: conn} do
+      company = company_fixture(%{name: "MultiHoldCo"})
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
+
+      csv_content = "Asset,Ticker,Type,Quantity,Currency,Company\nStock A,STK,stock,100,USD,#{company.name}\nBad Hold"
+
+      csv_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "holdings.csv",
+            content: csv_content,
+            type: "text/csv"
+          }
+        ])
+
+      render_upload(csv_file, "holdings.csv")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "1 created"
+      assert html =~ "Invalid number of columns"
+    end
+
+    test "importing transactions with multiple rows including errors", %{conn: conn} do
+      company = company_fixture(%{name: "MultiTxCo"})
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      view |> element(~s(button[phx-value-tab="transactions"])) |> render_click()
+
+      csv_content = "Date,Description,Amount,Currency,Category,Company\n2025-01-15,Payment,100,USD,income,#{company.name}\nBad Row"
+
+      csv_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "transactions.csv",
+            content: csv_content,
+            type: "text/csv"
+          }
+        ])
+
+      render_upload(csv_file, "transactions.csv")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "1 created"
+      assert html =~ "Invalid number of columns"
+    end
+
+    test "importing companies with category populated picks category over entity_type", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      csv_content = "Name,Country,Entity Type,Category,Ownership\nCatPickCo,US,LLC,subsidiary,100"
+
+      csv_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "companies.csv",
+            content: csv_content,
+            type: "text/csv"
+          }
+        ])
+
+      render_upload(csv_file, "companies.csv")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "1 created"
+    end
+
+    test "importing companies with float ownership rounds correctly", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      csv_content = "Name,Country,Entity Type,Category,Ownership\nFloatOwnerCo,US,LLC,Operating,75.5"
+
+      csv_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "companies.csv",
+            content: csv_content,
+            type: "text/csv"
+          }
+        ])
+
+      render_upload(csv_file, "companies.csv")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "1 created"
+    end
+  end
 end

@@ -182,5 +182,43 @@ defmodule HoldcoWeb.XbrlControllerTest do
       assert body =~ "us-gaap:Revenues"
       assert body =~ "us-gaap:CostsAndExpenses"
     end
+
+    test "XBRL output includes decimals attribute on value elements", %{conn: conn} do
+      company = company_fixture(%{name: "Decimals Corp"})
+      account_fixture(%{company: company, account_type: "asset", code: "1300", name: "Inventory"})
+
+      conn = get(conn, ~p"/export/xbrl/#{company.id}")
+      body = response(conn, 200)
+
+      assert body =~ ~s(decimals="2")
+    end
+
+    test "XBRL output has valid XML structure", %{conn: conn} do
+      company = company_fixture(%{name: "XML Struct Corp"})
+      conn = get(conn, ~p"/export/xbrl/#{company.id}")
+      body = response(conn, 200)
+
+      assert body =~ ~s(<?xml version="1.0")
+      assert body =~ "</xbrli:xbrl>"
+    end
+
+    test "handles multiple account types in balance sheet", %{conn: conn} do
+      company = company_fixture(%{name: "Multi BS Corp"})
+      asset_acct = account_fixture(%{company: company, account_type: "asset", code: "1000", name: "Cash"})
+      liab_acct = account_fixture(%{company: company, account_type: "liability", code: "2000", name: "Payable"})
+      equity_acct = account_fixture(%{company: company, account_type: "equity", code: "3000", name: "Retained"})
+
+      entry = journal_entry_fixture(%{company: company})
+      journal_line_fixture(%{entry: entry, account: asset_acct, debit: 1000.0, credit: 0.0})
+      journal_line_fixture(%{entry: entry, account: liab_acct, debit: 0.0, credit: 500.0})
+      journal_line_fixture(%{entry: entry, account: equity_acct, debit: 0.0, credit: 500.0})
+
+      conn = get(conn, ~p"/export/xbrl/#{company.id}")
+      body = response(conn, 200)
+
+      assert body =~ "Cash"
+      assert body =~ "Payable"
+      assert body =~ "Retained"
+    end
   end
 end

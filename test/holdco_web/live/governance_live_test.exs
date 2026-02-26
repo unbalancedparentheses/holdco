@@ -1056,4 +1056,154 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "Governance"
     end
   end
+
+  describe "create error paths" do
+    test "save_meeting with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_hook(view, "save_meeting", %{"board_meeting" => %{"company_id" => "", "scheduled_date" => ""}})
+      assert html =~ "Failed to add meeting"
+    end
+
+    test "save_cap_table with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_hook(view, "save_cap_table", %{"cap_table_entry" => %{"company_id" => "", "investor" => ""}})
+      assert html =~ "Failed to add entry"
+    end
+
+    test "save_resolution with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_hook(view, "save_resolution", %{"resolution" => %{"company_id" => "", "title" => ""}})
+      assert html =~ "Failed to add resolution"
+    end
+
+    test "save_deal with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_hook(view, "save_deal", %{"deal" => %{"company_id" => "", "counterparty" => ""}})
+      assert html =~ "Failed to add deal"
+    end
+
+    test "save_equity_plan with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_hook(view, "save_equity_plan", %{"equity_plan" => %{"company_id" => "", "plan_name" => ""}})
+      assert html =~ "Failed to add equity plan"
+    end
+
+    test "save_jv with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_hook(view, "save_jv", %{"joint_venture" => %{"company_id" => "", "name" => ""}})
+      assert html =~ "Failed to add joint venture"
+    end
+
+    test "save_poa with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/governance")
+
+      html = render_hook(view, "save_poa", %{"power_of_attorney" => %{"company_id" => "", "grantor" => ""}})
+      assert html =~ "Failed to add power of attorney"
+    end
+  end
+
+  describe "update error paths" do
+    test "update_meeting with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdMtgCo"})
+      meeting = board_meeting_fixture(%{company: company, title: "Board Q1"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-click="edit_meeting"][phx-value-id="#{meeting.id}"])) |> render_click()
+
+      html = render_hook(view, "update_meeting", %{"board_meeting" => %{"company_id" => "", "scheduled_date" => ""}})
+      assert html =~ "Failed to update meeting"
+    end
+
+    test "update_cap_table with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdCapCo"})
+      entry = cap_table_entry_fixture(%{company: company, shareholder_name: "Alice"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="cap_table"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_cap_table"][phx-value-id="#{entry.id}"])) |> render_click()
+
+      html = render_hook(view, "update_cap_table", %{"cap_table_entry" => %{"company_id" => "", "investor" => ""}})
+      assert html =~ "Failed to update entry"
+    end
+
+    test "update_resolution with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdResCo"})
+      resolution = shareholder_resolution_fixture(%{company: company, title: "Resolution A"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="resolutions"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_resolution"][phx-value-id="#{resolution.id}"])) |> render_click()
+
+      html = render_hook(view, "update_resolution", %{"resolution" => %{"company_id" => "", "title" => ""}})
+      assert html =~ "Failed to update resolution"
+    end
+
+    test "update_deal with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdDealCo"})
+      deal = deal_fixture(%{company: company, name: "Deal X"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="deals"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_deal"][phx-value-id="#{deal.id}"])) |> render_click()
+
+      html = render_hook(view, "update_deal", %{"deal" => %{"company_id" => "", "counterparty" => ""}})
+      assert html =~ "Failed to update deal"
+    end
+
+    test "update_equity_plan with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdEPCo"})
+      plan = equity_incentive_plan_fixture(%{company: company, plan_name: "ESOP"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="equity_plans"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_equity_plan"][phx-value-id="#{plan.id}"])) |> render_click()
+
+      html = render_hook(view, "update_equity_plan", %{"equity_plan" => %{"company_id" => "", "plan_name" => ""}})
+      assert html =~ "Failed to update equity plan"
+    end
+
+    test "update_jv with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdJVCo"})
+      jv = joint_venture_fixture(%{company: company, name: "JV Alpha"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="joint_ventures"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_jv"][phx-value-id="#{jv.id}"])) |> render_click()
+
+      html = render_hook(view, "update_jv", %{"joint_venture" => %{"company_id" => "", "name" => ""}})
+      assert html =~ "Failed to update joint venture"
+    end
+
+    test "update_poa with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdPOACo"})
+      poa = power_of_attorney_fixture(%{company: company, grantor: "John"})
+
+      {:ok, view, _html} = live(conn, ~p"/governance")
+      view |> element(~s(button[phx-value-tab="powers_of_attorney"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_poa"][phx-value-id="#{poa.id}"])) |> render_click()
+
+      html = render_hook(view, "update_poa", %{"power_of_attorney" => %{"company_id" => "", "grantor" => ""}})
+      assert html =~ "Failed to update power of attorney"
+    end
+  end
 end

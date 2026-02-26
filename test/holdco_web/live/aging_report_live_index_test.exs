@@ -198,5 +198,112 @@ defmodule HoldcoWeb.AgingReportLiveIndexTest do
       assert html =~ "AR/AP Aging Report"
       assert html =~ "grouped by age bucket"
     end
+
+    test "transactions in 61-90 day bucket are shown", %{conn: conn} do
+      company = company_fixture()
+
+      transaction_fixture(%{
+        company: company,
+        amount: 3000.0,
+        date: Date.utc_today() |> Date.add(-75) |> Date.to_iso8601(),
+        description: "Mid-age payment"
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/aging")
+      assert html =~ "61-90 days" || html =~ "Mid-age payment"
+    end
+
+    test "transactions in 91-120 day bucket are shown", %{conn: conn} do
+      company = company_fixture()
+
+      transaction_fixture(%{
+        company: company,
+        amount: 4000.0,
+        date: Date.utc_today() |> Date.add(-100) |> Date.to_iso8601(),
+        description: "Old-ish payment"
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/aging")
+      assert html =~ "91-120 days" || html =~ "Old-ish payment"
+    end
+
+    test "negative amount transactions shown in AP mode", %{conn: conn} do
+      company = company_fixture(%{name: "AP Company"})
+
+      transaction_fixture(%{
+        company: company,
+        amount: -8000.0,
+        date: Date.utc_today() |> Date.add(-15) |> Date.to_iso8601(),
+        description: "Recent payable",
+        counterparty: "Vendor Z",
+        currency: "USD"
+      })
+
+      {:ok, live, _html} = live(conn, ~p"/aging")
+      html = render_click(live, "toggle_mode", %{"mode" => "ap"})
+      assert html =~ "Accounts Payable"
+      assert html =~ "Recent payable" || html =~ "Vendor Z"
+    end
+
+    test "chart data is rendered in AR mode", %{conn: conn} do
+      company = company_fixture()
+
+      transaction_fixture(%{
+        company: company,
+        amount: 1500.0,
+        date: Date.utc_today() |> Date.to_iso8601(),
+        description: "Chart txn"
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/aging")
+      assert html =~ "aging-chart"
+      assert html =~ "Receivables"
+    end
+
+    test "chart data is rendered in AP mode", %{conn: conn} do
+      company = company_fixture()
+
+      transaction_fixture(%{
+        company: company,
+        amount: -2500.0,
+        date: Date.utc_today() |> Date.to_iso8601(),
+        description: "AP chart txn"
+      })
+
+      {:ok, live, _html} = live(conn, ~p"/aging")
+      html = render_click(live, "toggle_mode", %{"mode" => "ap"})
+      assert html =~ "Payables"
+    end
+
+    test "transaction with invalid date string is handled gracefully", %{conn: conn} do
+      company = company_fixture()
+
+      # Create a transaction with an invalid date via direct Repo insert
+      Holdco.Repo.insert!(%Holdco.Banking.Transaction{
+        company_id: company.id,
+        amount: 1000.0,
+        date: "not-a-date",
+        description: "Bad date txn",
+        transaction_type: "credit"
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/aging")
+      # days_old_int with invalid date returns 0 (current bucket)
+      assert html =~ "Aging Report"
+    end
+
+    test "grand total is shown in the metrics strip", %{conn: conn} do
+      company = company_fixture()
+
+      transaction_fixture(%{
+        company: company,
+        amount: 10_000.0,
+        date: Date.utc_today() |> Date.to_iso8601()
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/aging")
+      assert html =~ "Total"
+      assert html =~ "10,000"
+    end
   end
 end

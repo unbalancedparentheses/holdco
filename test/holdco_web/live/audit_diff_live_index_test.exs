@@ -295,5 +295,153 @@ defmodule HoldcoWeb.AuditDiffLiveIndexTest do
       # The audit log should show user email or fallback
       assert html =~ "companies"
     end
+
+    test "filter by table name and action combined", %{conn: conn} do
+      audit_log_fixture(%{action: "create", table_name: "companies"})
+      audit_log_fixture(%{action: "delete", table_name: "holdings"})
+
+      {:ok, live, _html} = live(conn, ~p"/audit-diffs")
+
+      html =
+        live
+        |> form("form[phx-submit=filter]", %{
+          "filters" => %{"action" => "delete", "table_name" => "holdings", "from" => "", "to" => ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Filtered"
+    end
+
+    test "expanded entry shows added type for new field", %{conn: conn} do
+      log =
+        audit_log_fixture(%{
+          action: "create",
+          table_name: "companies",
+          record_id: 1,
+          old_values: nil,
+          new_values: Jason.encode!(%{"name" => "Brand New Corp"})
+        })
+
+      {:ok, live, _html} = live(conn, ~p"/audit-diffs")
+      html = render_click(live, "toggle_expand", %{"id" => to_string(log.id)})
+      assert html =~ "Brand New Corp" || html =~ "field(s) changed"
+    end
+
+    test "expanded entry shows removed type for deleted field", %{conn: conn} do
+      log =
+        audit_log_fixture(%{
+          action: "delete",
+          table_name: "companies",
+          record_id: 1,
+          old_values: Jason.encode!(%{"name" => "Deleted Corp"}),
+          new_values: nil
+        })
+
+      {:ok, live, _html} = live(conn, ~p"/audit-diffs")
+      html = render_click(live, "toggle_expand", %{"id" => to_string(log.id)})
+      assert html =~ "Deleted Corp" || html =~ "field(s) changed"
+    end
+
+    test "audit_log_created broadcast with table_name filter match", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/audit-diffs")
+
+      # Set filter to only show "companies" table
+      live
+      |> form("form[phx-submit=filter]", %{
+        "filters" => %{"action" => "", "table_name" => "companies", "from" => "", "to" => ""}
+      })
+      |> render_submit()
+
+      # Send a matching log
+      log =
+        audit_log_fixture(%{
+          action: "create",
+          table_name: "companies",
+          record_id: 50
+        })
+
+      send(live.pid, {:audit_log_created, log})
+      html = render(live)
+      assert html =~ "companies"
+    end
+
+    test "audit_log_created broadcast with from date filter", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/audit-diffs")
+
+      # Set from date filter to today
+      today = Date.utc_today() |> Date.to_iso8601()
+
+      live
+      |> form("form[phx-submit=filter]", %{
+        "filters" => %{"action" => "", "table_name" => "", "from" => today, "to" => ""}
+      })
+      |> render_submit()
+
+      # Send a log - its inserted_at should be today so it should match
+      log =
+        audit_log_fixture(%{
+          action: "create",
+          table_name: "test_from_filter",
+          record_id: 60
+        })
+
+      send(live.pid, {:audit_log_created, log})
+      html = render(live)
+      assert html =~ "Audit Diffs"
+    end
+
+    test "audit_log_created broadcast with to date filter", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/audit-diffs")
+
+      # Set to date filter to today
+      today = Date.utc_today() |> Date.to_iso8601()
+
+      live
+      |> form("form[phx-submit=filter]", %{
+        "filters" => %{"action" => "", "table_name" => "", "from" => "", "to" => today}
+      })
+      |> render_submit()
+
+      log =
+        audit_log_fixture(%{
+          action: "update",
+          table_name: "test_to_filter",
+          record_id: 70,
+          old_values: Jason.encode!(%{"x" => "1"}),
+          new_values: Jason.encode!(%{"x" => "2"})
+        })
+
+      send(live.pid, {:audit_log_created, log})
+      html = render(live)
+      assert html =~ "Audit Diffs"
+    end
+
+    test "renders format_value with non-string value", %{conn: conn} do
+      log =
+        audit_log_fixture(%{
+          action: "update",
+          table_name: "companies",
+          record_id: 1,
+          old_values: Jason.encode!(%{"count" => 5}),
+          new_values: Jason.encode!(%{"count" => 10})
+        })
+
+      {:ok, live, _html} = live(conn, ~p"/audit-diffs")
+      html = render_click(live, "toggle_expand", %{"id" => to_string(log.id)})
+      assert html =~ "count" || html =~ "field(s) changed"
+    end
+
+    test "renders empty state with filters active", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/audit-diffs")
+
+      html =
+        live
+        |> form("form[phx-submit=filter]", %{
+          "filters" => %{"action" => "delete", "table_name" => "nonexistent_table", "from" => "", "to" => ""}
+        })
+        |> render_submit()
+
+      assert html =~ "No audit log entries match the current filters" || html =~ "Filtered"
+    end
   end
 end

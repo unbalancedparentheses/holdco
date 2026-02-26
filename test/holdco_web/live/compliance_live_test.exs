@@ -1297,6 +1297,257 @@ defmodule HoldcoWeb.ComplianceLiveTest do
   end
 
   # ------------------------------------------------------------------
+  # Error paths for create/update operations
+  # ------------------------------------------------------------------
+
+  describe "create error paths" do
+    test "save_filing with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_filing"]), %{
+          regulatory_filing: %{jurisdiction: "", filing_type: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add filing"
+    end
+
+    test "save_license with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="licenses"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_license"]), %{
+          regulatory_license: %{license_type: "", issuing_authority: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add license"
+    end
+
+    test "save_insurance with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="insurance"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_insurance"]), %{
+          insurance_policy: %{policy_type: "", provider: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add policy"
+    end
+
+    test "save_sanctions with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="sanctions"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_sanctions"]), %{
+          sanctions_check: %{checked_name: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add check"
+    end
+
+    test "save_esg with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="esg"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_esg"]), %{
+          esg_score: %{period: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add score"
+    end
+
+    test "save_fatca with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="fatca"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_fatca"]), %{
+          fatca_report: %{reporting_year: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add report"
+    end
+
+    test "save_withholding with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="withholding"])) |> render_click()
+      view |> element("button", "Add") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_withholding"]), %{
+          withholding_tax: %{payment_type: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add tax entry"
+    end
+  end
+
+  describe "update error paths" do
+    test "update_filing with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdateFilingCo"})
+      filing = regulatory_filing_fixture(%{company: company, jurisdiction: "US", filing_type: "10-K"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-click="edit_filing"][phx-value-id="#{filing.id}"])) |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_filing"]), %{
+          regulatory_filing: %{jurisdiction: "", filing_type: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update filing"
+    end
+
+    test "update_license with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdateLicCo"})
+      license = regulatory_license_fixture(%{company: company, license_type: "broker", issuing_authority: "SEC"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="licenses"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_license"][phx-value-id="#{license.id}"])) |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_license"]), %{
+          regulatory_license: %{license_type: "", issuing_authority: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update license"
+    end
+
+    test "update_insurance with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdateInsCo"})
+      policy = insurance_policy_fixture(%{company: company, policy_type: "D&O", provider: "Chubb"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="insurance"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_insurance"][phx-value-id="#{policy.id}"])) |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_insurance"]), %{
+          insurance_policy: %{policy_type: "", provider: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update policy"
+    end
+
+    test "update_sanctions with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdateSancCo"})
+      check = sanctions_check_fixture(%{company: company, checked_name: "Entity"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="sanctions"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_sanctions"][phx-value-id="#{check.id}"])) |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_sanctions"]), %{
+          sanctions_check: %{checked_name: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update check"
+    end
+
+    test "update_esg with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdateESGCo"})
+      score = esg_score_fixture(%{company: company, period: "2024-Q2"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="esg"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_esg"][phx-value-id="#{score.id}"])) |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_esg"]), %{
+          esg_score: %{period: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update score"
+    end
+
+    test "update_fatca with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdateFATCACo"})
+      report = fatca_report_fixture(%{company: company, reporting_year: 2024, jurisdiction: "SG"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="fatca"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_fatca"][phx-value-id="#{report.id}"])) |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_fatca"]), %{
+          fatca_report: %{reporting_year: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update report"
+    end
+
+    test "update_withholding with invalid data shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ErrUpdateWHCo"})
+      wt = withholding_tax_fixture(%{company: company, payment_type: "dividend", country_from: "US", country_to: "UK"})
+
+      {:ok, view, _html} = live(conn, ~p"/compliance")
+      view |> element(~s(button[phx-value-tab="withholding"])) |> render_click()
+      view |> element(~s(button[phx-click="edit_withholding"][phx-value-id="#{wt.id}"])) |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_withholding"]), %{
+          withholding_tax: %{payment_type: ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update tax entry"
+    end
+  end
+
+  # ------------------------------------------------------------------
   # Empty state rendering
   # ------------------------------------------------------------------
 

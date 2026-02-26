@@ -120,6 +120,12 @@ defmodule Holdco.AssetsTest do
     end
   end
 
+  describe "subscribe/0" do
+    test "subscribes to portfolio PubSub topic" do
+      assert :ok = Assets.subscribe()
+    end
+  end
+
   describe "portfolio_snapshots" do
     test "CRUD operations" do
       {:ok, ps} = Assets.create_portfolio_snapshot(%{date: "2024-06-01", nav: 500_000.0})

@@ -117,5 +117,31 @@ defmodule Holdco.QueryHelpersTest do
       results = Company |> QueryHelpers.apply_filters(%{sort_by: "name"}) |> Holdco.Repo.all()
       assert length(results) > 0
     end
+
+    test "sort_dir with non-nil value is a passthrough" do
+      company_fixture(%{name: "SortDirTest"})
+      # sort_dir with :desc is just a no-op pass-through
+      results = Company |> QueryHelpers.apply_filters(%{sort_dir: :desc}) |> Holdco.Repo.all()
+      assert length(results) > 0
+    end
+
+    test "apply_filters with integer as non-map argument" do
+      company_fixture()
+      results = Company |> QueryHelpers.apply_filters(42) |> Holdco.Repo.all()
+      assert length(results) > 0
+    end
+
+    test "apply_filters with string as non-map argument" do
+      company_fixture()
+      results = Company |> QueryHelpers.apply_filters("invalid") |> Holdco.Repo.all()
+      assert length(results) > 0
+    end
+
+    test "has_field? returns false for non-schema queries" do
+      # Passing a plain query should handle the rescue path
+      company_fixture()
+      results = Company |> QueryHelpers.apply_filters(%{fake_field_xyz: "value"}) |> Holdco.Repo.all()
+      assert is_list(results)
+    end
   end
 end

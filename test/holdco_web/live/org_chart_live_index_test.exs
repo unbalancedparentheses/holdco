@@ -127,5 +127,40 @@ defmodule HoldcoWeb.OrgChartLiveIndexTest do
       assert html =~ "Child A"
       assert html =~ "Child B"
     end
+
+    test "parent with single child does not show wide connector", %{conn: conn} do
+      parent = company_fixture(%{name: "Single Parent"})
+      company_fixture(%{name: "Only Child", parent_id: parent.id})
+
+      {:ok, _live, html} = live(conn, ~p"/org-chart")
+      assert html =~ "Single Parent"
+      assert html =~ "Only Child"
+    end
+
+    test "editor sees Add Company link on empty state", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      {:ok, _live, html} = live(conn, ~p"/org-chart")
+      assert html =~ "Add Company"
+    end
+
+    test "viewer does not see Add Company link on empty state", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/org-chart")
+      refute html =~ ~s(Add Company</a>)
+    end
+
+    test "renders company without category", %{conn: conn} do
+      company_fixture(%{name: "No Category Corp", category: nil})
+
+      {:ok, _live, html} = live(conn, ~p"/org-chart")
+      assert html =~ "No Category Corp"
+    end
+
+    test "renders company without ownership_pct", %{conn: conn} do
+      parent = company_fixture(%{name: "Parent No Pct"})
+      company_fixture(%{name: "Sub No Pct", parent_id: parent.id, ownership_pct: nil})
+
+      {:ok, _live, html} = live(conn, ~p"/org-chart")
+      assert html =~ "Sub No Pct"
+    end
   end
 end

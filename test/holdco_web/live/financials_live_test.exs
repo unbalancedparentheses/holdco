@@ -484,4 +484,60 @@ defmodule HoldcoWeb.FinancialsLiveTest do
       assert html =~ "You don&#39;t have permission to do that"
     end
   end
+
+  describe "currency symbol rendering" do
+    test "shows GBP symbol when currency changed to GBP", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/financials")
+
+      html =
+        view
+        |> form(~s(form[phx-change="change_currency"]), %{"currency" => "GBP"})
+        |> render_change()
+
+      assert html =~ "GBP"
+    end
+
+    test "shows JPY symbol when currency changed to JPY", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/financials")
+
+      html =
+        view
+        |> form(~s(form[phx-change="change_currency"]), %{"currency" => "JPY"})
+        |> render_change()
+
+      assert html =~ "JPY"
+    end
+
+    test "shows CHF prefix when currency changed to CHF", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/financials")
+
+      html =
+        view
+        |> form(~s(form[phx-change="change_currency"]), %{"currency" => "CHF"})
+        |> render_change()
+
+      assert html =~ "CHF"
+    end
+
+    test "shows ARS prefix for non-standard currency", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/financials")
+
+      html =
+        view
+        |> form(~s(form[phx-change="change_currency"]), %{"currency" => "ARS"})
+        |> render_change()
+
+      assert html =~ "ARS"
+    end
+  end
+
+  describe "handle_info for PubSub" do
+    test "handles broadcast message by reloading data", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/financials")
+
+      send(view.pid, {:finance_changed, %{}})
+      html = render(view)
+      assert html =~ "Financials"
+    end
+  end
 end

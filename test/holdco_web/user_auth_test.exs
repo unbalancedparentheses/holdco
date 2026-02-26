@@ -6,6 +6,7 @@ defmodule HoldcoWeb.UserAuthTest do
   alias HoldcoWeb.UserAuth
 
   import Holdco.AccountsFixtures
+  import Phoenix.LiveViewTest
 
   @remember_me_cookie "_holdco_web_user_remember_me"
   @remember_me_cookie_max_age 60 * 60 * 24 * 14
@@ -182,6 +183,19 @@ defmodule HoldcoWeb.UserAuthTest do
       assert %{value: new_signed_token, max_age: max_age} = conn.resp_cookies[@remember_me_cookie]
       assert new_signed_token != signed_token
       assert max_age == @remember_me_cookie_max_age
+    end
+  end
+
+  describe "on_mount :ensure_authenticated" do
+    test "redirects to login when no valid user token in session", %{conn: conn} do
+      # Visit a LiveView page without being authenticated
+      conn = conn |> Plug.Test.init_test_session(%{})
+      assert {:error, {:redirect, %{to: "/users/log-in"}}} = live(conn, ~p"/")
+    end
+
+    test "redirects to login when user token is invalid", %{conn: conn} do
+      conn = conn |> Plug.Test.init_test_session(%{user_token: "invalid_token"})
+      assert {:error, {:redirect, %{to: "/users/log-in"}}} = live(conn, ~p"/")
     end
   end
 

@@ -354,4 +354,93 @@ defmodule HoldcoWeb.SettingsLiveTest do
       assert html =~ "Admin access required"
     end
   end
+
+  describe "error paths for admin CRUD" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      :ok
+    end
+
+    test "save_setting with invalid data shows error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      view |> element("button", "Add Setting") |> render_click()
+
+      # Submit with empty key
+      html =
+        view
+        |> form(~s(form[phx-submit="save_setting"]), %{
+          "setting" => %{"key" => "", "value" => ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to save setting"
+    end
+
+    test "save_category with invalid data shows error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      view |> element(~s(button[phx-value-tab="categories"])) |> render_click()
+      view |> element("button", "Add Category") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_category"]), %{
+          "category" => %{"name" => ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add category"
+    end
+
+    test "save_webhook with invalid data shows error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      view |> element(~s(button[phx-value-tab="webhooks"])) |> render_click()
+      view |> element("button", "Add Webhook") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_webhook"]), %{
+          "webhook" => %{"url" => ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add webhook"
+    end
+
+    test "save_backup with invalid data shows error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      view |> element(~s(button[phx-value-tab="backups"])) |> render_click()
+      view |> element("button", "Add Config") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_backup"]), %{
+          "backup_config" => %{"name" => "", "destination_path" => ""}
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add backup config"
+    end
+  end
+
+  describe "handle_info" do
+    test "handle_info reloads data", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      send(view.pid, :some_event)
+      html = render(view)
+      assert html =~ "Settings"
+    end
+  end
+
+  describe "show_form and close_form" do
+    test "show_form opens modal and close_form closes it", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html = render_click(view, "show_form", %{})
+      assert html =~ "modal-overlay"
+
+      html = render_click(view, "close_form", %{})
+      refute html =~ "modal-overlay"
+    end
+  end
 end

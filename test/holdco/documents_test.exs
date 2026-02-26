@@ -54,4 +54,18 @@ defmodule Holdco.DocumentsTest do
       {:ok, _} = Documents.delete_document_upload(updated)
     end
   end
+
+  describe "list_documents/0" do
+    test "lists all documents without company filter" do
+      doc = document_fixture()
+      all_docs = Documents.list_documents()
+      assert Enum.any?(all_docs, &(&1.id == doc.id))
+    end
+  end
+
+  describe "subscribe/0" do
+    test "subscribes to documents PubSub topic" do
+      assert :ok = Documents.subscribe()
+    end
+  end
 end

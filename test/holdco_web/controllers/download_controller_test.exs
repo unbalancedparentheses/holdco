@@ -126,6 +126,26 @@ defmodule HoldcoWeb.DownloadControllerTest do
     end
   end
 
+  describe "GET /downloads/:id/preview with empty content_type fallback" do
+    test "falls back to MIME type from filename when content_type is empty for preview", %{conn: conn} do
+      tmp_path = Path.join(System.tmp_dir!(), "holdco_test_preview_fallback_#{System.unique_integer([:positive])}.csv")
+      File.write!(tmp_path, "a,b,c")
+
+      on_exit(fn -> File.rm(tmp_path) end)
+
+      upload = document_upload_fixture(%{
+        file_path: tmp_path,
+        file_name: "data.csv",
+        content_type: ""
+      })
+
+      conn = get(conn, ~p"/downloads/#{upload.id}/preview")
+
+      assert conn.status == 200
+      assert get_resp_header(conn, "content-disposition") |> List.first() =~ "inline"
+    end
+  end
+
   describe "authentication required" do
     test "redirects to login when not authenticated", %{conn: _conn} do
       upload = document_upload_fixture(%{

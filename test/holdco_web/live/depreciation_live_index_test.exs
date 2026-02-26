@@ -356,5 +356,109 @@ defmodule HoldcoWeb.DepreciationLiveIndexTest do
       {:ok, _live, html} = live(conn, ~p"/depreciation")
       assert html =~ "Add Your First Asset"
     end
+
+    test "editor save with invalid data shows error flash", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+
+      {:ok, live, _html} = live(conn, ~p"/depreciation")
+      render_click(live, "show_form", %{})
+
+      # Submit with empty name (should fail validation)
+      html = render_click(live, "save", %{
+        "fixed_asset" => %{
+          "name" => "",
+          "company_id" => "",
+          "purchase_price" => "0",
+          "useful_life_months" => "0",
+          "salvage_value" => "0",
+          "depreciation_method" => "straight_line"
+        }
+      })
+      assert html =~ "Failed to add fixed asset"
+    end
+
+    test "editor update with invalid data shows error flash", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture()
+      asset = fixed_asset_fixture(%{company: company, name: "Update Fail Asset"})
+
+      {:ok, live, _html} = live(conn, ~p"/depreciation")
+      render_click(live, "edit", %{"id" => to_string(asset.id)})
+
+      html = render_click(live, "update", %{
+        "fixed_asset" => %{"name" => ""}
+      })
+      assert html =~ "Failed to update fixed asset"
+    end
+
+    test "editor save with declining_balance method", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "DeclBalCo"})
+
+      {:ok, live, _html} = live(conn, ~p"/depreciation")
+      render_click(live, "show_form", %{})
+
+      html = render_click(live, "save", %{
+        "fixed_asset" => %{
+          "name" => "DB Method Asset",
+          "company_id" => to_string(company.id),
+          "purchase_date" => "2025-01-01",
+          "purchase_price" => "20000",
+          "useful_life_months" => "60",
+          "salvage_value" => "2000",
+          "depreciation_method" => "declining_balance"
+        }
+      })
+      assert html =~ "Fixed asset added" || html =~ "DB Method Asset"
+    end
+
+    test "schedule shows empty state for asset with nil purchase_date", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture()
+      asset = fixed_asset_fixture(%{company: company, name: "No Date Asset", purchase_date: nil})
+
+      {:ok, live, _html} = live(conn, ~p"/depreciation")
+      html = render_click(live, "select_asset", %{"id" => to_string(asset.id)})
+      assert html =~ "Depreciation Schedule: No Date Asset"
+    end
+
+    test "metrics display properly with assets", %{conn: conn} do
+      company = company_fixture()
+      fixed_asset_fixture(%{
+        company: company,
+        name: "Metrics Asset",
+        purchase_price: 10_000.0,
+        useful_life_months: 60,
+        salvage_value: 1_000.0,
+        purchase_date: "2024-01-01"
+      })
+
+      {:ok, _live, html} = live(conn, ~p"/depreciation")
+      assert html =~ "10,000.00"
+    end
+
+    test "reload after filter applies correct company_id", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "ReloadCo"})
+      fixed_asset_fixture(%{company: company, name: "Reload Asset"})
+
+      {:ok, live, _html} = live(conn, ~p"/depreciation")
+      # Filter to a company then save
+      render_change(live, "filter_company", %{"company_id" => to_string(company.id)})
+      render_click(live, "show_form", %{})
+
+      html = render_click(live, "save", %{
+        "fixed_asset" => %{
+          "name" => "New Reload Asset",
+          "company_id" => to_string(company.id),
+          "purchase_date" => "2025-01-01",
+          "purchase_price" => "5000",
+          "useful_life_months" => "60",
+          "salvage_value" => "500",
+          "depreciation_method" => "straight_line"
+        }
+      })
+      assert html =~ "Fixed asset added" || html =~ "New Reload Asset"
+    end
   end
 end
