@@ -27,7 +27,7 @@ defmodule Holdco.QueryHelpers do
   def apply_filters(query, _), do: query
 
   defp has_field?(query, field) do
-    {_, schema} = query.from.source
+    %{from: %{source: {_, schema}}} = query
     field in schema.__schema__(:fields)
   rescue
     _ -> false
