@@ -26,7 +26,9 @@
           "category": "Technology",
           "ownership_pct": 100,
           "holdings": [
-            {"asset": "Bitcoin", "ticker": "BTC", "quantity": 2.5, "unit": "BTC", "currency": "USD"}
+            {"asset": "Bitcoin", "ticker": "BTC", "quantity": 2.5, "unit": "BTC", "currency": "USD"},
+            {"asset": "Apple Inc", "ticker": "AAPL", "quantity": 500, "unit": "shares", "currency": "USD", "asset_type": "equity"},
+            {"asset": "Ethereum", "ticker": "ETH-USD", "quantity": 15, "unit": "ETH", "currency": "USD", "asset_type": "crypto"}
           ]
         },
         {
@@ -41,8 +43,11 @@
               "quantity": 50,
               "unit": "oz",
               "currency": "USD",
+              "asset_type": "commodity",
               "custodian": {"bank": "First National Bank", "account_type": "Custody"}
-            }
+            },
+            {"asset": "S&P 500 ETF", "ticker": "SPY", "quantity": 200, "unit": "shares", "currency": "USD", "asset_type": "equity"},
+            {"asset": "Office Building - NYC", "quantity": 1, "unit": "property", "currency": "USD", "asset_type": "real_estate"}
           ]
         },
         {"name": "Acme Media", "country": "United Kingdom", "category": "Media", "ownership_pct": 75},
@@ -54,16 +59,24 @@
     {"company": "Acme Holdings", "bank_name": "JPMorgan Chase", "account_number": "****4521", "currency": "USD", "account_type": "operating", "balance": 1250000, "authorized_signers": ["Jane Smith", "John Doe"]},
     {"company": "Acme Capital", "bank_name": "First National Bank", "iban": "US12345678901234", "swift": "FNBKUS33", "currency": "USD", "account_type": "custody", "balance": 500000},
     {"company": "Acme Tech", "bank_name": "Silicon Valley Bank", "currency": "USD", "account_type": "operating", "balance": 320000},
-    {"company": "Acme Retail", "bank_name": "Deutsche Bank", "iban": "DE89370400440532013000", "swift": "DEUTDEDB", "currency": "EUR", "account_type": "operating", "balance": 180000}
+    {"company": "Acme Retail", "bank_name": "Deutsche Bank", "iban": "DE89370400440532013000", "swift": "DEUTDEDB", "currency": "EUR", "account_type": "operating", "balance": 180000},
+    {"company": "Acme Media", "bank_name": "Barclays", "iban": "GB29NWBK60161331926819", "swift": "BARCGB22", "currency": "GBP", "account_type": "operating", "balance": 95000}
   ],
   "transactions": [
     {"company": "Acme Holdings", "transaction_type": "dividend", "description": "Q4 2024 dividend from Acme Tech", "amount": 50000, "currency": "USD", "counterparty": "Acme Tech", "date": "2025-01-15"},
-    {"company": "Acme Capital", "transaction_type": "buy", "description": "Gold purchase - 10 oz", "amount": 23500, "currency": "USD", "counterparty": "Gold Dealer Inc", "date": "2025-01-20"},
-    {"company": "Acme Tech", "transaction_type": "fee", "description": "Cloud infrastructure - January", "amount": 8500, "currency": "USD", "counterparty": "AWS", "date": "2025-01-31"}
+    {"company": "Acme Capital", "transaction_type": "buy", "description": "Gold purchase - 10 oz", "amount": -23500, "currency": "USD", "counterparty": "Gold Dealer Inc", "date": "2025-01-20"},
+    {"company": "Acme Tech", "transaction_type": "fee", "description": "Cloud infrastructure - January", "amount": -8500, "currency": "USD", "counterparty": "AWS", "date": "2025-01-31"},
+    {"company": "Acme Holdings", "transaction_type": "transfer", "description": "Capital injection to Acme Media", "amount": -100000, "currency": "USD", "counterparty": "Acme Media", "date": "2025-02-01"},
+    {"company": "Acme Media", "transaction_type": "deposit", "description": "Capital injection from parent", "amount": 100000, "currency": "GBP", "counterparty": "Acme Holdings", "date": "2025-02-01"},
+    {"company": "Acme Capital", "transaction_type": "sell", "description": "Sold 5 oz Gold", "amount": 12500, "currency": "USD", "counterparty": "Gold Dealer Inc", "date": "2025-02-10"},
+    {"company": "Acme Tech", "transaction_type": "fee", "description": "Cloud infrastructure - February", "amount": -9200, "currency": "USD", "counterparty": "AWS", "date": "2025-02-28"},
+    {"company": "Acme Retail", "transaction_type": "deposit", "description": "Q1 retail revenue", "amount": 45000, "currency": "EUR", "counterparty": "Customers", "date": "2025-03-15"},
+    {"company": "Acme Holdings", "transaction_type": "dividend", "description": "Q1 2025 dividend from Acme Capital", "amount": 30000, "currency": "USD", "counterparty": "Acme Capital", "date": "2025-04-15"}
   ],
   "liabilities": [
     {"company": "Acme Holdings", "liability_type": "bank_loan", "creditor": "JPMorgan Chase", "principal": 500000, "currency": "USD", "interest_rate": 5.5, "maturity_date": "2027-06-30", "status": "active"},
-    {"company": "Acme Retail", "liability_type": "lease", "creditor": "Berlin Properties GmbH", "principal": 120000, "currency": "EUR", "interest_rate": 3.2, "maturity_date": "2028-12-31", "status": "active"}
+    {"company": "Acme Retail", "liability_type": "lease", "creditor": "Berlin Properties GmbH", "principal": 120000, "currency": "EUR", "interest_rate": 3.2, "maturity_date": "2028-12-31", "status": "active"},
+    {"company": "Acme Tech", "liability_type": "credit_line", "creditor": "Silicon Valley Bank", "principal": 200000, "currency": "USD", "interest_rate": 4.75, "maturity_date": "2026-12-31", "status": "active"}
   ],
   "service_providers": [
     {"company": "Acme Holdings", "role": "lawyer", "name": "Sarah Johnson", "firm": "Johnson & Partners LLP", "email": "sarah@jpartners.com", "phone": "+1-555-0100"},
@@ -80,5 +93,66 @@
     {"company": "Acme Holdings", "meeting_type": "annual", "scheduled_date": "2025-03-15", "status": "scheduled", "notes": "Annual general meeting - review 2024 results"},
     {"company": "Acme Holdings", "meeting_type": "regular", "scheduled_date": "2025-06-15", "status": "scheduled"},
     {"company": "Acme Tech", "meeting_type": "special", "scheduled_date": "2025-04-01", "status": "scheduled", "notes": "Review new product launch strategy"}
+  ],
+  "tax_deadlines": [
+    {"company": "Acme Holdings", "jurisdiction": "United States", "description": "Federal corporate tax return (Form 1120)", "due_date": "2025-04-15", "status": "pending"},
+    {"company": "Acme Holdings", "jurisdiction": "United States", "description": "Q1 estimated tax payment", "due_date": "2025-04-15", "status": "pending"},
+    {"company": "Acme Tech", "jurisdiction": "United States", "description": "State franchise tax - Delaware", "due_date": "2025-06-01", "status": "pending"},
+    {"company": "Acme Retail", "jurisdiction": "Germany", "description": "Korperschaftsteuer (corporate tax)", "due_date": "2025-07-31", "status": "pending"},
+    {"company": "Acme Media", "jurisdiction": "United Kingdom", "description": "Corporation tax return (CT600)", "due_date": "2025-09-30", "status": "pending"},
+    {"company": "Acme Holdings", "jurisdiction": "United States", "description": "Q2 estimated tax payment", "due_date": "2025-06-15", "status": "pending"}
+  ],
+  "financials": [
+    {"company": "Acme Tech", "period": "2024-Q1", "revenue": 150000, "expenses": 95000, "currency": "USD"},
+    {"company": "Acme Tech", "period": "2024-Q2", "revenue": 175000, "expenses": 102000, "currency": "USD"},
+    {"company": "Acme Tech", "period": "2024-Q3", "revenue": 190000, "expenses": 110000, "currency": "USD"},
+    {"company": "Acme Tech", "period": "2024-Q4", "revenue": 220000, "expenses": 125000, "currency": "USD"},
+    {"company": "Acme Capital", "period": "2024-Q1", "revenue": 85000, "expenses": 30000, "currency": "USD"},
+    {"company": "Acme Capital", "period": "2024-Q2", "revenue": 92000, "expenses": 35000, "currency": "USD"},
+    {"company": "Acme Capital", "period": "2024-Q3", "revenue": 78000, "expenses": 28000, "currency": "USD"},
+    {"company": "Acme Capital", "period": "2024-Q4", "revenue": 105000, "expenses": 40000, "currency": "USD"},
+    {"company": "Acme Retail", "period": "2024-Q1", "revenue": 62000, "expenses": 48000, "currency": "EUR"},
+    {"company": "Acme Retail", "period": "2024-Q2", "revenue": 71000, "expenses": 52000, "currency": "EUR"},
+    {"company": "Acme Retail", "period": "2024-Q3", "revenue": 68000, "expenses": 50000, "currency": "EUR"},
+    {"company": "Acme Retail", "period": "2024-Q4", "revenue": 95000, "expenses": 65000, "currency": "EUR"}
+  ],
+  "documents": [
+    {"company": "Acme Holdings", "name": "Certificate of Incorporation", "doc_type": "certificate"},
+    {"company": "Acme Holdings", "name": "Shareholder Agreement 2024", "doc_type": "contract"},
+    {"company": "Acme Tech", "name": "Software License Agreement - AWS", "doc_type": "contract"},
+    {"company": "Acme Tech", "name": "Employment Agreement - CTO", "doc_type": "contract"},
+    {"company": "Acme Capital", "name": "Investment Policy Statement", "doc_type": "filing"},
+    {"company": "Acme Retail", "name": "Lease Agreement - Berlin Office", "doc_type": "contract"},
+    {"company": "Acme Media", "name": "Articles of Association", "doc_type": "certificate"}
+  ],
+  "key_personnel": [
+    {"company": "Acme Holdings", "name": "Jane Smith", "title": "CEO", "department": "Executive", "email": "jane@acme.com"},
+    {"company": "Acme Holdings", "name": "John Doe", "title": "CFO", "department": "Finance", "email": "john@acme.com"},
+    {"company": "Acme Tech", "name": "Alice Wang", "title": "CTO", "department": "Engineering", "email": "alice@acmetech.com"},
+    {"company": "Acme Tech", "name": "Bob Martinez", "title": "VP Engineering", "department": "Engineering", "email": "bob@acmetech.com"},
+    {"company": "Acme Capital", "name": "Carol Davis", "title": "Portfolio Manager", "department": "Investments", "email": "carol@acmecap.com"},
+    {"company": "Acme Retail", "name": "Dieter Schmidt", "title": "Managing Director", "department": "Operations", "email": "dieter@acmeretail.de"}
+  ],
+  "beneficial_owners": [
+    {"company": "Acme Holdings", "name": "Jane Smith", "nationality": "United States", "ownership_pct": 60, "control_type": "direct", "verified": true, "verified_date": "2024-12-01"},
+    {"company": "Acme Holdings", "name": "John Doe", "nationality": "United States", "ownership_pct": 40, "control_type": "direct", "verified": true, "verified_date": "2024-12-01"}
+  ],
+  "portfolio_snapshots": [
+    {"date": "2024-03-31", "liquid": 1800000, "marketable": 450000, "illiquid": 200000, "liabilities": 620000, "nav": 1830000, "currency": "USD"},
+    {"date": "2024-04-30", "liquid": 1850000, "marketable": 470000, "illiquid": 200000, "liabilities": 620000, "nav": 1900000, "currency": "USD"},
+    {"date": "2024-05-31", "liquid": 1900000, "marketable": 510000, "illiquid": 200000, "liabilities": 620000, "nav": 1990000, "currency": "USD"},
+    {"date": "2024-06-30", "liquid": 1920000, "marketable": 530000, "illiquid": 200000, "liabilities": 620000, "nav": 2030000, "currency": "USD"},
+    {"date": "2024-07-31", "liquid": 1950000, "marketable": 490000, "illiquid": 200000, "liabilities": 620000, "nav": 2020000, "currency": "USD"},
+    {"date": "2024-08-31", "liquid": 1980000, "marketable": 560000, "illiquid": 200000, "liabilities": 620000, "nav": 2120000, "currency": "USD"},
+    {"date": "2024-09-30", "liquid": 2010000, "marketable": 580000, "illiquid": 200000, "liabilities": 620000, "nav": 2170000, "currency": "USD"},
+    {"date": "2024-10-31", "liquid": 2050000, "marketable": 620000, "illiquid": 200000, "liabilities": 620000, "nav": 2250000, "currency": "USD"},
+    {"date": "2024-11-30", "liquid": 2100000, "marketable": 650000, "illiquid": 200000, "liabilities": 620000, "nav": 2330000, "currency": "USD"},
+    {"date": "2024-12-31", "liquid": 2150000, "marketable": 700000, "illiquid": 200000, "liabilities": 620000, "nav": 2430000, "currency": "USD"},
+    {"date": "2025-01-31", "liquid": 2200000, "marketable": 720000, "illiquid": 200000, "liabilities": 620000, "nav": 2500000, "currency": "USD"},
+    {"date": "2025-02-28", "liquid": 2250000, "marketable": 750000, "illiquid": 200000, "liabilities": 820000, "nav": 2380000, "currency": "USD"}
+  ],
+  "dividends": [
+    {"company": "Acme Tech", "amount": 50000, "currency": "USD", "date": "2025-01-15", "recipient": "Acme Holdings", "dividend_type": "regular"},
+    {"company": "Acme Capital", "amount": 30000, "currency": "USD", "date": "2025-04-15", "recipient": "Acme Holdings", "dividend_type": "regular"}
   ]
 }

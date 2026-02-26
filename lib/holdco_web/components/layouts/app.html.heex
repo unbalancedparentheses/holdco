@@ -1,0 +1,49 @@
+<div class="masthead">
+  <div class="masthead-inner">
+    <span class="masthead-label">Portfolio Management</span>
+    <span class="masthead-title">Holdco</span>
+    <span class="masthead-date"><%= Calendar.strftime(Date.utc_today(), "%A, %-d %B %Y") %></span>
+  </div>
+</div>
+<nav class="nav-bar">
+  <div class="nav-inner">
+    <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
+    <div class="nav-links">
+      <.link navigate={~p"/"} class={if assigns[:current_path] == "/", do: "active"}>Overview</.link>
+      <.link navigate={~p"/companies"} class={if String.starts_with?(assigns[:current_path] || "", "/companies"), do: "active"}>Companies</.link>
+      <.link navigate={~p"/holdings"} class={if assigns[:current_path] == "/holdings", do: "active"}>Holdings</.link>
+      <.link navigate={~p"/transactions"} class={if assigns[:current_path] == "/transactions", do: "active"}>Transactions</.link>
+      <.link navigate={~p"/bank-accounts"} class={if assigns[:current_path] == "/bank-accounts", do: "active"}>Accounts</.link>
+      <.link navigate={~p"/documents"} class={if assigns[:current_path] == "/documents", do: "active"}>Documents</.link>
+      <.link navigate={~p"/tax-calendar"} class={if assigns[:current_path] == "/tax-calendar", do: "active"}>Tax</.link>
+      <.link navigate={~p"/governance"} class={if assigns[:current_path] == "/governance", do: "active"}>Governance</.link>
+      <.link navigate={~p"/compliance"} class={if assigns[:current_path] == "/compliance", do: "active"}>Compliance</.link>
+      <.link navigate={~p"/financials"} class={if assigns[:current_path] == "/financials", do: "active"}>Financials</.link>
+      <.link navigate={~p"/scenarios"} class={if String.starts_with?(assigns[:current_path] || "", "/scenarios"), do: "active"}>Scenarios</.link>
+      <.link navigate={~p"/settings"} class={if assigns[:current_path] == "/settings", do: "active"}>Settings</.link>
+      <%= if assigns[:current_scope] do %>
+        <div class="nav-user">
+          <span>{@current_scope.user.email}</span>
+          <.link href={~p"/users/log-out"} method="delete">Logout</.link>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</nav>
+
+<main class="page">
+  <.flash_group flash={@flash} />
+  {render_slot(@inner_block)}
+</main>
+
+<footer>
+  <div class="page">
+    <div class="footer">
+      <span class="footer-text">Holdco — Open source holding company management</span>
+      <div class="footer-links">
+        <.link navigate={~p"/audit-log"}>Audit Log</.link>
+        <.link navigate={~p"/settings"}>Settings</.link>
+      </div>
+    </div>
+  </div>
+</footer>
