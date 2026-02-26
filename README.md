@@ -45,8 +45,15 @@ Amount, currency, counterparty, date, linked to holdings and bank accounts.
 Principal, interest rate, maturity date, currency, and status tracking.
 
 **Financial tracking.** Revenue and expenses per entity per period with
-multi-currency support. Chart of accounts, journal entries, inter-company
-transfers, dividends, capital contributions, tax payments, and budgets.
+multi-currency support. Inter-company transfers, dividends, capital
+contributions, tax payments, and budgets.
+
+**Double-entry accounting.** Full chart of accounts, journal entries with
+balanced debit/credit lines, trial balance, balance sheet, and income
+statement. All accounting data is entity-scoped: each company owns its own
+accounts and journal entries, global pages show consolidated views with company
+filter dropdowns. QuickBooks Online integration syncs accounts and journal
+entries into a specific company.
 
 **Governance.** Board meetings, cap table, shareholder resolutions, powers of
 attorney, equity incentive plans and grants, M&A deal pipeline, joint ventures,
@@ -70,13 +77,19 @@ real-time via Phoenix PubSub.
 
 **Role-based access control.** Three roles: admin (full access), editor
 (create and update), viewer (read-only). Enforced at the LiveView level.
-Authentication via email and password.
+Authentication via email and password with optional TOTP two-factor
+authentication.
 
 **Settings.** Custom categories with colors, webhooks, backup configurations,
 API keys, and application-wide settings. Admin-only.
 
 **Webhooks.** Configure webhook URLs in settings. Every data change fires a
 JSON POST with HMAC-SHA256 signature to all active webhooks. Retry on failure.
+
+**QuickBooks Online integration.** OAuth2 connection with automatic token
+refresh. Sync chart of accounts and journal entries from QBO into a specific
+company entity. Company selector on the integrations page controls which entity
+receives synced data.
 
 **Automated backups.** Daily SQLite `.backup` to a configured path with
 retention-based cleanup. Backup logs visible in settings.
@@ -97,8 +110,9 @@ fallback to hardcoded rates. Used across all portfolio calculations.
 portfolio NAV, asset allocation, FX exposure, companies, holdings, and
 transactions. HMAC-signed webhooks fire on every data change.
 
-**CSV export.** Download companies, holdings, or transactions as CSV from any
-list page.
+**CSV export.** Download companies, holdings, transactions, chart of accounts,
+or journal entries as CSV from any list page. Accounting exports accept an
+optional company filter.
 
 **Search.** Full-text search across companies, holdings, transactions, and
 documents from the nav bar.
@@ -261,13 +275,17 @@ mix test --trace             # verbose output
 |---|---|
 | `/` | Dashboard: NAV, allocation chart, NAV history, corporate structure, recent activity |
 | `/companies` | Company list with tree view, CSV export |
-| `/companies/:id` | Company detail: holdings, accounts, transactions, documents, governance, compliance |
+| `/companies/:id` | Company detail: holdings, bank accounts, transactions, documents, governance, compliance, financials, accounting, comments |
 | `/holdings` | All holdings with allocation chart, CSV export |
 | `/transactions` | Transaction list with inflow/outflow summary, CSV export |
 | `/bank-accounts` | Bank accounts with balances, currency breakdown, cash pools |
 | `/documents` | Document library with file uploads |
 | `/tax-calendar` | Tax deadlines and annual filings |
 | `/financials` | P&L with trend charts, budgets, intercompany transfers |
+| `/accounts/chart` | Chart of accounts with company filter |
+| `/accounts/journal` | Journal entries with balanced lines, company filter |
+| `/accounts/reports` | Trial balance, balance sheet, income statement per company or consolidated |
+| `/accounts/integrations` | QuickBooks Online connection, sync controls with company selector |
 | `/governance` | Board meetings, cap table, resolutions, equity plans, deals |
 | `/compliance` | Regulatory filings, licenses, insurance, sanctions, ESG |
 | `/scenarios` | Scenario list |
@@ -285,13 +303,13 @@ lib/holdco/              14 bounded contexts, 74 Ecto schemas
   governance/            Board meetings, cap table, resolutions, equity plans, deals
   assets/                Holdings, custodian accounts, cost basis lots, crypto, real estate
   banking/               Bank accounts, transactions
-  finance/               Financials, chart of accounts, journals, dividends, budgets, liabilities
+  finance/               Financials, chart of accounts (entity-scoped), journals, dividends, budgets, liabilities
   compliance/            Tax deadlines, regulatory filings, insurance, sanctions, ESG
   documents/             Documents, versions, uploads
   treasury/              Cash pools
   pricing/               Price history, Yahoo Finance client (ETS cache)
   platform/              Settings, categories, audit log, webhooks (with delivery), backups
-  integrations/          Accounting sync, bank feeds, e-signatures, email digests
+  integrations/          QuickBooks Online sync, bank feeds, e-signatures, email digests
   scenarios/             Scenario modeling with projection engine
   search.ex              Cross-table search
   portfolio.ex           NAV calculation, asset allocation, FX exposure, gains
@@ -300,7 +318,7 @@ lib/holdco_web/
   controllers/api/       JSON API controllers (portfolio, companies, holdings, transactions)
   controllers/           Health check, CSV export, auth controllers
   plugs/                 API key authentication plug
-  live/                  16 LiveView modules (including search)
+  live/                  20 LiveView modules (dashboard, companies, holdings, transactions, bank accounts, documents, financials, accounting, governance, compliance, scenarios, approvals, import, notifications, search, audit log, reports, settings, 2FA)
   components/            Layout, design system, Chart.js hook
   router.ex              All routes
 Makefile                 Nix-wrapped dev commands
@@ -325,7 +343,9 @@ These extend existing data into immediately useful outputs.
   jurisdiction with short-term vs long-term classification. Built on the existing
   cost basis lot data.
 - **Consolidated financial statements.** Automatic elimination of intercompany
-  balances and transactions for group-level reporting.
+  balances and transactions for group-level reporting. (Entity-scoped accounting
+  with consolidated views is already in place; full intercompany elimination is
+  the remaining piece.)
 - **Cash flow forecasting.** Project future cash positions per entity based on
   recurring revenues, expenses, loan repayments, and tax deadlines already in
   the system.
@@ -365,6 +385,19 @@ These extend existing data into immediately useful outputs.
   templates assembled from existing data.
 - **Interactive org chart.** Visual D3 or SVG entity structure diagram with
   click-through to entity details, replacing the flat tree view.
+- **AR and AP aging reports.** Accounts receivable and accounts payable aging by
+  entity showing who owes you, who you owe, and how overdue each balance is.
+- **Depreciation and amortization schedules.** Straight-line, declining balance,
+  and units-of-production methods for fixed assets and intangibles with automatic
+  journal entry generation.
+- **IFRS 16 and ASC 842 lease accounting.** Right-of-use asset calculations,
+  lease liability amortization, and the journal entries required for compliance
+  with modern lease accounting standards.
+- **Audit-ready package.** One-click export of everything an external auditor
+  needs: trial balance, journal entries, bank reconciliations, and supporting
+  documents bundled and cross-referenced.
+- **XBRL and iXBRL export.** Generate tagged filings in the format required by
+  regulators in the US, EU, and UK for electronic financial reporting.
 
 ### Phase 2 — Automation and integrations
 
@@ -372,10 +405,12 @@ Reduce manual data entry and connect to external systems.
 
 - **Bank feed via Plaid or GoCardless.** Auto-import transactions and reconcile
   against manual entries using the existing bank_feed framework.
+- **Open banking (PSD2).** EU-mandated bank connections for automatic balance and
+  transaction retrieval, broader coverage than Plaid in European jurisdictions.
 - **Mercury, Wise, and Revolut Business APIs.** Direct bank balance and
   transaction sync for fintech-native holding companies.
 - **Xero integration.** Cover the other major accounting platform alongside
-  QuickBooks.
+  the existing QuickBooks integration.
 - **Intercompany loan interest accrual.** Automatic interest calculations at
   arm's length rates with journal entry generation.
 - **Multi-sig approval workflows.** Require N-of-M approvals for transactions
@@ -401,6 +436,8 @@ Reduce manual data entry and connect to external systems.
   and generate transfer suggestions when thresholds are breached.
 - **Configurable alerts engine.** Rule-based triggers such as "alert when any
   account balance drops below X" or "when a deadline is within Y days."
+- **Zapier, Make, and n8n integration.** No-code automation for non-technical
+  users, connecting Holdco events and data to thousands of external services.
 
 ### Phase 3 — Advanced analytics and risk
 
@@ -431,6 +468,8 @@ Turn the platform into a decision-making tool.
   owners, and review cycles.
 - **Option pricing.** Black-Scholes and binomial models to value options and
   warrants for financial reporting.
+- **Insurance coverage gap analysis.** Compare actual coverage to required
+  coverage per entity and flag gaps or underinsured areas.
 
 ### Phase 4 — Fund, LP, and tax structures
 
@@ -462,6 +501,8 @@ For holding companies with fund entities or complex tax planning needs.
   shared services, and cost allocation arrangements across entities.
 - **Goodwill and impairment testing.** Track goodwill from acquisitions and
   annual impairment reviews with fair value calculations.
+- **Fundraising and capital raising pipeline.** For fund entities actively
+  raising, track commitments, soft circles, closes, and investor onboarding.
 
 ### Phase 5 — Corporate lifecycle and governance
 
@@ -527,6 +568,10 @@ Full entity management from incorporation to dissolution.
   portfolio companies.
 - **Whistleblower and ethics channel.** Anonymous reporting with case management
   and investigation tracking.
+- **Litigation and disputes tracker.** Legal cases, status, exposure estimates,
+  and legal costs per entity.
+- **Bank guarantees and letters of credit.** Track issued and received guarantees
+  with expiry dates, collateral, and counterparty details.
 
 ### Phase 6 — Real assets, crypto, and DeFi
 
@@ -553,6 +598,8 @@ Scale from single-user to multi-stakeholder platform.
   diligence. Extends the existing documents module.
 - **SSO and SAML.** Enterprise authentication alongside the existing
   email/password flow.
+- **Hardware security keys.** FIDO2 and WebAuthn support for high-security
+  environments beyond TOTP-based two-factor authentication.
 - **AI assistant.** LLM-powered copilot that can analyze uploaded documents
   (contracts, term sheets, financial statements, tax filings), answer natural
   language questions against the structured data ("What is our total EUR
@@ -579,7 +626,9 @@ Scale from single-user to multi-stakeholder platform.
 
 Open the system up for custom workflows and external tools.
 
-- **GraphQL API.** Alongside the existing REST API for more flexible queries.
+- **Write API.** Full read-write REST API authenticated via API keys, enabling
+  programmatic data entry, external system integrations, and automation scripts.
+- **GraphQL API.** Alongside the REST API for more flexible queries.
 - **Slack integration.** Push alerts to channels, query portfolio data with slash
   commands, and receive approval requests directly in Slack.
 - **Telegram bot.** Push notifications, quick queries, and approval responses
