@@ -110,15 +110,28 @@ defmodule HoldcoWeb.DashboardLive do
           <h2>Asset Allocation</h2>
         </div>
         <div class="panel" style="padding: 1rem;">
-          <div
-            id="allocation-chart"
-            phx-hook="ChartHook"
-            data-chart-type="doughnut"
-            data-chart-data={Jason.encode!(allocation_chart_data(@allocation))}
-            data-chart-options={Jason.encode!(%{plugins: %{legend: %{position: "right"}}})}
-            style="height: 250px;"
-          >
-            <canvas></canvas>
+          <% alloc_colors = ["#4a8c87", "#6b87a0", "#5f8f6e", "#8a5a6a", "#c08060", "#b89040", "#b0605e"] %>
+          <% alloc_total = Enum.reduce(@allocation, 0.0, fn a, acc -> acc + max(a.value, a.count) end) %>
+          <div class="stacked-bar">
+            <%= for {a, color} <- Enum.zip(@allocation, alloc_colors) do %>
+              <% val = if a.value > 0, do: a.value, else: a.count %>
+              <% pct = if alloc_total > 0, do: Float.round(val / alloc_total * 100, 1), else: 0 %>
+              <div class="stacked-bar-segment" style={"width: #{pct}%; background: #{color};"} title={"#{a.type}: #{pct}%"}>
+                <%= if pct > 12 do %>
+                  <span class="stacked-bar-label">{a.type}</span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+          <div class="stacked-bar-legend">
+            <%= for {a, color} <- Enum.zip(@allocation, alloc_colors) do %>
+              <% val = if a.value > 0, do: a.value, else: a.count %>
+              <% pct = if alloc_total > 0, do: Float.round(val / alloc_total * 100, 1), else: 0 %>
+              <span class="stacked-bar-legend-item">
+                <span class="stacked-bar-swatch" style={"background: #{color};"}></span>
+                {a.type} <span class="stacked-bar-pct">{pct}%</span>
+              </span>
+            <% end %>
           </div>
         </div>
       </div>
@@ -288,22 +301,6 @@ defmodule HoldcoWeb.DashboardLive do
   defp action_tag("delete"), do: "tag-crimson"
   defp action_tag(_), do: "tag-ink"
 
-  defp allocation_chart_data(allocation) do
-    colors = ["#0d7680", "#0f5499", "#00994d", "#990f3d", "#ff8833", "#f2a900", "#cc0000"]
-    values = Enum.map(allocation, & &1.value)
-    data = if Enum.all?(values, &(&1 == 0 or &1 == 0.0)), do: Enum.map(allocation, & &1.count), else: values
-
-    %{
-      labels: Enum.map(allocation, & &1.type),
-      datasets: [
-        %{
-          data: data,
-          backgroundColor: Enum.take(colors, length(allocation))
-        }
-      ]
-    }
-  end
-
   defp nav_chart_data(snapshots) do
     sorted = Enum.sort_by(snapshots, & &1.date)
 
@@ -313,8 +310,8 @@ defmodule HoldcoWeb.DashboardLive do
         %{
           label: "NAV",
           data: Enum.map(sorted, & &1.nav),
-          borderColor: "#0d7680",
-          backgroundColor: "rgba(13, 118, 128, 0.1)",
+          borderColor: "#4a8c87",
+          backgroundColor: "rgba(74, 140, 135, 0.1)",
           fill: true,
           tension: 0.3
         }

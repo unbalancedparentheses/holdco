@@ -10,31 +10,31 @@
  */
 
 :root {
-  /* Palette */
+  /* Palette — warm paper + muted accents */
   --paper: #fff1e5;
   --paper-dark: #f2dfce;
   --white: #ffffff;
-  --ink: #1a1a1a;
-  --ink-secondary: #3d3d3d;
-  --ink-light: #66605c;
+  --ink: #262220;
+  --ink-secondary: #433f3b;
+  --ink-light: #6e6860;
   --ink-faint: #9e9590;
-  --rule: #cec6b9;
-  --rule-light: #e8e0d3;
-  --rule-heavy: #1a1a1a;
-  --teal: #0d7680;
-  --teal-dark: #0a5f67;
-  --teal-light: #e6f3f4;
-  --claret: #990f3d;
-  --claret-light: #f9e8ee;
+  --rule: #d4ccc0;
+  --rule-light: #ebe4d8;
+  --rule-heavy: #262220;
+  --teal: #4a8c87;
+  --teal-dark: #3a7570;
+  --teal-light: #ebf2f1;
+  --claret: #8a5a6a;
+  --claret-light: #f3eaed;
   --wheat: #f2dfce;
-  --oxford: #0f5499;
-  --mandarin: #ff8833;
-  --jade: #00994d;
-  --jade-light: #e6f5ed;
-  --crimson: #cc0000;
-  --crimson-light: #ffe6e6;
-  --lemon: #f2a900;
-  --lemon-light: #fef5e0;
+  --oxford: #6b87a0;
+  --mandarin: #c08060;
+  --jade: #5f8f6e;
+  --jade-light: #ebf1ed;
+  --crimson: #b0605e;
+  --crimson-light: #f3eae9;
+  --lemon: #b89040;
+  --lemon-light: #f4f0e4;
 
   /* Type stacks */
   --display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
@@ -94,7 +94,7 @@ a:hover { text-decoration: underline; text-underline-offset: 0.15em; }
 
 /* === Masthead === */
 
-.masthead { background: var(--ink); padding: 0.375rem 0; }
+.masthead { background: #2e2a27; padding: 0.375rem 0; }
 .masthead-inner {
   max-width: 1280px; margin: 0 auto; padding: 0 var(--sp-8);
   display: flex; justify-content: space-between; align-items: center;
@@ -201,7 +201,7 @@ a:hover { text-decoration: underline; text-underline-offset: 0.15em; }
   font-family: var(--body); font-size: 0.9375rem;
   color: var(--ink-light); margin-top: var(--sp-1); line-height: 1.5;
 }
-.page-title-rule { margin-top: var(--sp-3); border: none; border-top: 4px solid var(--ink); }
+.page-title-rule { margin-top: var(--sp-3); border: none; border-top: 3px solid var(--ink); }
 
 /* === Metrics strip (Tufte: data-ink ratio) === */
 
@@ -238,7 +238,7 @@ a:hover { text-decoration: underline; text-underline-offset: 0.15em; }
 .section-head {
   display: flex; align-items: baseline; gap: var(--sp-3);
   padding-top: var(--sp-2); padding-bottom: var(--sp-2);
-  border-top: 3px solid var(--teal); margin-bottom: 0;
+  border-top: 2px solid var(--teal); margin-bottom: 0;
 }
 .section-head h2 {
   font-family: var(--display); font-size: 1.25rem; font-weight: 600;
@@ -290,6 +290,7 @@ tbody tr.tr-summary td {
   display: inline-block; padding: 0.0625rem 0.4375rem;
   font-size: 0.5625rem; font-weight: 600; letter-spacing: 0.05em;
   text-transform: uppercase; border: 1px solid; line-height: 1.6;
+  border-radius: 2px;
 }
 .tag-teal { color: var(--teal); border-color: var(--teal); background: var(--teal-light); }
 .tag-claret { color: var(--claret); border-color: var(--claret); background: var(--claret-light); }
@@ -537,7 +538,7 @@ tbody tr.tr-summary td {
 .section-header {
   display: flex; align-items: baseline; gap: var(--sp-3);
   padding-top: var(--sp-2); padding-bottom: var(--sp-2);
-  border-top: 3px solid var(--teal); margin-bottom: 0;
+  border-top: 2px solid var(--teal); margin-bottom: 0;
 }
 .section-header h2 {
   font-family: var(--display); font-size: 1.25rem; font-weight: 600;
@@ -570,6 +571,37 @@ tbody tr.tr-summary td {
 
 .num-positive { color: var(--jade); }
 .num-negative { color: var(--crimson); }
+
+/* === Stacked bar (allocation chart replacement) === */
+
+.stacked-bar {
+  display: flex; height: 1.75rem; border-radius: 2px; overflow: hidden;
+}
+.stacked-bar-segment {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 3px; transition: opacity 0.15s; cursor: default;
+}
+.stacked-bar-segment:hover { opacity: 0.82; }
+.stacked-bar-label {
+  font-family: var(--data); font-size: 0.5625rem; color: #fff;
+  font-weight: 500; letter-spacing: 0.02em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 0 0.375rem;
+}
+.stacked-bar-legend {
+  display: flex; flex-wrap: wrap; gap: var(--sp-4); margin-top: var(--sp-3);
+}
+.stacked-bar-legend-item {
+  display: flex; align-items: center; gap: var(--sp-1);
+  font-size: 0.6875rem; color: var(--ink-light);
+}
+.stacked-bar-swatch {
+  display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 1px; flex-shrink: 0;
+}
+.stacked-bar-pct {
+  font-family: var(--data); font-size: 0.625rem; color: var(--ink-faint);
+  margin-left: 0.125rem;
+}
 
 /* === Print (Tufte: print should be clean) === */
 

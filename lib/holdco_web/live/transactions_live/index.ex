@@ -304,8 +304,8 @@ defmodule HoldcoWeb.TransactionsLive.Index do
     %{
       labels: labels,
       datasets: [
-        %{label: "Inflows", data: inflows, backgroundColor: "#00994d"},
-        %{label: "Outflows", data: outflows, backgroundColor: "#cc0000"}
+        %{label: "Inflows", data: inflows, backgroundColor: "#5f8f6e"},
+        %{label: "Outflows", data: outflows, backgroundColor: "#b0605e"}
       ]
     }
   end
