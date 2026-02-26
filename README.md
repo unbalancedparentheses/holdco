@@ -436,6 +436,14 @@ Reduce manual data entry and connect to external systems.
   users, connecting Holdco events and data to thousands of external services.
 - **Recurring transactions.** Auto-generate repeating entries such as rent,
   subscriptions, and management fees on configurable schedules.
+- **Contact and relationship management.** Track key people across the holding
+  structure: lawyers, accountants, bankers, regulators, investors, advisors, and
+  business contacts. Link contacts to entities, deals, and documents with role
+  tags, interaction history, and notes.
+- **Project pipeline.** Track active and planned projects across the group with
+  status, responsible contacts, milestones, budgets, and linked entities.
+  Covers M&A due diligence, entity restructurings, system migrations, fundraises,
+  or any multi-step initiative the holding company is running.
 
 ### Phase 3 — Advanced analytics and risk
 
