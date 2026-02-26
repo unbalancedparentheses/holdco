@@ -271,10 +271,11 @@ defmodule Holdco.Corporate do
 
   def get_company_consolidated!(id) do
     company = get_company_with_preloads!(id)
-    subsidiaries = list_subsidiaries(company.id)
 
     sub_companies =
-      Enum.map(subsidiaries, fn s -> get_company_with_preloads!(s.id) end)
+      from(c in Company, where: c.parent_id == ^id, order_by: c.name)
+      |> Repo.all()
+      |> Repo.preload(company_preloads())
 
     {company, sub_companies}
   end
@@ -282,7 +283,11 @@ defmodule Holdco.Corporate do
   def get_company_with_preloads!(id) do
     Company
     |> Repo.get!(id)
-    |> Repo.preload([
+    |> Repo.preload(company_preloads())
+  end
+
+  defp company_preloads do
+    [
       :subsidiaries,
       :parent,
       :beneficial_owners,
@@ -318,7 +323,7 @@ defmodule Holdco.Corporate do
       :sanctions_checks,
       :fatca_reports,
       :withholding_taxes
-    ])
+    ]
   end
 
   # PubSub
