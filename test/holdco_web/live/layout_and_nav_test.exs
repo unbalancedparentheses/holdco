@@ -18,12 +18,13 @@ defmodule HoldcoWeb.LayoutAndNavTest do
       refute html =~ "nav-user"
     end
 
-    test "login page shows masthead and brand", %{conn: conn} do
+    test "login page shows auth brand", %{conn: conn} do
       html = conn |> get(~p"/users/log-in") |> html_response(200)
 
-      assert html =~ "masthead"
+      assert html =~ "auth-brand"
       assert html =~ "Holdco"
-      assert html =~ "nav-brand"
+      refute html =~ "masthead"
+      refute html =~ "nav-brand"
     end
 
     test "login page renders auth-card", %{conn: conn} do
@@ -73,19 +74,20 @@ defmodule HoldcoWeb.LayoutAndNavTest do
       refute html =~ "nav-search"
     end
 
-    test "registration page shows masthead and brand", %{conn: conn} do
+    test "registration page shows auth brand", %{conn: conn} do
       html = conn |> get(~p"/users/register") |> html_response(200)
 
-      assert html =~ "masthead"
-      assert html =~ "nav-brand"
+      assert html =~ "auth-brand"
       assert html =~ "Holdco"
+      refute html =~ "masthead"
+      refute html =~ "nav-brand"
     end
 
     test "registration page renders auth-card", %{conn: conn} do
       html = conn |> get(~p"/users/register") |> html_response(200)
 
       assert html =~ "auth-card"
-      assert html =~ "Register for an account"
+      assert html =~ "Create an account"
     end
 
     test "registration page has email form", %{conn: conn} do

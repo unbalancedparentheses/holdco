@@ -1,14 +1,25 @@
-<div class="masthead">
-  <div class="masthead-inner">
-    <span class="masthead-label">Portfolio Management</span>
-    <span class="masthead-title">Holdco</span>
-    <span class="masthead-date">{Calendar.strftime(Date.utc_today(), "%A, %-d %B %Y")}</span>
+<%= if is_nil(assigns[:current_scope]) do %>
+  <div class="auth-page">
+    <div class="auth-page-inner">
+      <div class="auth-brand">
+        <span class="auth-brand-name">Holdco</span>
+        <span class="auth-brand-tagline">Holding company management</span>
+      </div>
+      <.flash_group flash={@flash} />
+      {@inner_content}
+    </div>
   </div>
-</div>
-<nav class="nav-bar">
-  <div class="nav-inner">
-    <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
-    <%= if assigns[:current_scope] do %>
+<% else %>
+  <div class="masthead">
+    <div class="masthead-inner">
+      <span class="masthead-label">Portfolio Management</span>
+      <span class="masthead-title">Holdco</span>
+      <span class="masthead-date"><%= Calendar.strftime(Date.utc_today(), "%A, %-d %B %Y") %></span>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <div class="nav-inner">
+      <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
       <div class="nav-links">
         <.link navigate={~p"/"} class={if assigns[:current_path] == "/", do: "active"}>
           Overview
@@ -67,7 +78,7 @@
           class={if assigns[:current_path] == "/approvals", do: "active"}
         >
           Approvals<%= if pending_count > 0 do %>
-            ({pending_count})
+            (<%= pending_count %>)
           <% end %>
         </.link>
         <.link
@@ -106,31 +117,27 @@
           <input type="text" name="q" placeholder="Search..." />
         </form>
         <div class="nav-user">
-          <span>{@current_scope.user.email}</span>
+          <span><%= @current_scope.user.email %></span>
           <.link href={~p"/users/log-out"} method="delete">Logout</.link>
         </div>
       </div>
-    <% end %>
-  </div>
-</nav>
+    </div>
+  </nav>
 
-<main class="page">
-  <.flash_group flash={@flash} />
-  <%= if assigns[:inner_content] do %>
+  <main class="page">
+    <.flash_group flash={@flash} />
     {@inner_content}
-  <% else %>
-    {render_slot(@inner_block)}
-  <% end %>
-</main>
+  </main>
 
-<footer>
-  <div class="page">
-    <div class="footer">
-      <span class="footer-text">Holdco — Open source holding company management</span>
-      <div class="footer-links">
-        <.link navigate={~p"/audit-log"}>Audit Log</.link>
-        <.link navigate={~p"/settings"}>Settings</.link>
+  <footer>
+    <div class="page">
+      <div class="footer">
+        <span class="footer-text">Holdco — Open source holding company management</span>
+        <div class="footer-links">
+          <.link navigate={~p"/audit-log"}>Audit Log</.link>
+          <.link navigate={~p"/settings"}>Settings</.link>
+        </div>
       </div>
     </div>
-  </div>
-</footer>
+  </footer>
+<% end %>

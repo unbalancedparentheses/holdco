@@ -324,19 +324,74 @@ tbody tr.tr-summary td {
 }
 .detail-value { flex: 1; font-size: 0.8125rem; color: var(--ink); }
 
+/* === Auth page (unauthenticated) === */
+
+.auth-page {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: var(--paper); padding: var(--sp-8);
+}
+.auth-page-inner { width: 100%; max-width: 420px; }
+.auth-brand {
+  text-align: center; margin-bottom: var(--sp-8);
+}
+.auth-brand-name {
+  display: block; font-family: var(--display); font-size: 2rem; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.03em; line-height: 1;
+}
+.auth-brand-tagline {
+  display: block; font-size: 0.75rem; color: var(--ink-faint);
+  letter-spacing: 0.04em; margin-top: var(--sp-1);
+}
+
 /* === Auth card === */
 
 .auth-card {
   background: var(--white); border: 1px solid var(--rule);
-  max-width: 400px; margin: var(--sp-12) auto; padding: var(--sp-8);
+  padding: var(--sp-8); border-top: 3px solid var(--ink);
 }
-.auth-card > * + * { margin-top: var(--sp-4); }
+.auth-title {
+  font-family: var(--display); font-size: 1.5rem; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.02em; line-height: 1.2;
+  margin: 0;
+}
+.auth-subtitle {
+  font-size: 0.8125rem; color: var(--ink-light); margin-top: var(--sp-1);
+  margin-bottom: var(--sp-6);
+}
+.auth-subtitle a { color: var(--teal); font-weight: 500; }
+.auth-notice {
+  font-size: 0.75rem; color: var(--teal); background: var(--teal-light);
+  border: 1px solid var(--teal); padding: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-4); line-height: 1.5;
+}
+.auth-notice a { color: var(--teal); font-weight: 600; text-decoration: underline; }
+.auth-btn {
+  width: 100%; justify-content: center; margin-top: var(--sp-3);
+}
+.auth-btn + .auth-btn { margin-top: var(--sp-2); }
 .auth-divider {
   display: flex; align-items: center; gap: var(--sp-4);
   margin: var(--sp-6) 0; color: var(--ink-faint); font-size: 0.6875rem;
   text-transform: uppercase; letter-spacing: 0.06em;
 }
 .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-top: 1px solid var(--rule); }
+
+/* Override daisyUI form defaults inside auth card */
+.auth-card .fieldset { margin-bottom: var(--sp-4); }
+.auth-card .label {
+  font-size: 0.6875rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--ink-faint); padding: 0;
+  margin-bottom: var(--sp-1); display: block;
+}
+.auth-card .input, .auth-card input[type="email"], .auth-card input[type="password"], .auth-card input[type="text"] {
+  width: 100%; padding: 0.5rem 0.75rem; font-family: var(--body); font-size: 0.875rem;
+  border: 1px solid var(--rule); border-radius: 0; background: var(--white);
+  color: var(--ink); transition: border-color 0.15s;
+  height: auto; min-height: auto;
+}
+.auth-card .input:focus, .auth-card input:focus {
+  outline: none; border-color: var(--teal); box-shadow: none;
+}
 
 /* === Footer === */
 
@@ -556,5 +611,6 @@ tbody tr.tr-summary td {
   .grid-2 { gap: var(--sp-4); }
   .detail-row { flex-direction: column; gap: var(--sp-1); }
   .detail-label { flex: none; }
-  .auth-card { margin: var(--sp-6) var(--sp-4); padding: var(--sp-6); }
+  .auth-page { padding: var(--sp-4); }
+  .auth-card { padding: var(--sp-6); }
 }

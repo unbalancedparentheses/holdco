@@ -1,17 +1,10 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
   <div class="auth-card">
-    <div class="text-center">
-      <.header>
-        Register for an account
-        <:subtitle>
-          Already registered?
-          <.link navigate={~p"/users/log-in"} class="font-semibold text-brand hover:underline">
-            Log in
-          </.link>
-          to your account now.
-        </:subtitle>
-      </.header>
-    </div>
+    <h2 class="auth-title">Create an account</h2>
+    <p class="auth-subtitle">
+      Already registered?
+      <.link navigate={~p"/users/log-in"}>Log in</.link>
+    </p>
 
     <.form :let={f} for={@changeset} action={~p"/users/register"}>
       <.input
@@ -23,10 +16,9 @@
         required
         phx-mounted={JS.focus()}
       />
-
-      <.button phx-disable-with="Creating account..." class="btn btn-primary w-full">
-        Create an account
-      </.button>
+      <button type="submit" phx-disable-with="Creating account..." class="btn btn-primary auth-btn">
+        Create an account <span aria-hidden="true">&rarr;</span>
+      </button>
     </.form>
   </div>
 </Layouts.app>

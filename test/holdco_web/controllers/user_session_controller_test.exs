@@ -24,7 +24,7 @@ defmodule HoldcoWeb.UserSessionControllerTest do
         |> get(~p"/users/log-in")
         |> html_response(200)
 
-      assert html =~ "You need to reauthenticate"
+      assert html =~ "Re-authenticate"
       refute html =~ "Register"
       assert html =~ "Log in with email"
 
