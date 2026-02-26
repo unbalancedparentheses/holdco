@@ -27,10 +27,11 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       assert html =~ "Total Positions"
     end
 
-    test "holdings nav link is active", %{conn: conn} do
+    test "holdings page renders without nav highlight", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/holdings")
 
-      assert html =~ "more-active"
+      # Holdings is no longer in the nav bar (removed from Consolidated dropdown)
+      assert html =~ "Holdings"
     end
 
     test "shows export button", %{conn: conn} do

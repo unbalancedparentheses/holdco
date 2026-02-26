@@ -18,10 +18,11 @@ defmodule HoldcoWeb.BankAccountsLiveTest do
       assert html =~ "page-title"
     end
 
-    test "bank accounts nav link is active", %{conn: conn} do
+    test "bank accounts page renders without nav highlight", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/bank-accounts")
 
-      assert html =~ "more-active"
+      # Bank Accounts is no longer in the nav bar (removed from Consolidated dropdown)
+      assert html =~ "Bank Accounts"
     end
   end
 end

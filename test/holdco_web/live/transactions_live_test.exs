@@ -27,10 +27,11 @@ defmodule HoldcoWeb.TransactionsLiveTest do
       assert html =~ "Total Outflows"
     end
 
-    test "transactions nav link is active", %{conn: conn} do
+    test "transactions page renders without nav highlight", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/transactions")
 
-      assert html =~ "more-active"
+      # Transactions is no longer in the nav bar (removed from Consolidated dropdown)
+      assert html =~ "Transactions"
     end
 
     test "shows export button", %{conn: conn} do

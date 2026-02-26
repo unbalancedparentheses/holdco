@@ -123,17 +123,9 @@ defmodule HoldcoWeb.LayoutAndNavTest do
       assert html =~ "Accounting"
       assert html =~ "Chart of Accounts"
       assert html =~ "Journal Entries"
-      # Consolidated dropdown
-      assert html =~ "Consolidated"
-      assert html =~ "Holdings"
-      assert html =~ "Transactions"
-      assert html =~ "Bank Accounts"
-      assert html =~ "Documents"
+      # Tax Calendar (top-level)
       assert html =~ "Tax Calendar"
-      assert html =~ "Governance"
-      assert html =~ "Compliance"
-      assert html =~ "Financials"
-      assert html =~ "Scenarios"
+      # Approvals and Notifications in nav-utils
       assert html =~ "Approvals"
       assert html =~ "Notifications"
       # Direct links

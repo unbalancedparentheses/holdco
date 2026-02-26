@@ -84,10 +84,10 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="overview"/s
     end
 
-    test "renders tab-content area", %{conn: conn, company: company} do
+    test "renders tab-body area", %{conn: conn, company: company} do
       {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
 
-      assert html =~ "tab-content"
+      assert html =~ "tab-body"
     end
   end
 

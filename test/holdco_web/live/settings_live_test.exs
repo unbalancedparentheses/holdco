@@ -7,7 +7,7 @@ defmodule HoldcoWeb.SettingsLiveTest do
   setup :register_and_log_in_user
 
   describe "GET /settings" do
-    test "renders settings page with title, deck, tabs, and tab-content", %{conn: conn} do
+    test "renders settings page with title, deck, tabs, and tab-body", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/settings")
 
       assert html =~ "Settings"
@@ -19,7 +19,7 @@ defmodule HoldcoWeb.SettingsLiveTest do
       assert html =~ ~s(phx-value-tab="categories")
       assert html =~ ~s(phx-value-tab="webhooks")
       assert html =~ ~s(phx-value-tab="backups")
-      assert html =~ "tab-content"
+      assert html =~ "tab-body"
       assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="settings"/s
       assert html =~ "Application Settings"
       assert html =~ "No settings configured yet."

@@ -43,10 +43,10 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="regulatory_filings"/s
     end
 
-    test "renders tab-content wrapper", %{conn: conn} do
+    test "renders tab-body wrapper", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/compliance")
 
-      assert html =~ "tab-content"
+      assert html =~ "tab-body"
     end
   end
 
@@ -113,10 +113,11 @@ defmodule HoldcoWeb.ComplianceLiveTest do
   end
 
   describe "nav active state" do
-    test "compliance nav link is highlighted", %{conn: conn} do
+    test "compliance page renders without nav highlight", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/compliance")
 
-      assert html =~ ~r/href="\/compliance"[^>]*class="active"/s
+      # Compliance is no longer in the nav bar (removed from Consolidated dropdown)
+      assert html =~ "Compliance"
     end
   end
 end

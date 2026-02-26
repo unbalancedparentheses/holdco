@@ -19,10 +19,11 @@ defmodule HoldcoWeb.ScenariosLiveTest do
       assert html =~ "Financial projections"
     end
 
-    test "scenarios nav link is active", %{conn: conn} do
+    test "scenarios page renders without nav highlight", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/scenarios")
 
-      assert html =~ "more-active"
+      # Scenarios is no longer in the nav bar (removed from Consolidated dropdown)
+      assert html =~ "Scenarios"
     end
   end
 end

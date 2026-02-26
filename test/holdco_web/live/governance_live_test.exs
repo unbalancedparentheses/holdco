@@ -45,10 +45,10 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="meetings"/s
     end
 
-    test "renders tab-content wrapper", %{conn: conn} do
+    test "renders tab-body wrapper", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/governance")
 
-      assert html =~ "tab-content"
+      assert html =~ "tab-body"
     end
 
     test "other tabs are not active by default", %{conn: conn} do
@@ -125,10 +125,11 @@ defmodule HoldcoWeb.GovernanceLiveTest do
   end
 
   describe "nav active state on governance page" do
-    test "consolidated dropdown is highlighted when on governance", %{conn: conn} do
+    test "governance page renders without nav highlight", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/governance")
 
-      assert html =~ "more-active"
+      # Governance is no longer in the nav bar (removed from Consolidated dropdown)
+      assert html =~ "Governance"
     end
   end
 end

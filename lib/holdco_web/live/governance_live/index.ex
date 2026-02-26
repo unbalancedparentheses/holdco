@@ -400,7 +400,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </button>
     </div>
 
-    <div class="tab-content">
+    <div class="tab-body">
       {render_tab(assigns)}
     </div>
     """

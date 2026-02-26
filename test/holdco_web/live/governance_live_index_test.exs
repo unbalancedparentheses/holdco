@@ -28,11 +28,11 @@ defmodule HoldcoWeb.GovernanceLiveIndexTest do
       assert html =~ "Powers of Attorney"
     end
 
-    test "renders tabs container and tab-content wrapper", %{conn: conn} do
+    test "renders tabs container and tab-body wrapper", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/governance")
 
       assert html =~ ~s(class="tabs")
-      assert html =~ "tab-content"
+      assert html =~ "tab-body"
     end
 
     test "meetings tab is active by default", %{conn: conn} do

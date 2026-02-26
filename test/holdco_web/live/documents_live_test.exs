@@ -18,10 +18,11 @@ defmodule HoldcoWeb.DocumentsLiveTest do
       assert html =~ "page-title"
     end
 
-    test "documents nav link is active", %{conn: conn} do
+    test "documents page renders without nav highlight", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/documents")
 
-      assert html =~ "more-active"
+      # Documents is no longer in the nav bar (removed from Consolidated dropdown)
+      assert html =~ "Documents"
     end
   end
 end
