@@ -315,105 +315,174 @@ priv/repo/seeds.exs      Example data
 
 ## Roadmap
 
-Planned features, roughly ordered by impact. Contributions welcome.
+Planned features organized by priority. Contributions welcome.
 
-### Treasury & Cash Management
+### Phase 1 — Core reporting and daily workflow
 
-- **Cash flow forecasting.** Project future cash positions per entity based on
-  recurring revenues, expenses, loan repayments, and tax deadlines already in
-  the system.
-- **Sweep accounts and rebalancing rules.** Define target balances per account
-  and generate transfer suggestions when thresholds are breached.
-- **FX hedging tracker.** Log forward contracts, options, and swaps against FX
-  exposures the system already calculates.
-
-### Tax & Reporting
+These extend existing data into immediately useful outputs.
 
 - **Capital gains tax report.** Generate FIFO, LIFO, or specific-lot reports per
   jurisdiction with short-term vs long-term classification. Built on the existing
   cost basis lot data.
-- **K-1 and distribution waterfall.** Model LP/GP economics for fund entities
-  with hurdle rates, catch-up, and carry calculations.
 - **Consolidated financial statements.** Automatic elimination of intercompany
   balances and transactions for group-level reporting.
-- **Multi-jurisdiction tax optimizer.** Given the entity tree and transfer
-  pricing docs, suggest dividend routes or IP licensing structures that minimize
-  withholding taxes.
-
-### Risk & Analytics
-
+- **Cash flow forecasting.** Project future cash positions per entity based on
+  recurring revenues, expenses, loan repayments, and tax deadlines already in
+  the system.
+- **PDF report generation.** One-click board pack with portfolio summary,
+  financials, compliance status, and upcoming deadlines.
+- **Unified calendar view.** Merge tax deadlines, board meetings, compliance
+  dates, loan maturities, and filing deadlines into one calendar.
 - **Concentration risk dashboard.** Alerts when a single asset, sector,
   currency, or counterparty exceeds a configurable percentage of NAV.
-- **Liquidity coverage ratio.** Compare liquid assets to short-term liabilities
-  and upcoming obligations such as loan maturities and tax payments.
-- **Stress testing.** Extend scenario modeling with market shocks (e.g. BTC
-  drops 40%, EUR/USD moves 10%) applied to the actual portfolio.
-- **Counterparty risk scoring.** Rate custodians and banks by exposure,
-  jurisdiction, and credit rating.
+- **Field-level audit diffs.** Show what changed (old value to new value), not
+  just that something changed.
+- **Debt maturity ladder.** Visual timeline of upcoming maturities across all
+  entities.
+- **Internal messaging and notes.** Threaded comments on any entity, surfacing
+  the existing comments table in the UI.
 
-### Workflow & Collaboration
+### Phase 2 — Automation and integrations
 
+Reduce manual data entry and connect to external systems.
+
+- **Bank feed via Plaid or GoCardless.** Auto-import transactions and reconcile
+  against manual entries using the existing bank_feed framework.
+- **Mercury, Wise, and Revolut Business APIs.** Direct bank balance and
+  transaction sync for fintech-native holding companies.
+- **Xero integration.** Cover the other major accounting platform alongside
+  QuickBooks.
+- **Intercompany loan interest accrual.** Automatic interest calculations at
+  arm's length rates with journal entry generation.
 - **Multi-sig approval workflows.** Require N-of-M approvals for transactions
   above a threshold, dividend declarations, or new entity creation. Extends the
   existing approval_requests infrastructure.
 - **Task management.** Assign follow-ups from board meetings, compliance
   deadlines, or audit findings to specific users with due dates.
-- **Internal messaging and notes.** Threaded comments on any entity, surfacing
-  the existing comments table in the UI.
-- **Document e-signature workflow.** Build the full signing flow with reminders
-  and status tracking on top of the existing signature_requests schema.
+- **Scheduled reports.** Extend email digests with custom report schedules such
+  as monthly board packs and quarterly compliance summaries.
+- **Backup to S3 or R2.** Extend the backup worker to push encrypted backups to
+  object storage instead of only local paths.
+- **Bulk operations.** Batch-edit holdings, batch-assign categories, and
+  bulk-approve pending items.
 
-### Integrations
+### Phase 3 — Advanced analytics and risk
 
-- **Bank feed via Plaid or GoCardless.** Auto-import transactions and reconcile
-  against manual entries using the existing bank_feed framework.
-- **Xero integration.** Cover the other major accounting platform alongside
-  QuickBooks.
-- **Mercury, Wise, and Revolut Business APIs.** Direct bank balance and
-  transaction sync for fintech-native holding companies.
-- **DocuSign and PandaDoc.** Complete the e-signature integration.
+Turn the platform into a decision-making tool.
 
-### Data & Intelligence
-
-- **Natural language query.** Ask questions like "What is our total exposure to
-  EUR?" or "Show me all entities with tax deadlines this quarter" using an LLM
-  against the structured data.
+- **Stress testing.** Extend scenario modeling with market shocks (e.g. BTC
+  drops 40%, EUR/USD moves 10%) applied to the actual portfolio.
+- **Liquidity coverage ratio.** Compare liquid assets to short-term liabilities
+  and upcoming obligations such as loan maturities and tax payments.
+- **Counterparty risk scoring.** Rate custodians and banks by exposure,
+  jurisdiction, and credit rating.
+- **Loan covenant monitoring.** Track financial covenants (debt/equity ratio,
+  interest coverage) with automated breach alerts based on actual financials.
 - **Anomaly detection.** Flag unusual transactions, balance changes, or patterns
   such as unexpected large outflows or duplicate payments.
 - **Benchmark comparison.** Compare portfolio allocation and returns against
   standard indices.
+- **Valuation models.** DCF, comparables, and cap rate models for illiquid and
+  private holdings instead of just manual entry.
+- **Point-in-time snapshots.** View the entire corporate structure and portfolio
+  as it was on any historical date.
 
-### Multi-Tenant & Access
+### Phase 4 — Fund, LP, and tax structures
+
+For holding companies with fund entities or complex tax planning needs.
+
+- **K-1 and distribution waterfall.** Model LP/GP economics for fund entities
+  with hurdle rates, catch-up, and carry calculations.
+- **Capital call and distribution management.** Track called vs uncalled capital,
+  RVPI, TVPI, and DPI multiples for PE and VC fund commitments.
+- **Fund NAV and investor statements.** Generate LP statements with performance
+  attribution for fund entities.
+- **Fee tracking.** Management fees, performance fees, and carried interest
+  across fund investments.
+- **Dividend policy engine.** Automate dividend calculations based on
+  configurable rules such as distributing a percentage of net income above a
+  reserve threshold.
+- **Multi-jurisdiction tax optimizer.** Given the entity tree and transfer
+  pricing docs, suggest dividend routes or IP licensing structures that minimize
+  withholding taxes.
+- **Repatriation planning.** Track trapped cash per jurisdiction and model
+  optimal repatriation routes considering withholding taxes and treaty networks.
+
+### Phase 5 — Corporate lifecycle and governance
+
+Full entity management from incorporation to dissolution.
+
+- **Entity lifecycle management.** Incorporation, dormancy, winding-down, and
+  dissolution workflows with jurisdiction-specific checklists.
+- **Corporate secretarial registers.** Statutory books (share register, director
+  register, charge register) required by most jurisdictions.
+- **Corporate actions.** Stock splits, mergers, spin-offs, and their cascading
+  impact on holdings and cost basis.
+- **Succession and estate planning.** Model generational transfers, trust
+  structures, and what happens to the org chart when key persons change.
+- **Document e-signature workflow.** Build the full signing flow with reminders
+  and status tracking on top of the existing signature_requests schema.
+- **DocuSign and PandaDoc.** Complete the e-signature integration.
+- **Full KYC/AML workflow.** Beyond sanctions screening, track document
+  collection, verification status, and periodic review cycles per entity and
+  beneficial owner.
+- **Reporting templates.** Pre-built templates for CRS, FATCA, BO registers, and
+  other jurisdiction-specific filings.
+
+### Phase 6 — Real assets, crypto, and DeFi
+
+Deeper support for non-traditional asset classes.
+
+- **Real estate management.** Lease schedules, tenant tracking, rent rolls,
+  maintenance costs, and property-level P&L for real estate holdings.
+- **DeFi position tracking.** Staking, lending, liquidity pool positions, and
+  yield farming across protocols.
+- **On-chain verification.** Pull balances directly from blockchain RPCs to
+  verify custodial reports.
+- **Airdrop and fork tracking.** Record cost basis for received tokens.
+- **Sweep accounts and rebalancing rules.** Define target balances per account
+  and generate transfer suggestions when thresholds are breached.
+- **FX hedging tracker.** Log forward contracts, options, and swaps against FX
+  exposures the system already calculates.
+
+### Phase 7 — Multi-tenant, access control, and intelligence
+
+Scale from single-user to multi-stakeholder platform.
 
 - **Investor portal.** Read-only view for LPs and investors showing their
   specific holdings, distributions, and reports. Built on the existing
   investor_accesses table.
 - **Advisor view.** Let external accountants or lawyers see only the entities and
   documents relevant to them.
-- **White-labeling.** Configurable branding (logo, colors, app name) per tenant
-  group.
-
-### UX & Quality of Life
-
-- **Mobile-responsive dashboard.** Simplified mobile layout for checking NAV on
-  the go.
-- **PDF report generation.** One-click board pack with portfolio summary,
-  financials, compliance status, and upcoming deadlines.
-- **Bulk operations.** Batch-edit holdings, batch-assign categories, and
-  bulk-approve pending items.
-- **Keyboard shortcuts.** Power-user navigation across all pages.
-- **Dark mode.**
-
-### Infrastructure
-
+- **Virtual data room.** Secure, permissioned document sharing for M&A due
+  diligence. Extends the existing documents module.
+- **SSO and SAML.** Enterprise authentication alongside the existing
+  email/password flow.
+- **Natural language query.** Ask questions like "What is our total exposure to
+  EUR?" or "Show me all entities with tax deadlines this quarter" using an LLM
+  against the structured data.
+- **Regulatory change monitoring.** Subscribe to jurisdictions and get alerts
+  when relevant regulations change.
 - **Multi-user real-time collaboration.** Presence indicators ("Alice is viewing
   this company") via LiveView presence.
-- **Field-level audit diffs.** Show what changed (old value to new value), not
-  just that something changed.
-- **Scheduled reports.** Extend email digests with custom report schedules such
-  as monthly board packs and quarterly compliance summaries.
-- **Backup to S3 or R2.** Extend the backup worker to push encrypted backups to
-  object storage instead of only local paths.
+
+### Phase 8 — Platform extensibility
+
+Open the system up for custom workflows and external tools.
+
+- **GraphQL API.** Alongside the existing REST API for more flexible queries.
+- **Telegram and Slack bot.** Push notifications and quick queries via chat.
+- **BI tool export.** Direct connectors or scheduled exports for Metabase,
+  Grafana, or Excel Power Query.
+- **Plugin and extension system.** Let users add custom modules without forking.
+- **White-labeling.** Configurable branding (logo, colors, app name) per tenant
+  group.
+- **Mobile-responsive dashboard.** Simplified mobile layout for checking NAV on
+  the go.
+- **Keyboard shortcuts.** Power-user navigation across all pages.
+- **Multi-language and i18n.** Especially relevant for multi-jurisdiction holding
+  companies.
+- **Dark mode.**
 
 ## License
 
