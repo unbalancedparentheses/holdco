@@ -12,6 +12,12 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     allocation = Portfolio.asset_allocation()
     total_value = Enum.reduce(holdings, 0.0, fn h, acc -> acc + (h.quantity || 0.0) end)
 
+    asset_types =
+      case Holdco.Platform.get_setting_value("asset_types") do
+        nil -> ~w(equity etf crypto commodity bond real_estate private_equity fund other)
+        str -> String.split(str, ",", trim: true) |> Enum.map(&String.trim/1)
+      end
+
     {:ok,
      assign(socket,
        page_title: "Holdings",
@@ -19,6 +25,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
        companies: companies,
        allocation: allocation,
        total_value: total_value,
+       asset_types: asset_types,
        show_form: false
      )}
   end
@@ -245,15 +252,9 @@ defmodule HoldcoWeb.HoldingsLive.Index do
               <div class="form-group">
                 <label class="form-label">Asset Type</label>
                 <select name="holding[asset_type]" class="form-select">
-                  <option value="stock">Stock</option>
-                  <option value="etf">ETF</option>
-                  <option value="crypto">Crypto</option>
-                  <option value="commodity">Commodity</option>
-                  <option value="bond">Bond</option>
-                  <option value="real_estate">Real Estate</option>
-                  <option value="private_equity">Private Equity</option>
-                  <option value="fund">Fund</option>
-                  <option value="other">Other</option>
+                  <%= for t <- @asset_types do %>
+                    <option value={t}>{humanize_type(t)}</option>
+                  <% end %>
                 </select>
               </div>
               <div class="form-group">
@@ -282,4 +283,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     str |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
   end
 
+  defp humanize_type(type) do
+    type |> String.replace("_", " ") |> String.split(" ") |> Enum.map_join(" ", &String.capitalize/1)
+  end
 end

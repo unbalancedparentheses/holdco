@@ -44,7 +44,8 @@ end
 
 for {key, value} <- [
       {"app_name", "Holdco"},
-      {"tagline", "Open source holding company management"}
+      {"tagline", "Open source holding company management"},
+      {"asset_types", "equity,etf,crypto,commodity,bond,real_estate,private_equity,fund,other"}
     ] do
   case Repo.get_by(Setting, key: key) do
     nil -> Repo.insert!(%Setting{key: key, value: value})
@@ -191,7 +192,7 @@ _spy =
     quantity: 200.0,
     unit: "shares",
     currency: "USD",
-    asset_type: "equity"
+    asset_type: "etf"
   })
 
 _office =
@@ -202,6 +203,48 @@ _office =
     unit: "property",
     currency: "USD",
     asset_type: "real_estate"
+  })
+
+_us_treasury =
+  find_or_create_holding.(%{
+    company_id: capital.id,
+    asset: "US Treasury 10Y Note",
+    ticker: "ZN",
+    quantity: 100.0,
+    unit: "contracts",
+    currency: "USD",
+    asset_type: "bond"
+  })
+
+_pe_fund =
+  find_or_create_holding.(%{
+    company_id: holdings.id,
+    asset: "Sequoia Capital Fund XV",
+    quantity: 1.0,
+    unit: "LP interest",
+    currency: "USD",
+    asset_type: "private_equity"
+  })
+
+_hedge_fund =
+  find_or_create_holding.(%{
+    company_id: capital.id,
+    asset: "Bridgewater All Weather Fund",
+    quantity: 5000.0,
+    unit: "units",
+    currency: "USD",
+    asset_type: "fund"
+  })
+
+_em_etf =
+  find_or_create_holding.(%{
+    company_id: capital.id,
+    asset: "Emerging Markets ETF",
+    ticker: "VWO",
+    quantity: 350.0,
+    unit: "shares",
+    currency: "USD",
+    asset_type: "etf"
   })
 
 # ---------- Custodian for Gold ----------
