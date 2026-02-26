@@ -553,9 +553,21 @@ Scale from single-user to multi-stakeholder platform.
   diligence. Extends the existing documents module.
 - **SSO and SAML.** Enterprise authentication alongside the existing
   email/password flow.
-- **Natural language query.** Ask questions like "What is our total exposure to
-  EUR?" or "Show me all entities with tax deadlines this quarter" using an LLM
-  against the structured data.
+- **AI assistant.** LLM-powered copilot that can analyze uploaded documents
+  (contracts, term sheets, financial statements, tax filings), answer natural
+  language questions against the structured data ("What is our total EUR
+  exposure?", "Which entities have tax deadlines this quarter?"), summarize board
+  packs, flag risks in new agreements, draft compliance narratives, and suggest
+  optimization opportunities across the portfolio. Provider-agnostic via
+  OpenRouter, or connect directly to the Anthropic, OpenAI, or any other API.
+  Configurable per-deployment so users choose their own provider and API key.
+- **Document intelligence.** Automatic extraction of key terms, dates, amounts,
+  and obligations from uploaded contracts and agreements using LLM parsing.
+  Populate structured fields from unstructured documents and flag missing or
+  expiring clauses.
+- **AI-generated insights.** Periodic LLM-driven analysis of portfolio changes,
+  financial trends, compliance gaps, and upcoming risks delivered as a digest
+  alongside the existing email summaries.
 - **Regulatory change monitoring.** Subscribe to jurisdictions and get alerts
   when relevant regulations change.
 - **Multi-user real-time collaboration.** Presence indicators ("Alice is viewing
