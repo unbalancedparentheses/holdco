@@ -31,6 +31,8 @@ defmodule HoldcoWeb.HoldingsLive.Index do
   end
 
   @impl true
+  def handle_event("noop", _, socket), do: {:noreply, socket}
+
   def handle_event("show_form", _, socket), do: {:noreply, assign(socket, show_form: true)}
   def handle_event("close_form", _, socket), do: {:noreply, assign(socket, show_form: false)}
 
@@ -218,7 +220,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
 
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Holding</h3>
           </div>

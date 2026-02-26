@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.ExportController do
   use HoldcoWeb, :controller
 
-  alias Holdco.{Corporate, Assets, Banking}
+  alias Holdco.{Corporate, Assets, Banking, Finance}
 
   def companies(conn, _params) do
     companies = Corporate.list_companies()
@@ -62,6 +62,54 @@ defmodule HoldcoWeb.ExportController do
       |> csv_encode()
 
     send_csv(conn, "transactions.csv", csv)
+  end
+
+  def chart_of_accounts(conn, _params) do
+    accounts = Finance.list_accounts()
+
+    csv =
+      [["Code", "Name", "Type", "Currency", "Parent", "External ID"]]
+      |> Enum.concat(
+        Enum.map(accounts, fn a ->
+          [
+            a.code,
+            a.name,
+            a.account_type,
+            a.currency,
+            if(a.parent, do: a.parent.name, else: ""),
+            a.external_id || ""
+          ]
+        end)
+      )
+      |> csv_encode()
+
+    send_csv(conn, "chart-of-accounts.csv", csv)
+  end
+
+  def journal_entries(conn, _params) do
+    entries = Finance.list_journal_entries()
+
+    csv =
+      [["Date", "Reference", "Description", "Total Debit", "Total Credit", "Lines"]]
+      |> Enum.concat(
+        Enum.map(entries, fn e ->
+          lines = e.lines || []
+          total_debit = Enum.reduce(lines, 0.0, &((&1.debit || 0.0) + &2))
+          total_credit = Enum.reduce(lines, 0.0, &((&1.credit || 0.0) + &2))
+
+          [
+            e.date,
+            e.reference || "",
+            e.description,
+            total_debit,
+            total_credit,
+            length(lines)
+          ]
+        end)
+      )
+      |> csv_encode()
+
+    send_csv(conn, "journal-entries.csv", csv)
   end
 
   defp csv_encode(rows) do

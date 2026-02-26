@@ -27,6 +27,8 @@ defmodule HoldcoWeb.ComplianceLive.Index do
   end
 
   @impl true
+  def handle_event("noop", _, socket), do: {:noreply, socket}
+
   def handle_event("switch_tab", %{"tab" => tab}, socket) when tab in @tabs do
     {:noreply, assign(socket, active_tab: tab, show_form: false)}
   end
@@ -288,7 +290,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Regulatory Filing</h3>
           </div>
@@ -383,7 +385,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Regulatory License</h3>
           </div>
@@ -493,7 +495,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Insurance Policy</h3>
           </div>
@@ -604,7 +606,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Run Sanctions Check</h3>
           </div>
@@ -695,7 +697,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add ESG Score</h3>
           </div>
@@ -803,7 +805,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add FATCA Report</h3>
           </div>
@@ -900,7 +902,7 @@ defmodule HoldcoWeb.ComplianceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Withholding Tax</h3>
           </div>

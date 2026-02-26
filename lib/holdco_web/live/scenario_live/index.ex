@@ -28,6 +28,8 @@ defmodule HoldcoWeb.ScenarioLive.Index do
   defp apply_action(socket, :index, _params), do: assign(socket, show_form: false)
 
   @impl true
+  def handle_event("noop", _, socket), do: {:noreply, socket}
+
   def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
@@ -136,7 +138,7 @@ defmodule HoldcoWeb.ScenarioLive.Index do
 
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>New Scenario</h3>
           </div>

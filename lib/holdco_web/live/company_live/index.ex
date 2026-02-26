@@ -12,6 +12,7 @@ defmodule HoldcoWeb.CompanyLive.Index do
      assign(socket,
        page_title: "Companies",
        companies: companies,
+       sorted_companies: sort_hierarchically(companies),
        changeset: Corporate.change_company(%Company{}),
        view_mode: :list,
        company_tree: Corporate.company_tree(),
@@ -35,6 +36,8 @@ defmodule HoldcoWeb.CompanyLive.Index do
   defp apply_action(socket, :index, _params), do: assign(socket, show_form: false, company: nil)
 
   @impl true
+  def handle_event("noop", _, socket), do: {:noreply, socket}
+
   def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
@@ -58,8 +61,14 @@ defmodule HoldcoWeb.CompanyLive.Index do
     company = Corporate.get_company!(id)
     {:ok, _} = Corporate.delete_company(company)
 
+    companies = Corporate.list_companies()
+
     {:noreply,
-     assign(socket, companies: Corporate.list_companies()) |> put_flash(:info, "Company deleted")}
+     assign(socket,
+       companies: companies,
+       sorted_companies: sort_hierarchically(companies)
+     )
+     |> put_flash(:info, "Company deleted")}
   end
 
   def handle_event("close_form", _, socket),
@@ -100,21 +109,27 @@ defmodule HoldcoWeb.CompanyLive.Index do
   end
 
   @impl true
-  def handle_info({:companies_created, _}, socket),
-    do:
-      {:noreply,
-       assign(socket,
-         companies: Corporate.list_companies(),
-         company_tree: Corporate.company_tree()
-       )}
+  def handle_info({:companies_created, _}, socket) do
+    companies = Corporate.list_companies()
 
-  def handle_info({:companies_deleted, _}, socket),
-    do:
-      {:noreply,
-       assign(socket,
-         companies: Corporate.list_companies(),
-         company_tree: Corporate.company_tree()
-       )}
+    {:noreply,
+     assign(socket,
+       companies: companies,
+       sorted_companies: sort_hierarchically(companies),
+       company_tree: Corporate.company_tree()
+     )}
+  end
+
+  def handle_info({:companies_deleted, _}, socket) do
+    companies = Corporate.list_companies()
+
+    {:noreply,
+     assign(socket,
+       companies: companies,
+       sorted_companies: sort_hierarchically(companies),
+       company_tree: Corporate.company_tree()
+     )}
+  end
 
   def handle_info(_, socket), do: {:noreply, socket}
 
@@ -181,7 +196,7 @@ defmodule HoldcoWeb.CompanyLive.Index do
               </tr>
             </thead>
             <tbody>
-              <%= for company <- @companies do %>
+              <%= for company <- @sorted_companies do %>
                 <tr>
                   <td class={if company.parent_id, do: "indent"}>
                     <.link navigate={~p"/companies/#{company.id}"} class="td-link td-name">
@@ -245,7 +260,7 @@ defmodule HoldcoWeb.CompanyLive.Index do
 
     <%= if @live_action == :new do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>New Company</h3>
           </div>
@@ -309,6 +324,20 @@ defmodule HoldcoWeb.CompanyLive.Index do
       </div>
     <% end %>
     """
+  end
+
+  defp sort_hierarchically(companies) do
+    roots = Enum.filter(companies, &is_nil(&1.parent_id)) |> Enum.sort_by(& &1.name)
+    children_map = companies |> Enum.filter(& &1.parent_id) |> Enum.group_by(& &1.parent_id)
+    Enum.flat_map(roots, &flatten_with_children(&1, children_map))
+  end
+
+  defp flatten_with_children(company, children_map) do
+    children =
+      Map.get(children_map, company.id, [])
+      |> Enum.sort_by(& &1.name)
+
+    [company | Enum.flat_map(children, &flatten_with_children(&1, children_map))]
   end
 
   defp render_tree_node(parent_assigns, node) do

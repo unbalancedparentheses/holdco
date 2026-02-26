@@ -7,7 +7,7 @@ alias Holdco.Platform.{Setting, Category}
 alias Holdco.Corporate.{Company, BeneficialOwner, KeyPersonnel, ServiceProvider}
 alias Holdco.Assets.{AssetHolding, CustodianAccount, PortfolioSnapshot}
 alias Holdco.Banking.{BankAccount, Transaction}
-alias Holdco.Finance.{Financial, Liability, Dividend}
+alias Holdco.Finance.{Financial, Liability, Dividend, Account, JournalEntry, JournalLine}
 alias Holdco.Compliance.{TaxDeadline, InsurancePolicy}
 alias Holdco.Governance.{BoardMeeting, CapTableEntry, ShareholderResolution, Deal, EquityIncentivePlan, JointVenture, PowerOfAttorney}
 alias Holdco.Documents.Document
@@ -1108,6 +1108,121 @@ if Repo.aggregate(Dividend, :count) == 0 do
     recipient: "Acme Holdings",
     dividend_type: "regular"
   })
+end
+
+# ---------- Chart of Accounts ----------
+
+find_or_create_account = fn attrs ->
+  case Repo.get_by(Account, code: attrs.code) do
+    nil -> Repo.insert!(struct(Account, attrs))
+    existing -> existing
+  end
+end
+
+if Repo.aggregate(Account, :count) == 0 do
+  # Assets (1xxx)
+  cash = find_or_create_account.(%{code: "1000", name: "Cash", account_type: "asset", currency: "USD"})
+  find_or_create_account.(%{code: "1010", name: "Petty Cash", account_type: "asset", currency: "USD", parent_id: cash.id})
+  find_or_create_account.(%{code: "1020", name: "Checking Account", account_type: "asset", currency: "USD", parent_id: cash.id})
+  ar = find_or_create_account.(%{code: "1100", name: "Accounts Receivable", account_type: "asset", currency: "USD"})
+  find_or_create_account.(%{code: "1200", name: "Investments", account_type: "asset", currency: "USD"})
+  find_or_create_account.(%{code: "1210", name: "Marketable Securities", account_type: "asset", currency: "USD"})
+  find_or_create_account.(%{code: "1300", name: "Fixed Assets", account_type: "asset", currency: "USD"})
+  find_or_create_account.(%{code: "1310", name: "Office Equipment", account_type: "asset", currency: "USD"})
+  find_or_create_account.(%{code: "1320", name: "Accumulated Depreciation", account_type: "asset", currency: "USD"})
+
+  # Liabilities (2xxx)
+  ap = find_or_create_account.(%{code: "2000", name: "Accounts Payable", account_type: "liability", currency: "USD"})
+  find_or_create_account.(%{code: "2100", name: "Loans Payable", account_type: "liability", currency: "USD"})
+  find_or_create_account.(%{code: "2200", name: "Accrued Expenses", account_type: "liability", currency: "USD"})
+  find_or_create_account.(%{code: "2300", name: "Taxes Payable", account_type: "liability", currency: "USD"})
+
+  # Equity (3xxx)
+  oe = find_or_create_account.(%{code: "3000", name: "Owner's Equity", account_type: "equity", currency: "USD"})
+  find_or_create_account.(%{code: "3100", name: "Retained Earnings", account_type: "equity", currency: "USD"})
+  find_or_create_account.(%{code: "3200", name: "Common Stock", account_type: "equity", currency: "USD"})
+
+  # Revenue (4xxx)
+  inv_income = find_or_create_account.(%{code: "4000", name: "Investment Income", account_type: "revenue", currency: "USD"})
+  mgmt_fees = find_or_create_account.(%{code: "4100", name: "Management Fees", account_type: "revenue", currency: "USD"})
+  div_received = find_or_create_account.(%{code: "4200", name: "Dividends Received", account_type: "revenue", currency: "USD"})
+  find_or_create_account.(%{code: "4300", name: "Interest Income", account_type: "revenue", currency: "USD"})
+
+  # Expenses (5xxx)
+  op_exp = find_or_create_account.(%{code: "5000", name: "Operating Expenses", account_type: "expense", currency: "USD"})
+  find_or_create_account.(%{code: "5100", name: "Legal Fees", account_type: "expense", currency: "USD"})
+  acct_fees = find_or_create_account.(%{code: "5200", name: "Accounting Fees", account_type: "expense", currency: "USD"})
+  find_or_create_account.(%{code: "5300", name: "Travel & Entertainment", account_type: "expense", currency: "USD"})
+  find_or_create_account.(%{code: "5400", name: "Office Supplies", account_type: "expense", currency: "USD"})
+  find_or_create_account.(%{code: "5500", name: "Insurance", account_type: "expense", currency: "USD"})
+  find_or_create_account.(%{code: "5600", name: "Depreciation Expense", account_type: "expense", currency: "USD"})
+
+  # ---------- Sample Journal Entries ----------
+
+  if Repo.aggregate(JournalEntry, :count) == 0 do
+    # JE1: Initial capital contribution
+    {:ok, je1} = Holdco.Finance.create_journal_entry(%{
+      "date" => "2024-01-01",
+      "description" => "Initial capital contribution from owners",
+      "reference" => "JE-001"
+    })
+    Repo.insert!(%JournalLine{entry_id: je1.id, account_id: cash.id, debit: 1_000_000.0, credit: 0.0})
+    Repo.insert!(%JournalLine{entry_id: je1.id, account_id: oe.id, debit: 0.0, credit: 1_000_000.0})
+
+    # JE2: Received dividend income
+    {:ok, je2} = Holdco.Finance.create_journal_entry(%{
+      "date" => "2025-01-15",
+      "description" => "Q4 2024 dividend received from Acme Tech",
+      "reference" => "JE-002"
+    })
+    Repo.insert!(%JournalLine{entry_id: je2.id, account_id: cash.id, debit: 50_000.0, credit: 0.0})
+    Repo.insert!(%JournalLine{entry_id: je2.id, account_id: div_received.id, debit: 0.0, credit: 50_000.0})
+
+    # JE3: Paid accounting fees
+    {:ok, je3} = Holdco.Finance.create_journal_entry(%{
+      "date" => "2025-02-01",
+      "description" => "Monthly accounting fees - Chen Accounting",
+      "reference" => "JE-003"
+    })
+    Repo.insert!(%JournalLine{entry_id: je3.id, account_id: acct_fees.id, debit: 5_000.0, credit: 0.0})
+    Repo.insert!(%JournalLine{entry_id: je3.id, account_id: cash.id, debit: 0.0, credit: 5_000.0})
+
+    # JE4: Management fees earned
+    {:ok, je4} = Holdco.Finance.create_journal_entry(%{
+      "date" => "2025-02-15",
+      "description" => "Q1 management fees from subsidiaries",
+      "reference" => "JE-004"
+    })
+    Repo.insert!(%JournalLine{entry_id: je4.id, account_id: ar.id, debit: 25_000.0, credit: 0.0})
+    Repo.insert!(%JournalLine{entry_id: je4.id, account_id: mgmt_fees.id, debit: 0.0, credit: 25_000.0})
+
+    # JE5: Operating expenses
+    {:ok, je5} = Holdco.Finance.create_journal_entry(%{
+      "date" => "2025-02-28",
+      "description" => "February operating expenses",
+      "reference" => "JE-005"
+    })
+    Repo.insert!(%JournalLine{entry_id: je5.id, account_id: op_exp.id, debit: 8_500.0, credit: 0.0})
+    Repo.insert!(%JournalLine{entry_id: je5.id, account_id: cash.id, debit: 0.0, credit: 8_500.0})
+
+    # JE6: Vendor payment
+    {:ok, je6} = Holdco.Finance.create_journal_entry(%{
+      "date" => "2025-03-01",
+      "description" => "Payment to vendors - accounts payable",
+      "reference" => "JE-006"
+    })
+    Repo.insert!(%JournalLine{entry_id: je6.id, account_id: ap.id, debit: 12_000.0, credit: 0.0})
+    Repo.insert!(%JournalLine{entry_id: je6.id, account_id: cash.id, debit: 0.0, credit: 12_000.0})
+
+    # JE7: Investment income
+    {:ok, je7} = Holdco.Finance.create_journal_entry(%{
+      "date" => "2025-04-15",
+      "description" => "Q1 2025 investment returns",
+      "reference" => "JE-007"
+    })
+    Repo.insert!(%JournalLine{entry_id: je7.id, account_id: cash.id, debit: 30_000.0, credit: 0.0})
+    Repo.insert!(%JournalLine{entry_id: je7.id, account_id: inv_income.id, debit: 0.0, credit: 30_000.0})
+  end
 end
 
 IO.puts("Seeds loaded successfully!")

@@ -1,0 +1,336 @@
+defmodule HoldcoWeb.AccountingLive.Journal do
+  use HoldcoWeb, :live_view
+
+  alias Holdco.Finance
+
+  @impl true
+  def mount(_params, _session, socket) do
+    if connected?(socket), do: Finance.subscribe()
+
+    entries = Finance.list_journal_entries()
+    accounts = Finance.list_accounts()
+
+    {:ok,
+     assign(socket,
+       page_title: "Journal Entries",
+       entries: entries,
+       accounts: accounts,
+       expanded: MapSet.new(),
+       show_form: false,
+       line_count: 2,
+       form_error: nil
+     )}
+  end
+
+  @impl true
+  def handle_event("noop", _, socket), do: {:noreply, socket}
+
+  def handle_event("show_form", _, socket),
+    do: {:noreply, assign(socket, show_form: true, line_count: 2, form_error: nil)}
+
+  def handle_event("close_form", _, socket),
+    do: {:noreply, assign(socket, show_form: false, form_error: nil)}
+
+  def handle_event("add_line", _, socket),
+    do: {:noreply, assign(socket, line_count: socket.assigns.line_count + 1)}
+
+  def handle_event("toggle_entry", %{"id" => id}, socket) do
+    id = String.to_integer(id)
+    expanded = socket.assigns.expanded
+
+    expanded =
+      if MapSet.member?(expanded, id),
+        do: MapSet.delete(expanded, id),
+        else: MapSet.put(expanded, id)
+
+    {:noreply, assign(socket, expanded: expanded)}
+  end
+
+  def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("delete", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("save", %{"entry" => entry_params, "lines" => lines_params}, socket) do
+    lines =
+      lines_params
+      |> Enum.sort_by(fn {k, _v} -> String.to_integer(k) end)
+      |> Enum.map(fn {_k, v} -> v end)
+      |> Enum.reject(fn l -> (l["account_id"] || "") == "" end)
+
+    total_debit = lines |> Enum.map(&parse_float(&1["debit"])) |> Enum.sum()
+    total_credit = lines |> Enum.map(&parse_float(&1["credit"])) |> Enum.sum()
+
+    cond do
+      length(lines) < 2 ->
+        {:noreply, assign(socket, form_error: "At least 2 lines required")}
+
+      abs(total_debit - total_credit) > 0.01 ->
+        {:noreply,
+         assign(socket,
+           form_error:
+             "Debits ($#{format_number(total_debit)}) must equal credits ($#{format_number(total_credit)})"
+         )}
+
+      true ->
+        case Finance.create_journal_entry(entry_params) do
+          {:ok, entry} ->
+            Enum.each(lines, fn l ->
+              Finance.create_journal_line(%{
+                "entry_id" => entry.id,
+                "account_id" => l["account_id"],
+                "debit" => parse_float(l["debit"]),
+                "credit" => parse_float(l["credit"]),
+                "notes" => l["notes"]
+              })
+            end)
+
+            {:noreply,
+             reload(socket)
+             |> put_flash(:info, "Journal entry created")
+             |> assign(show_form: false, form_error: nil)}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to create journal entry")}
+        end
+    end
+  end
+
+  def handle_event("save", %{"entry" => entry_params}, socket) do
+    # No lines submitted
+    handle_event("save", %{"entry" => entry_params, "lines" => %{}}, socket)
+  end
+
+  def handle_event("delete", %{"id" => id}, socket) do
+    entry = Finance.get_journal_entry!(String.to_integer(id))
+
+    Enum.each(entry.lines, fn line ->
+      Finance.delete_journal_line(line)
+    end)
+
+    Finance.delete_journal_entry(entry)
+    {:noreply, reload(socket) |> put_flash(:info, "Journal entry deleted")}
+  end
+
+  @impl true
+  def handle_info(_, socket), do: {:noreply, reload(socket)}
+
+  defp reload(socket) do
+    entries = Finance.list_journal_entries()
+    accounts = Finance.list_accounts()
+    assign(socket, entries: entries, accounts: accounts)
+  end
+
+  defp parse_float(nil), do: 0.0
+  defp parse_float(""), do: 0.0
+
+  defp parse_float(val) when is_binary(val) do
+    case Float.parse(val) do
+      {f, _} -> f
+      :error -> 0.0
+    end
+  end
+
+  defp parse_float(val) when is_float(val), do: val
+  defp parse_float(val) when is_integer(val), do: val / 1
+
+  defp entry_totals(entry) do
+    lines = entry.lines || []
+    total_debit = Enum.reduce(lines, 0.0, &((&1.debit || 0.0) + &2))
+    total_credit = Enum.reduce(lines, 0.0, &((&1.credit || 0.0) + &2))
+    {total_debit, total_credit}
+  end
+
+  defp format_number(n) when is_float(n),
+    do: :erlang.float_to_binary(n, decimals: 2) |> add_commas()
+
+  defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
+  defp format_number(_), do: "0.00"
+
+  defp add_commas(str) do
+    case String.split(str, ".") do
+      [int, dec] ->
+        int |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+        |> Kernel.<>("." <> dec)
+
+      [int] ->
+        int |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    end
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="page-title">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h1>Journal Entries</h1>
+          <p class="deck">Double-entry bookkeeping records</p>
+        </div>
+        <div>
+          <%= if @can_write do %>
+            <button class="btn btn-primary" phx-click="show_form">New Journal Entry</button>
+          <% end %>
+        </div>
+      </div>
+      <hr class="page-title-rule" />
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2>All Entries</h2>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Date</th>
+              <th>Reference</th>
+              <th>Description</th>
+              <th class="th-num">Debit</th>
+              <th class="th-num">Credit</th>
+              <th class="th-num">Lines</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for entry <- @entries do %>
+              <% {total_debit, total_credit} = entry_totals(entry) %>
+              <% is_expanded = MapSet.member?(@expanded, entry.id) %>
+              <tr style="cursor: pointer;" phx-click="toggle_entry" phx-value-id={entry.id}>
+                <td style="width: 1.5rem;"><%= if is_expanded, do: "&#9660;", else: "&#9654;" %></td>
+                <td class="td-mono">{entry.date}</td>
+                <td>{entry.reference || "—"}</td>
+                <td>{entry.description}</td>
+                <td class="td-num">{format_number(total_debit)}</td>
+                <td class="td-num">{format_number(total_credit)}</td>
+                <td class="td-num">{length(entry.lines || [])}</td>
+                <td>
+                  <%= if @can_write do %>
+                    <button
+                      phx-click="delete"
+                      phx-value-id={entry.id}
+                      class="btn btn-danger btn-sm"
+                      data-confirm="Delete this journal entry and all its lines?"
+                    >
+                      Del
+                    </button>
+                  <% end %>
+                </td>
+              </tr>
+              <%= if is_expanded do %>
+                <%= for line <- (entry.lines || []) do %>
+                  <tr style="background: var(--color-bg-alt, #f8f9fa);">
+                    <td></td>
+                    <td></td>
+                    <td class="td-mono" style="font-size: 0.85rem;">
+                      {if line.account, do: line.account.code, else: "—"}
+                    </td>
+                    <td style="font-size: 0.85rem;">
+                      {if line.account, do: line.account.name, else: "Unknown"}
+                      <%= if line.notes && line.notes != "" do %>
+                        <span style="color: var(--color-muted); margin-left: 0.5rem;">({line.notes})</span>
+                      <% end %>
+                    </td>
+                    <td class="td-num" style="font-size: 0.85rem;">
+                      <%= if (line.debit || 0.0) > 0, do: format_number(line.debit) %>
+                    </td>
+                    <td class="td-num" style="font-size: 0.85rem;">
+                      <%= if (line.credit || 0.0) > 0, do: format_number(line.credit) %>
+                    </td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                <% end %>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+        <%= if @entries == [] do %>
+          <div class="empty-state">No journal entries yet.</div>
+        <% end %>
+      </div>
+    </div>
+
+    <%= if @show_form do %>
+      <div class="modal-overlay" phx-click="close_form">
+        <div class="modal" phx-click="noop" style="max-width: 700px;">
+          <div class="modal-header">
+            <h3>New Journal Entry</h3>
+          </div>
+          <div class="modal-body">
+            <%= if @form_error do %>
+              <div class="alert alert-error" style="margin-bottom: 1rem; padding: 0.75rem; background: #fee; border: 1px solid #c00; border-radius: 4px; color: #c00;">
+                {@form_error}
+              </div>
+            <% end %>
+            <form phx-submit="save">
+              <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 0.75rem;">
+                <div class="form-group">
+                  <label class="form-label">Date *</label>
+                  <input type="date" name="entry[date]" class="form-input" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Reference</label>
+                  <input type="text" name="entry[reference]" class="form-input" placeholder="e.g. JE-001" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Description *</label>
+                  <input type="text" name="entry[description]" class="form-input" required />
+                </div>
+              </div>
+
+              <h4 style="margin: 1rem 0 0.5rem;">Lines</h4>
+              <table style="width: 100%; font-size: 0.9rem;">
+                <thead>
+                  <tr>
+                    <th>Account</th>
+                    <th style="width: 120px;">Debit</th>
+                    <th style="width: 120px;">Credit</th>
+                    <th style="width: 120px;">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <%= for i <- 0..(@line_count - 1) do %>
+                    <tr>
+                      <td>
+                        <select name={"lines[#{i}][account_id]"} class="form-select" style="font-size: 0.85rem;">
+                          <option value="">Select account</option>
+                          <%= for a <- @accounts do %>
+                            <option value={a.id}>{a.code} — {a.name}</option>
+                          <% end %>
+                        </select>
+                      </td>
+                      <td>
+                        <input type="number" name={"lines[#{i}][debit]"} class="form-input" step="any" value="0" style="font-size: 0.85rem;" />
+                      </td>
+                      <td>
+                        <input type="number" name={"lines[#{i}][credit]"} class="form-input" step="any" value="0" style="font-size: 0.85rem;" />
+                      </td>
+                      <td>
+                        <input type="text" name={"lines[#{i}][notes]"} class="form-input" style="font-size: 0.85rem;" />
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+              <button type="button" phx-click="add_line" class="btn btn-secondary btn-sm" style="margin-top: 0.5rem;">
+                + Add Line
+              </button>
+
+              <div class="form-actions" style="margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary">Create Entry</button>
+                <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+end

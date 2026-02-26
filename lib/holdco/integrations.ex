@@ -8,7 +8,8 @@ defmodule Holdco.Integrations do
     BankFeedConfig,
     BankFeedTransaction,
     SignatureRequest,
-    EmailDigestConfig
+    EmailDigestConfig,
+    Integration
   }
 
   # Accounting Sync Configs
@@ -198,9 +199,65 @@ defmodule Holdco.Integrations do
     |> audit_and_broadcast("email_digest_configs", "delete")
   end
 
+  # OAuth Integrations (QuickBooks etc.)
+  def get_integration(provider) do
+    Repo.get_by(Integration, provider: provider)
+  end
+
+  def upsert_integration(provider, attrs) do
+    case get_integration(provider) do
+      nil ->
+        %Integration{}
+        |> Integration.changeset(Map.put(attrs, "provider", provider))
+        |> Repo.insert()
+        |> audit_and_broadcast("integrations", "create")
+
+      existing ->
+        existing
+        |> Integration.changeset(attrs)
+        |> Repo.update()
+        |> audit_and_broadcast("integrations", "update")
+    end
+  end
+
+  def disconnect_integration(provider) do
+    case get_integration(provider) do
+      nil ->
+        {:ok, nil}
+
+      integration ->
+        integration
+        |> Integration.changeset(%{
+          access_token: nil,
+          refresh_token: nil,
+          token_expires_at: nil,
+          realm_id: nil,
+          status: "disconnected"
+        })
+        |> Repo.update()
+        |> audit_and_broadcast("integrations", "update")
+    end
+  end
+
+  def update_last_synced(provider) do
+    case get_integration(provider) do
+      nil ->
+        {:error, :not_found}
+
+      integration ->
+        integration
+        |> Integration.changeset(%{last_synced_at: DateTime.utc_now()})
+        |> Repo.update()
+    end
+  end
+
+  def list_integrations do
+    Repo.all(from(i in Integration, order_by: i.provider))
+  end
+
   # PubSub
   def subscribe, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "integrations")
-  defp broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "integrations", message)
+  def broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "integrations", message)
 
   defp audit_and_broadcast(result, table, action) do
     case result do

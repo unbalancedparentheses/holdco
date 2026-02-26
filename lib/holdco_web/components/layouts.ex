@@ -87,6 +87,8 @@ defmodule HoldcoWeb.Layouts do
     <nav class="nav-bar">
       <div class="nav-inner">
         <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
+        <% acct_paths = ~w(/accounts/chart /accounts/journal /accounts/reports /accounts/integrations) %>
+        <% acct_active = Enum.any?(acct_paths, fn p -> String.starts_with?(@current_path || "", p) end) %>
         <% more_paths = ~w(/compliance /approvals /financials /scenarios /reports /settings /notifications) %>
         <% more_active = Enum.any?(more_paths, fn p -> (@current_path || "") == p or String.starts_with?(@current_path || "", p <> "/") end) %>
         <div class="nav-links">
@@ -110,7 +112,7 @@ defmodule HoldcoWeb.Layouts do
             navigate={~p"/bank-accounts"}
             class={if @current_path == "/bank-accounts", do: "active"}
           >
-            Accounts
+            Banking
           </.link>
           <.link navigate={~p"/documents"} class={if @current_path == "/documents", do: "active"}>
             Documents
@@ -124,6 +126,23 @@ defmodule HoldcoWeb.Layouts do
           <.link navigate={~p"/governance"} class={if @current_path == "/governance", do: "active"}>
             Governance
           </.link>
+          <div class="nav-dropdown">
+            <button class={"nav-dropdown-toggle #{if acct_active, do: "more-active"}"}>Accounting &#9662;</button>
+            <div class="nav-dropdown-menu">
+              <.link navigate={~p"/accounts/chart"} class={if @current_path == "/accounts/chart", do: "active"}>
+                Chart of Accounts
+              </.link>
+              <.link navigate={~p"/accounts/journal"} class={if @current_path == "/accounts/journal", do: "active"}>
+                Journal Entries
+              </.link>
+              <.link navigate={~p"/accounts/reports"} class={if @current_path == "/accounts/reports", do: "active"}>
+                Reports
+              </.link>
+              <.link navigate={~p"/accounts/integrations"} class={if @current_path == "/accounts/integrations", do: "active"}>
+                Integrations
+              </.link>
+            </div>
+          </div>
           <div class="nav-dropdown">
             <button class={"nav-dropdown-toggle #{if more_active, do: "more-active"}"}>More &#9662;</button>
             <div class="nav-dropdown-menu">

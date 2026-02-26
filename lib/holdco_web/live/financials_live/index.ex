@@ -32,6 +32,8 @@ defmodule HoldcoWeb.FinancialsLive.Index do
   end
 
   @impl true
+  def handle_event("noop", _, socket), do: {:noreply, socket}
+
   def handle_event("show_form", _, socket), do: {:noreply, assign(socket, show_form: true)}
   def handle_event("close_form", _, socket), do: {:noreply, assign(socket, show_form: false)}
 
@@ -327,7 +329,7 @@ defmodule HoldcoWeb.FinancialsLive.Index do
 
     <%= if @show_transfer_form do %>
       <div class="modal-overlay" phx-click="close_transfer_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Intercompany Transfer</h3>
           </div>
@@ -383,7 +385,7 @@ defmodule HoldcoWeb.FinancialsLive.Index do
 
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Financial Period</h3>
           </div>

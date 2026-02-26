@@ -36,6 +36,8 @@ defmodule HoldcoWeb.GovernanceLive.Index do
   end
 
   @impl true
+  def handle_event("noop", _, socket), do: {:noreply, socket}
+
   def handle_event("switch_tab", %{"tab" => tab}, socket) when tab in @tabs do
     {:noreply, assign(socket, active_tab: tab, show_form: false)}
   end
@@ -301,7 +303,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Board Meeting</h3>
           </div>
@@ -402,7 +404,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Cap Table Entry</h3>
           </div>
@@ -509,7 +511,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Resolution</h3>
           </div>
@@ -606,7 +608,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Deal</h3>
           </div>
@@ -697,7 +699,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Equity Plan</h3>
           </div>
@@ -786,7 +788,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Joint Venture</h3>
           </div>
@@ -885,7 +887,7 @@ defmodule HoldcoWeb.GovernanceLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Power of Attorney</h3>
           </div>

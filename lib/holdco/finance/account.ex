@@ -8,6 +8,7 @@ defmodule Holdco.Finance.Account do
     field :code, :string
     field :currency, :string, default: "USD"
     field :notes, :string
+    field :external_id, :string
 
     belongs_to :parent, __MODULE__
     has_many :children, __MODULE__, foreign_key: :parent_id
@@ -17,7 +18,7 @@ defmodule Holdco.Finance.Account do
 
   def changeset(account, attrs) do
     account
-    |> cast(attrs, [:name, :account_type, :code, :parent_id, :currency, :notes])
+    |> cast(attrs, [:name, :account_type, :code, :parent_id, :currency, :notes, :external_id])
     |> validate_required([:name, :account_type])
     |> unique_constraint(:code)
   end

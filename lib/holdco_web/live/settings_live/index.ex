@@ -23,6 +23,8 @@ defmodule HoldcoWeb.SettingsLive.Index do
   end
 
   @impl true
+  def handle_event("noop", _, socket), do: {:noreply, socket}
+
   def handle_event("switch_tab", %{"tab" => tab}, socket) when tab in @tabs do
     {:noreply, assign(socket, active_tab: tab, show_form: false)}
   end
@@ -217,7 +219,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add/Update Setting</h3>
           </div>
@@ -295,7 +297,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Category</h3>
           </div>
@@ -372,7 +374,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Webhook</h3>
           </div>
@@ -463,7 +465,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
     </div>
     <%= if @show_form do %>
       <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal" phx-click="noop">
           <div class="modal-header">
             <h3>Add Backup Config</h3>
           </div>

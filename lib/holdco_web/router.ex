@@ -49,6 +49,16 @@ defmodule HoldcoWeb.Router do
     get "/companies.csv", ExportController, :companies
     get "/holdings.csv", ExportController, :holdings
     get "/transactions.csv", ExportController, :transactions
+    get "/chart-of-accounts.csv", ExportController, :chart_of_accounts
+    get "/journal-entries.csv", ExportController, :journal_entries
+  end
+
+  # QuickBooks OAuth (authenticated)
+  scope "/auth/quickbooks", HoldcoWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    get "/connect", QuickbooksController, :connect
+    get "/callback", QuickbooksController, :callback
   end
 
   # Printable Reports (authenticated)
@@ -118,6 +128,10 @@ defmodule HoldcoWeb.Router do
       live "/documents", DocumentsLive.Index, :index
       live "/tax-calendar", TaxCalendarLive.Index, :index
       live "/financials", FinancialsLive.Index, :index
+      live "/accounts/chart", AccountingLive.ChartOfAccounts, :index
+      live "/accounts/journal", AccountingLive.Journal, :index
+      live "/accounts/reports", AccountingLive.Reports, :index
+      live "/accounts/integrations", AccountingLive.Integrations, :index
       live "/governance", GovernanceLive.Index, :index
       live "/compliance", ComplianceLive.Index, :index
       live "/approvals", ApprovalsLive.Index, :index

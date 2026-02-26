@@ -297,6 +297,116 @@ defmodule Holdco.Finance do
     |> audit_and_broadcast("liabilities", "delete")
   end
 
+  # Report Queries
+
+  def trial_balance do
+    from(a in Account,
+      left_join: jl in JournalLine,
+      on: jl.account_id == a.id,
+      group_by: [a.id, a.name, a.code, a.account_type],
+      select: %{
+        id: a.id,
+        name: a.name,
+        code: a.code,
+        account_type: a.account_type,
+        total_debit: coalesce(sum(jl.debit), 0.0),
+        total_credit: coalesce(sum(jl.credit), 0.0),
+        balance: coalesce(sum(jl.debit), 0.0) - coalesce(sum(jl.credit), 0.0)
+      },
+      order_by: a.code
+    )
+    |> Repo.all()
+  end
+
+  def balance_sheet do
+    accounts = trial_balance()
+
+    assets =
+      accounts
+      |> Enum.filter(&(&1.account_type == "asset"))
+      |> Enum.map(&Map.put(&1, :balance, &1.total_debit - &1.total_credit))
+
+    liabilities =
+      accounts
+      |> Enum.filter(&(&1.account_type == "liability"))
+      |> Enum.map(&Map.put(&1, :balance, &1.total_credit - &1.total_debit))
+
+    equity =
+      accounts
+      |> Enum.filter(&(&1.account_type == "equity"))
+      |> Enum.map(&Map.put(&1, :balance, &1.total_credit - &1.total_debit))
+
+    total_assets = Enum.reduce(assets, 0.0, &(&1.balance + &2))
+    total_liabilities = Enum.reduce(liabilities, 0.0, &(&1.balance + &2))
+    total_equity = Enum.reduce(equity, 0.0, &(&1.balance + &2))
+
+    %{
+      assets: assets,
+      liabilities: liabilities,
+      equity: equity,
+      total_assets: total_assets,
+      total_liabilities: total_liabilities,
+      total_equity: total_equity
+    }
+  end
+
+  def income_statement(date_from \\ nil, date_to \\ nil) do
+    base_query =
+      from(jl in JournalLine,
+        join: a in Account,
+        on: jl.account_id == a.id,
+        join: je in JournalEntry,
+        on: jl.entry_id == je.id
+      )
+
+    base_query =
+      if date_from,
+        do: where(base_query, [_jl, _a, je], je.date >= ^date_from),
+        else: base_query
+
+    base_query =
+      if date_to,
+        do: where(base_query, [_jl, _a, je], je.date <= ^date_to),
+        else: base_query
+
+    revenue_query =
+      base_query
+      |> where([_jl, a, _je], a.account_type == "revenue")
+      |> group_by([_jl, a, _je], [a.id, a.name, a.code])
+      |> select([jl, a, _je], %{
+        id: a.id,
+        name: a.name,
+        code: a.code,
+        amount: coalesce(sum(jl.credit), 0.0) - coalesce(sum(jl.debit), 0.0)
+      })
+      |> order_by([_jl, a, _je], a.code)
+
+    expense_query =
+      base_query
+      |> where([_jl, a, _je], a.account_type == "expense")
+      |> group_by([_jl, a, _je], [a.id, a.name, a.code])
+      |> select([jl, a, _je], %{
+        id: a.id,
+        name: a.name,
+        code: a.code,
+        amount: coalesce(sum(jl.debit), 0.0) - coalesce(sum(jl.credit), 0.0)
+      })
+      |> order_by([_jl, a, _je], a.code)
+
+    revenue = Repo.all(revenue_query)
+    expenses = Repo.all(expense_query)
+    total_revenue = Enum.reduce(revenue, 0.0, &(&1.amount + &2))
+    total_expenses = Enum.reduce(expenses, 0.0, &(&1.amount + &2))
+
+    %{
+      revenue: revenue,
+      expenses: expenses,
+      total_revenue: total_revenue,
+      total_expenses: total_expenses,
+      net_income: total_revenue - total_expenses
+    }
+  end
+
   # Aggregations
   def total_revenue do
     Repo.one(from f in Financial, select: sum(f.revenue)) || 0.0
