@@ -313,6 +313,108 @@ priv/repo/migrations/    Ecto migrations (74 tables)
 priv/repo/seeds.exs      Example data
 ```
 
+## Roadmap
+
+Planned features, roughly ordered by impact. Contributions welcome.
+
+### Treasury & Cash Management
+
+- **Cash flow forecasting.** Project future cash positions per entity based on
+  recurring revenues, expenses, loan repayments, and tax deadlines already in
+  the system.
+- **Sweep accounts and rebalancing rules.** Define target balances per account
+  and generate transfer suggestions when thresholds are breached.
+- **FX hedging tracker.** Log forward contracts, options, and swaps against FX
+  exposures the system already calculates.
+
+### Tax & Reporting
+
+- **Capital gains tax report.** Generate FIFO, LIFO, or specific-lot reports per
+  jurisdiction with short-term vs long-term classification. Built on the existing
+  cost basis lot data.
+- **K-1 and distribution waterfall.** Model LP/GP economics for fund entities
+  with hurdle rates, catch-up, and carry calculations.
+- **Consolidated financial statements.** Automatic elimination of intercompany
+  balances and transactions for group-level reporting.
+- **Multi-jurisdiction tax optimizer.** Given the entity tree and transfer
+  pricing docs, suggest dividend routes or IP licensing structures that minimize
+  withholding taxes.
+
+### Risk & Analytics
+
+- **Concentration risk dashboard.** Alerts when a single asset, sector,
+  currency, or counterparty exceeds a configurable percentage of NAV.
+- **Liquidity coverage ratio.** Compare liquid assets to short-term liabilities
+  and upcoming obligations such as loan maturities and tax payments.
+- **Stress testing.** Extend scenario modeling with market shocks (e.g. BTC
+  drops 40%, EUR/USD moves 10%) applied to the actual portfolio.
+- **Counterparty risk scoring.** Rate custodians and banks by exposure,
+  jurisdiction, and credit rating.
+
+### Workflow & Collaboration
+
+- **Multi-sig approval workflows.** Require N-of-M approvals for transactions
+  above a threshold, dividend declarations, or new entity creation. Extends the
+  existing approval_requests infrastructure.
+- **Task management.** Assign follow-ups from board meetings, compliance
+  deadlines, or audit findings to specific users with due dates.
+- **Internal messaging and notes.** Threaded comments on any entity, surfacing
+  the existing comments table in the UI.
+- **Document e-signature workflow.** Build the full signing flow with reminders
+  and status tracking on top of the existing signature_requests schema.
+
+### Integrations
+
+- **Bank feed via Plaid or GoCardless.** Auto-import transactions and reconcile
+  against manual entries using the existing bank_feed framework.
+- **Xero integration.** Cover the other major accounting platform alongside
+  QuickBooks.
+- **Mercury, Wise, and Revolut Business APIs.** Direct bank balance and
+  transaction sync for fintech-native holding companies.
+- **DocuSign and PandaDoc.** Complete the e-signature integration.
+
+### Data & Intelligence
+
+- **Natural language query.** Ask questions like "What is our total exposure to
+  EUR?" or "Show me all entities with tax deadlines this quarter" using an LLM
+  against the structured data.
+- **Anomaly detection.** Flag unusual transactions, balance changes, or patterns
+  such as unexpected large outflows or duplicate payments.
+- **Benchmark comparison.** Compare portfolio allocation and returns against
+  standard indices.
+
+### Multi-Tenant & Access
+
+- **Investor portal.** Read-only view for LPs and investors showing their
+  specific holdings, distributions, and reports. Built on the existing
+  investor_accesses table.
+- **Advisor view.** Let external accountants or lawyers see only the entities and
+  documents relevant to them.
+- **White-labeling.** Configurable branding (logo, colors, app name) per tenant
+  group.
+
+### UX & Quality of Life
+
+- **Mobile-responsive dashboard.** Simplified mobile layout for checking NAV on
+  the go.
+- **PDF report generation.** One-click board pack with portfolio summary,
+  financials, compliance status, and upcoming deadlines.
+- **Bulk operations.** Batch-edit holdings, batch-assign categories, and
+  bulk-approve pending items.
+- **Keyboard shortcuts.** Power-user navigation across all pages.
+- **Dark mode.**
+
+### Infrastructure
+
+- **Multi-user real-time collaboration.** Presence indicators ("Alice is viewing
+  this company") via LiveView presence.
+- **Field-level audit diffs.** Show what changed (old value to new value), not
+  just that something changed.
+- **Scheduled reports.** Extend email digests with custom report schedules such
+  as monthly board packs and quarterly compliance summaries.
+- **Backup to S3 or R2.** Extend the backup worker to push encrypted backups to
+  object storage instead of only local paths.
+
 ## License
 
 MIT
