@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.AccountingLive.Reports do
   use HoldcoWeb, :live_view
 
-  alias Holdco.Finance
+  alias Holdco.{Finance, Corporate}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -10,14 +10,17 @@ defmodule HoldcoWeb.AccountingLive.Reports do
     today = Date.utc_today()
     date_from = Date.to_iso8601(%{today | month: 1, day: 1})
     date_to = Date.to_iso8601(today)
+    companies = Corporate.list_companies()
 
     {:ok,
      assign(socket,
        page_title: "Accounting Reports",
        active_tab: "trial_balance",
+       companies: companies,
+       selected_company_id: "",
        trial_balance: Finance.trial_balance(),
        balance_sheet: Finance.balance_sheet(),
-       income_statement: Finance.income_statement(date_from, date_to),
+       income_statement: Finance.income_statement(nil, date_from, date_to),
        date_from: date_from,
        date_to: date_to
      )}
@@ -28,8 +31,28 @@ defmodule HoldcoWeb.AccountingLive.Reports do
     {:noreply, assign(socket, active_tab: tab)}
   end
 
+  def handle_event("filter_company", %{"company_id" => id}, socket) do
+    company_id = if id == "", do: nil, else: String.to_integer(id)
+    from = socket.assigns.date_from
+    to = socket.assigns.date_to
+
+    {:noreply,
+     assign(socket,
+       selected_company_id: id,
+       trial_balance: Finance.trial_balance(company_id),
+       balance_sheet: Finance.balance_sheet(company_id),
+       income_statement: Finance.income_statement(company_id, from, to)
+     )}
+  end
+
   def handle_event("filter_dates", %{"date_from" => from, "date_to" => to}, socket) do
-    income_statement = Finance.income_statement(from, to)
+    company_id =
+      case socket.assigns.selected_company_id do
+        "" -> nil
+        id -> String.to_integer(id)
+      end
+
+    income_statement = Finance.income_statement(company_id, from, to)
     {:noreply, assign(socket, date_from: from, date_to: to, income_statement: income_statement)}
   end
 
@@ -38,11 +61,17 @@ defmodule HoldcoWeb.AccountingLive.Reports do
     from = socket.assigns.date_from
     to = socket.assigns.date_to
 
+    company_id =
+      case socket.assigns.selected_company_id do
+        "" -> nil
+        id -> String.to_integer(id)
+      end
+
     {:noreply,
      assign(socket,
-       trial_balance: Finance.trial_balance(),
-       balance_sheet: Finance.balance_sheet(),
-       income_statement: Finance.income_statement(from, to)
+       trial_balance: Finance.trial_balance(company_id),
+       balance_sheet: Finance.balance_sheet(company_id),
+       income_statement: Finance.income_statement(company_id, from, to)
      )}
   end
 
@@ -55,6 +84,18 @@ defmodule HoldcoWeb.AccountingLive.Reports do
         <p class="deck">Trial Balance, Balance Sheet, and Income Statement</p>
       </div>
       <hr class="page-title-rule" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+      <form phx-change="filter_company" style="display: flex; align-items: center; gap: 0.5rem;">
+        <label class="form-label" style="margin: 0; font-size: 0.85rem;">Company</label>
+        <select name="company_id" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+          <option value="">All Companies (Consolidated)</option>
+          <%= for c <- @companies do %>
+            <option value={c.id} selected={to_string(c.id) == @selected_company_id}>{c.name}</option>
+          <% end %>
+        </select>
+      </form>
     </div>
 
     <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">

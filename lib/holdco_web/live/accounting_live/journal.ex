@@ -1,12 +1,13 @@
 defmodule HoldcoWeb.AccountingLive.Journal do
   use HoldcoWeb, :live_view
 
-  alias Holdco.Finance
+  alias Holdco.{Finance, Corporate}
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: Finance.subscribe()
 
+    companies = Corporate.list_companies()
     entries = Finance.list_journal_entries()
     accounts = Finance.list_accounts()
 
@@ -15,6 +16,8 @@ defmodule HoldcoWeb.AccountingLive.Journal do
        page_title: "Journal Entries",
        entries: entries,
        accounts: accounts,
+       companies: companies,
+       selected_company_id: "",
        expanded: MapSet.new(),
        show_form: false,
        line_count: 2,
@@ -44,6 +47,14 @@ defmodule HoldcoWeb.AccountingLive.Journal do
         else: MapSet.put(expanded, id)
 
     {:noreply, assign(socket, expanded: expanded)}
+  end
+
+  def handle_event("filter_company", %{"company_id" => id}, socket) do
+    company_id = if id == "", do: nil, else: String.to_integer(id)
+    entries = Finance.list_journal_entries(company_id)
+    accounts = Finance.list_accounts(company_id)
+
+    {:noreply, assign(socket, selected_company_id: id, entries: entries, accounts: accounts)}
   end
 
   def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
@@ -76,6 +87,11 @@ defmodule HoldcoWeb.AccountingLive.Journal do
          )}
 
       true ->
+        entry_params =
+          if entry_params["company_id"] == "",
+            do: Map.delete(entry_params, "company_id"),
+            else: entry_params
+
         case Finance.create_journal_entry(entry_params) do
           {:ok, entry} ->
             Enum.each(lines, fn l ->
@@ -119,8 +135,14 @@ defmodule HoldcoWeb.AccountingLive.Journal do
   def handle_info(_, socket), do: {:noreply, reload(socket)}
 
   defp reload(socket) do
-    entries = Finance.list_journal_entries()
-    accounts = Finance.list_accounts()
+    company_id =
+      case socket.assigns.selected_company_id do
+        "" -> nil
+        id -> String.to_integer(id)
+      end
+
+    entries = Finance.list_journal_entries(company_id)
+    accounts = Finance.list_accounts(company_id)
     assign(socket, entries: entries, accounts: accounts)
   end
 
@@ -177,6 +199,18 @@ defmodule HoldcoWeb.AccountingLive.Journal do
         </div>
       </div>
       <hr class="page-title-rule" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+      <form phx-change="filter_company" style="display: flex; align-items: center; gap: 0.5rem;">
+        <label class="form-label" style="margin: 0; font-size: 0.85rem;">Company</label>
+        <select name="company_id" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+          <option value="">All Companies</option>
+          <%= for c <- @companies do %>
+            <option value={c.id} selected={to_string(c.id) == @selected_company_id}>{c.name}</option>
+          <% end %>
+        </select>
+      </form>
     </div>
 
     <div class="section">
@@ -269,6 +303,15 @@ defmodule HoldcoWeb.AccountingLive.Journal do
               </div>
             <% end %>
             <form phx-submit="save">
+              <div class="form-group">
+                <label class="form-label">Company</label>
+                <select name="entry[company_id]" class="form-select">
+                  <option value="">No company</option>
+                  <%= for c <- @companies do %>
+                    <option value={c.id} selected={to_string(c.id) == @selected_company_id}>{c.name}</option>
+                  <% end %>
+                </select>
+              </div>
               <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 0.75rem;">
                 <div class="form-group">
                   <label class="form-label">Date *</label>

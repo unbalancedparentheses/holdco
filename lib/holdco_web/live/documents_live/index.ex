@@ -16,6 +16,7 @@ defmodule HoldcoWeb.DocumentsLive.Index do
        page_title: "Documents",
        documents: documents,
        companies: companies,
+       selected_company_id: "",
        show_form: false
      )
      |> allow_upload(:file,
@@ -30,6 +31,18 @@ defmodule HoldcoWeb.DocumentsLive.Index do
 
   def handle_event("noop", _, socket), do: {:noreply, socket}
   def handle_event("validate", _params, socket), do: {:noreply, socket}
+
+  def handle_event("filter_company", %{"company_id" => id}, socket) do
+    company_id = if id == "", do: nil, else: String.to_integer(id)
+
+    documents =
+      Documents.list_documents()
+      |> then(fn docs ->
+        if company_id, do: Enum.filter(docs, &(&1.company_id == company_id)), else: docs
+      end)
+
+    {:noreply, assign(socket, selected_company_id: id, documents: documents)}
+  end
 
   def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
@@ -126,6 +139,18 @@ defmodule HoldcoWeb.DocumentsLive.Index do
         <% end %>
       </div>
       <hr class="page-title-rule" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+      <form phx-change="filter_company" style="display: flex; align-items: center; gap: 0.5rem;">
+        <label class="form-label" style="margin: 0; font-size: 0.85rem;">Company</label>
+        <select name="company_id" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+          <option value="">All Companies</option>
+          <%= for c <- @companies do %>
+            <option value={c.id} selected={to_string(c.id) == @selected_company_id}>{c.name}</option>
+          <% end %>
+        </select>
+      </form>
     </div>
 
     <div class="section">

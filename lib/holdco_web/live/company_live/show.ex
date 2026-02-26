@@ -12,7 +12,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
     Collaboration
   }
 
-  @tabs ~w(overview holdings bank_accounts transactions documents governance compliance financials comments)
+  @tabs ~w(overview holdings bank_accounts transactions documents governance compliance financials accounting comments)
   @upload_dir Path.join([:code.priv_dir(:holdco), "static", "uploads"])
 
   @impl true
@@ -36,7 +36,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
        comments: comments,
        comment_body: "",
        active_tab: "overview",
-       show_form: nil
+       show_form: nil,
+       je_line_count: 2
      )
      |> allow_upload(:file,
        accept: ~w(.pdf .doc .docx .xls .xlsx .png .jpg),
@@ -129,6 +130,18 @@ defmodule HoldcoWeb.CompanyLive.Show do
     do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
 
   def handle_event("delete_insurance_policy", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_account", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_account", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_journal_entry", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_journal_entry", _params, %{assigns: %{can_write: false}} = socket),
     do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
 
   def handle_event("update_company", _params, %{assigns: %{can_write: false}} = socket),
@@ -374,6 +387,90 @@ defmodule HoldcoWeb.CompanyLive.Show do
     {:noreply, reload_company(socket) |> put_flash(:info, "Insurance policy deleted")}
   end
 
+  # --- Accounts ---
+  def handle_event("save_account", %{"account" => params}, socket) do
+    params = Map.put(params, "company_id", socket.assigns.company.id)
+    params = if params["parent_id"] == "", do: Map.delete(params, "parent_id"), else: params
+
+    case Finance.create_account(params) do
+      {:ok, _} ->
+        {:noreply,
+         reload_company(socket) |> put_flash(:info, "Account added") |> assign(show_form: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add account")}
+    end
+  end
+
+  def handle_event("delete_account", %{"id" => id}, socket) do
+    account = Finance.get_account!(String.to_integer(id))
+
+    case Finance.delete_account(account) do
+      {:ok, _} ->
+        {:noreply, reload_company(socket) |> put_flash(:info, "Account deleted")}
+
+      {:error, _} ->
+        {:noreply,
+         put_flash(socket, :error, "Cannot delete account (may have children or journal lines)")}
+    end
+  end
+
+  # --- Journal Entries ---
+  def handle_event("save_journal_entry", %{"entry" => entry_params} = params, socket) do
+    entry_params = Map.put(entry_params, "company_id", socket.assigns.company.id)
+    lines_params = params["lines"] || %{}
+
+    lines =
+      lines_params
+      |> Enum.sort_by(fn {k, _v} -> String.to_integer(k) end)
+      |> Enum.map(fn {_k, v} -> v end)
+      |> Enum.reject(fn l -> (l["account_id"] || "") == "" end)
+
+    total_debit = lines |> Enum.map(&parse_float(&1["debit"])) |> Enum.sum()
+    total_credit = lines |> Enum.map(&parse_float(&1["credit"])) |> Enum.sum()
+
+    cond do
+      length(lines) < 2 ->
+        {:noreply, put_flash(socket, :error, "At least 2 lines required")}
+
+      abs(total_debit - total_credit) > 0.01 ->
+        {:noreply, put_flash(socket, :error, "Debits must equal credits")}
+
+      true ->
+        case Finance.create_journal_entry(entry_params) do
+          {:ok, entry} ->
+            Enum.each(lines, fn l ->
+              Finance.create_journal_line(%{
+                "entry_id" => entry.id,
+                "account_id" => l["account_id"],
+                "debit" => parse_float(l["debit"]),
+                "credit" => parse_float(l["credit"]),
+                "notes" => l["notes"]
+              })
+            end)
+
+            {:noreply,
+             reload_company(socket)
+             |> put_flash(:info, "Journal entry created")
+             |> assign(show_form: nil)}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to create journal entry")}
+        end
+    end
+  end
+
+  def handle_event("delete_journal_entry", %{"id" => id}, socket) do
+    entry = Finance.get_journal_entry!(String.to_integer(id))
+    Enum.each(entry.lines, &Finance.delete_journal_line/1)
+    Finance.delete_journal_entry(entry)
+    {:noreply, reload_company(socket) |> put_flash(:info, "Journal entry deleted")}
+  end
+
+  def handle_event("add_je_line", _, socket) do
+    {:noreply, assign(socket, je_line_count: (socket.assigns[:je_line_count] || 2) + 1)}
+  end
+
   # --- Company Update ---
   def handle_event("update_company", %{"company" => params}, socket) do
     case Corporate.update_company(socket.assigns.company, params) do
@@ -470,6 +567,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
   defp tab_label("governance"), do: "Governance"
   defp tab_label("compliance"), do: "Compliance"
   defp tab_label("financials"), do: "Financials"
+  defp tab_label("accounting"), do: "Accounting"
   defp tab_label("comments"), do: "Comments"
 
   defp render_tab(%{active_tab: "overview"} = assigns) do
@@ -1458,6 +1556,145 @@ defmodule HoldcoWeb.CompanyLive.Show do
     """
   end
 
+  defp render_tab(%{active_tab: "accounting"} = assigns) do
+    accounts = assigns.company.accounts || []
+    journal_entries = assigns.company.journal_entries || []
+    assigns = assign(assigns, acct_list: accounts, je_list: journal_entries)
+
+    ~H"""
+    <div class="metrics-strip">
+      <div class="metric-cell">
+        <div class="metric-label">Accounts</div>
+        <div class="metric-value">{length(@acct_list)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Journal Entries</div>
+        <div class="metric-value">{length(@je_list)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Total Debits</div>
+        <div class="metric-value">
+          {format_number(Enum.reduce(@je_list, 0.0, fn e, acc ->
+            acc + Enum.reduce(e.lines || [], 0.0, &((&1.debit || 0.0) + &2))
+          end))}
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Total Credits</div>
+        <div class="metric-value">
+          {format_number(Enum.reduce(@je_list, 0.0, fn e, acc ->
+            acc + Enum.reduce(e.lines || [], 0.0, &((&1.credit || 0.0) + &2))
+          end))}
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2>Chart of Accounts</h2>
+        <%= if @can_write do %>
+          <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="account">
+            Add Account
+          </button>
+        <% end %>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Currency</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for a <- @acct_list do %>
+              <tr>
+                <td class="td-mono">{a.code}</td>
+                <td>{a.name}</td>
+                <td><span class={"badge badge-#{a.account_type}"}>{a.account_type}</span></td>
+                <td>{a.currency}</td>
+                <td>
+                  <%= if @can_write do %>
+                    <button
+                      phx-click="delete_account"
+                      phx-value-id={a.id}
+                      class="btn btn-danger btn-sm"
+                      data-confirm="Delete this account?"
+                    >
+                      Del
+                    </button>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <%= if @acct_list == [] do %>
+          <div class="empty-state">No accounts for this company.</div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2>Journal Entries</h2>
+        <%= if @can_write do %>
+          <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="journal_entry">
+            New Entry
+          </button>
+        <% end %>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Reference</th>
+              <th>Description</th>
+              <th class="th-num">Debit</th>
+              <th class="th-num">Credit</th>
+              <th class="th-num">Lines</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for entry <- @je_list do %>
+              <% {total_debit, total_credit} = entry_totals(entry) %>
+              <tr>
+                <td class="td-mono">{entry.date}</td>
+                <td>{entry.reference || "—"}</td>
+                <td>{entry.description}</td>
+                <td class="td-num">{format_number(total_debit)}</td>
+                <td class="td-num">{format_number(total_credit)}</td>
+                <td class="td-num">{length(entry.lines || [])}</td>
+                <td>
+                  <%= if @can_write do %>
+                    <button
+                      phx-click="delete_journal_entry"
+                      phx-value-id={entry.id}
+                      class="btn btn-danger btn-sm"
+                      data-confirm="Delete this journal entry and all its lines?"
+                    >
+                      Del
+                    </button>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <%= if @je_list == [] do %>
+          <div class="empty-state">No journal entries for this company.</div>
+        <% end %>
+      </div>
+    </div>
+    {render_inline_form(assigns)}
+    """
+  end
+
   defp render_tab(%{active_tab: "comments"} = assigns) do
     ~H"""
     <div class="section">
@@ -2067,7 +2304,159 @@ defmodule HoldcoWeb.CompanyLive.Show do
     """
   end
 
+  defp render_inline_form(%{show_form: "account"} = assigns) do
+    accounts = assigns.company.accounts || []
+    assigns = assign(assigns, acct_list: accounts, account_types: ~w(asset liability equity revenue expense))
+
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop">
+        <div class="modal-header">
+          <h3>Add Account</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_account">
+            <div class="form-group">
+              <label class="form-label">Code *</label>
+              <input type="text" name="account[code]" class="form-input" placeholder="e.g. 1000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Name *</label>
+              <input type="text" name="account[name]" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Type *</label>
+              <select name="account[account_type]" class="form-select" required>
+                <option value="">Select type</option>
+                <%= for t <- @account_types do %>
+                  <option value={t}>{String.capitalize(t)}</option>
+                <% end %>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Parent Account</label>
+              <select name="account[parent_id]" class="form-select">
+                <option value="">None (top-level)</option>
+                <%= for a <- @acct_list do %>
+                  <option value={a.id}>{a.code} — {a.name}</option>
+                <% end %>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Currency</label>
+              <input type="text" name="account[currency]" class="form-input" value="USD" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_inline_form(%{show_form: "journal_entry"} = assigns) do
+    accounts = assigns.company.accounts || []
+    assigns = assign(assigns, acct_list: accounts)
+
+    ~H"""
+    <div class="modal-overlay" phx-click="close_form">
+      <div class="modal" phx-click="noop" style="max-width: 700px;">
+        <div class="modal-header">
+          <h3>New Journal Entry</h3>
+        </div>
+        <div class="modal-body">
+          <form phx-submit="save_journal_entry">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label">Date *</label>
+                <input type="date" name="entry[date]" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Reference</label>
+                <input type="text" name="entry[reference]" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description *</label>
+                <input type="text" name="entry[description]" class="form-input" required />
+              </div>
+            </div>
+
+            <h4 style="margin: 1rem 0 0.5rem;">Lines</h4>
+            <table style="width: 100%; font-size: 0.9rem;">
+              <thead>
+                <tr>
+                  <th>Account</th>
+                  <th style="width: 120px;">Debit</th>
+                  <th style="width: 120px;">Credit</th>
+                  <th style="width: 120px;">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for i <- 0..(@je_line_count - 1) do %>
+                  <tr>
+                    <td>
+                      <select name={"lines[#{i}][account_id]"} class="form-select" style="font-size: 0.85rem;">
+                        <option value="">Select account</option>
+                        <%= for a <- @acct_list do %>
+                          <option value={a.id}>{a.code} — {a.name}</option>
+                        <% end %>
+                      </select>
+                    </td>
+                    <td>
+                      <input type="number" name={"lines[#{i}][debit]"} class="form-input" step="any" value="0" style="font-size: 0.85rem;" />
+                    </td>
+                    <td>
+                      <input type="number" name={"lines[#{i}][credit]"} class="form-input" step="any" value="0" style="font-size: 0.85rem;" />
+                    </td>
+                    <td>
+                      <input type="text" name={"lines[#{i}][notes]"} class="form-input" style="font-size: 0.85rem;" />
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+            <button type="button" phx-click="add_je_line" class="btn btn-secondary btn-sm" style="margin-top: 0.5rem;">
+              + Add Line
+            </button>
+
+            <div class="form-actions" style="margin-top: 1rem;">
+              <button type="submit" class="btn btn-primary">Create Entry</button>
+              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   defp render_inline_form(assigns), do: ~H""
+
+  defp parse_float(nil), do: 0.0
+  defp parse_float(""), do: 0.0
+  defp parse_float(val) when is_binary(val) do
+    case Float.parse(val) do
+      {f, _} -> f
+      :error -> 0.0
+    end
+  end
+  defp parse_float(val) when is_float(val), do: val
+  defp parse_float(val) when is_integer(val), do: val / 1
+
+  defp format_number(n) when is_float(n),
+    do: :erlang.float_to_binary(n, decimals: 2)
+  defp format_number(n) when is_integer(n), do: Integer.to_string(n) <> ".00"
+  defp format_number(_), do: "0.00"
+
+  defp entry_totals(entry) do
+    lines = entry.lines || []
+    total_debit = Enum.reduce(lines, 0.0, &((&1.debit || 0.0) + &2))
+    total_credit = Enum.reduce(lines, 0.0, &((&1.credit || 0.0) + &2))
+    {total_debit, total_credit}
+  end
 
   # --- Tag helpers ---
 

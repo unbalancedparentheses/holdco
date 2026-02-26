@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.AccountingLive.Integrations do
   use HoldcoWeb, :live_view
 
-  alias Holdco.Integrations
+  alias Holdco.{Integrations, Corporate}
   alias Holdco.Integrations.Quickbooks
 
   @impl true
@@ -9,11 +9,14 @@ defmodule HoldcoWeb.AccountingLive.Integrations do
     if connected?(socket), do: Integrations.subscribe()
 
     qbo = Integrations.get_integration("quickbooks")
+    companies = Corporate.list_companies()
 
     {:ok,
      assign(socket,
        page_title: "Integrations",
        qbo: qbo,
+       companies: companies,
+       selected_company_id: "",
        syncing: false,
        sync_result: nil
      )}
@@ -40,6 +43,10 @@ defmodule HoldcoWeb.AccountingLive.Integrations do
     end
   end
 
+  def handle_event("select_sync_company", %{"company_id" => id}, socket) do
+    {:noreply, assign(socket, selected_company_id: id)}
+  end
+
   def handle_event("sync", _params, socket) do
     send(self(), :do_sync)
     {:noreply, assign(socket, syncing: true, sync_result: nil)}
@@ -47,7 +54,13 @@ defmodule HoldcoWeb.AccountingLive.Integrations do
 
   @impl true
   def handle_info(:do_sync, socket) do
-    result = Quickbooks.sync_all()
+    company_id =
+      case socket.assigns.selected_company_id do
+        "" -> nil
+        id -> String.to_integer(id)
+      end
+
+    result = Quickbooks.sync_all(company_id)
 
     sync_result =
       case result do
@@ -107,13 +120,23 @@ defmodule HoldcoWeb.AccountingLive.Integrations do
 
           <div style="display: flex; gap: 0.5rem;">
             <%= if @qbo && @qbo.status == "connected" do %>
-              <button
-                class="btn btn-primary"
-                phx-click="sync"
-                disabled={@syncing}
-              >
-                <%= if @syncing, do: "Syncing...", else: "Sync Now" %>
-              </button>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <form phx-change="select_sync_company">
+                  <select name="company_id" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+                    <option value="">All Companies</option>
+                    <%= for c <- @companies do %>
+                      <option value={c.id} selected={to_string(c.id) == @selected_company_id}>{c.name}</option>
+                    <% end %>
+                  </select>
+                </form>
+                <button
+                  class="btn btn-primary"
+                  phx-click="sync"
+                  disabled={@syncing}
+                >
+                  <%= if @syncing, do: "Syncing...", else: "Sync Now" %>
+                </button>
+              </div>
               <%= if @can_write do %>
                 <button
                   class="btn btn-danger"

@@ -8,6 +8,7 @@ defmodule Holdco.Finance.JournalEntry do
     field :reference, :string
     field :external_id, :string
 
+    belongs_to :company, Holdco.Corporate.Company
     has_many :lines, Holdco.Finance.JournalLine, foreign_key: :entry_id
 
     timestamps(type: :utc_datetime)
@@ -15,7 +16,7 @@ defmodule Holdco.Finance.JournalEntry do
 
   def changeset(journal_entry, attrs) do
     journal_entry
-    |> cast(attrs, [:date, :description, :reference, :external_id])
+    |> cast(attrs, [:date, :description, :reference, :external_id, :company_id])
     |> validate_required([:date, :description])
   end
 end

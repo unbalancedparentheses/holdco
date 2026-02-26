@@ -64,11 +64,12 @@ defmodule HoldcoWeb.ExportController do
     send_csv(conn, "transactions.csv", csv)
   end
 
-  def chart_of_accounts(conn, _params) do
-    accounts = Finance.list_accounts()
+  def chart_of_accounts(conn, params) do
+    company_id = parse_company_id(params)
+    accounts = Finance.list_accounts(company_id)
 
     csv =
-      [["Code", "Name", "Type", "Currency", "Parent", "External ID"]]
+      [["Code", "Name", "Type", "Currency", "Parent", "Company", "External ID"]]
       |> Enum.concat(
         Enum.map(accounts, fn a ->
           [
@@ -77,6 +78,7 @@ defmodule HoldcoWeb.ExportController do
             a.account_type,
             a.currency,
             if(a.parent, do: a.parent.name, else: ""),
+            if(a.company, do: a.company.name, else: ""),
             a.external_id || ""
           ]
         end)
@@ -86,11 +88,12 @@ defmodule HoldcoWeb.ExportController do
     send_csv(conn, "chart-of-accounts.csv", csv)
   end
 
-  def journal_entries(conn, _params) do
-    entries = Finance.list_journal_entries()
+  def journal_entries(conn, params) do
+    company_id = parse_company_id(params)
+    entries = Finance.list_journal_entries(company_id)
 
     csv =
-      [["Date", "Reference", "Description", "Total Debit", "Total Credit", "Lines"]]
+      [["Date", "Reference", "Description", "Company", "Total Debit", "Total Credit", "Lines"]]
       |> Enum.concat(
         Enum.map(entries, fn e ->
           lines = e.lines || []
@@ -101,6 +104,7 @@ defmodule HoldcoWeb.ExportController do
             e.date,
             e.reference || "",
             e.description,
+            if(e.company, do: e.company.name, else: ""),
             total_debit,
             total_credit,
             length(lines)
@@ -111,6 +115,10 @@ defmodule HoldcoWeb.ExportController do
 
     send_csv(conn, "journal-entries.csv", csv)
   end
+
+  defp parse_company_id(%{"company_id" => ""}), do: nil
+  defp parse_company_id(%{"company_id" => id}) when is_binary(id), do: String.to_integer(id)
+  defp parse_company_id(_), do: nil
 
   defp csv_encode(rows) do
     rows

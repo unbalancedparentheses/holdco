@@ -27,6 +27,8 @@ defmodule Holdco.Corporate.Company do
     has_many :transactions, Holdco.Banking.Transaction
     has_many :documents, Holdco.Documents.Document
     has_many :tax_deadlines, Holdco.Compliance.TaxDeadline
+    has_many :accounts, Holdco.Finance.Account
+    has_many :journal_entries, Holdco.Finance.JournalEntry
     has_many :financials, Holdco.Finance.Financial
     has_many :board_meetings, Holdco.Governance.BoardMeeting
     has_many :beneficial_owners, Holdco.Corporate.BeneficialOwner

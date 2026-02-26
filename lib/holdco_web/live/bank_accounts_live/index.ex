@@ -18,6 +18,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
        accounts: accounts,
        companies: companies,
        total_balance: total_balance,
+       selected_company_id: "",
        show_form: false,
        cash_pools: cash_pools,
        show_pool_form: false
@@ -29,6 +30,25 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
 
   def handle_event("show_form", _, socket), do: {:noreply, assign(socket, show_form: true)}
   def handle_event("close_form", _, socket), do: {:noreply, assign(socket, show_form: false)}
+
+  def handle_event("filter_company", %{"company_id" => id}, socket) do
+    company_id = if id == "", do: nil, else: String.to_integer(id)
+
+    accounts =
+      Banking.list_bank_accounts()
+      |> then(fn accts ->
+        if company_id, do: Enum.filter(accts, &(&1.company_id == company_id)), else: accts
+      end)
+
+    total_balance = Enum.reduce(accounts, 0.0, fn a, acc -> acc + (a.balance || 0.0) end)
+
+    {:noreply,
+     assign(socket,
+       selected_company_id: id,
+       accounts: accounts,
+       total_balance: total_balance
+     )}
+  end
 
   def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
@@ -110,6 +130,18 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
         <% end %>
       </div>
       <hr class="page-title-rule" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+      <form phx-change="filter_company" style="display: flex; align-items: center; gap: 0.5rem;">
+        <label class="form-label" style="margin: 0; font-size: 0.85rem;">Company</label>
+        <select name="company_id" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+          <option value="">All Companies</option>
+          <%= for c <- @companies do %>
+            <option value={c.id} selected={to_string(c.id) == @selected_company_id}>{c.name}</option>
+          <% end %>
+        </select>
+      </form>
     </div>
 
     <div class="metrics-strip">

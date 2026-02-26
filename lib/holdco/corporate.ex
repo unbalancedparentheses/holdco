@@ -279,6 +279,8 @@ defmodule Holdco.Corporate do
       :key_personnel,
       :service_providers,
       :ownership_changes,
+      :accounts,
+      [journal_entries: :lines],
       :asset_holdings,
       :bank_accounts,
       :transactions,

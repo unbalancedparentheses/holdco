@@ -44,9 +44,10 @@ defmodule Holdco.Finance do
   end
 
   # Accounts (Chart of Accounts)
-  def list_accounts do
-    from(a in Account, order_by: a.code, preload: [:parent, :children])
-    |> Repo.all()
+  def list_accounts(company_id \\ nil) do
+    query = from(a in Account, order_by: a.code, preload: [:parent, :children, :company])
+    query = if company_id, do: where(query, [a], a.company_id == ^company_id), else: query
+    Repo.all(query)
   end
 
   def get_account!(id), do: Repo.get!(Account, id) |> Repo.preload([:parent, :children])
@@ -71,9 +72,10 @@ defmodule Holdco.Finance do
   end
 
   # Journal Entries
-  def list_journal_entries do
-    from(je in JournalEntry, order_by: [desc: je.date], preload: [:lines])
-    |> Repo.all()
+  def list_journal_entries(company_id \\ nil) do
+    query = from(je in JournalEntry, order_by: [desc: je.date], preload: [:company, lines: :account])
+    query = if company_id, do: where(query, [je], je.company_id == ^company_id), else: query
+    Repo.all(query)
   end
 
   def get_journal_entry!(id), do: Repo.get!(JournalEntry, id) |> Repo.preload(lines: :account)
@@ -299,27 +301,30 @@ defmodule Holdco.Finance do
 
   # Report Queries
 
-  def trial_balance do
-    from(a in Account,
-      left_join: jl in JournalLine,
-      on: jl.account_id == a.id,
-      group_by: [a.id, a.name, a.code, a.account_type],
-      select: %{
-        id: a.id,
-        name: a.name,
-        code: a.code,
-        account_type: a.account_type,
-        total_debit: coalesce(sum(jl.debit), 0.0),
-        total_credit: coalesce(sum(jl.credit), 0.0),
-        balance: coalesce(sum(jl.debit), 0.0) - coalesce(sum(jl.credit), 0.0)
-      },
-      order_by: a.code
-    )
-    |> Repo.all()
+  def trial_balance(company_id \\ nil) do
+    query =
+      from(a in Account,
+        left_join: jl in JournalLine,
+        on: jl.account_id == a.id,
+        group_by: [a.id, a.name, a.code, a.account_type],
+        select: %{
+          id: a.id,
+          name: a.name,
+          code: a.code,
+          account_type: a.account_type,
+          total_debit: coalesce(sum(jl.debit), 0.0),
+          total_credit: coalesce(sum(jl.credit), 0.0),
+          balance: coalesce(sum(jl.debit), 0.0) - coalesce(sum(jl.credit), 0.0)
+        },
+        order_by: a.code
+      )
+
+    query = if company_id, do: where(query, [a], a.company_id == ^company_id), else: query
+    Repo.all(query)
   end
 
-  def balance_sheet do
-    accounts = trial_balance()
+  def balance_sheet(company_id \\ nil) do
+    accounts = trial_balance(company_id)
 
     assets =
       accounts
@@ -350,7 +355,7 @@ defmodule Holdco.Finance do
     }
   end
 
-  def income_statement(date_from \\ nil, date_to \\ nil) do
+  def income_statement(company_id \\ nil, date_from \\ nil, date_to \\ nil) do
     base_query =
       from(jl in JournalLine,
         join: a in Account,
@@ -358,6 +363,11 @@ defmodule Holdco.Finance do
         join: je in JournalEntry,
         on: jl.entry_id == je.id
       )
+
+    base_query =
+      if company_id,
+        do: where(base_query, [_jl, a, _je], a.company_id == ^company_id),
+        else: base_query
 
     base_query =
       if date_from,

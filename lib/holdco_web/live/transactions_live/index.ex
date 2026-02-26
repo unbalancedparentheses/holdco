@@ -27,6 +27,7 @@ defmodule HoldcoWeb.TransactionsLive.Index do
        companies: companies,
        inflows: inflows,
        outflows: outflows,
+       selected_company_id: "",
        show_form: false
      )}
   end
@@ -36,6 +37,34 @@ defmodule HoldcoWeb.TransactionsLive.Index do
 
   def handle_event("show_form", _, socket), do: {:noreply, assign(socket, show_form: true)}
   def handle_event("close_form", _, socket), do: {:noreply, assign(socket, show_form: false)}
+
+  def handle_event("filter_company", %{"company_id" => id}, socket) do
+    company_id = if id == "", do: nil, else: String.to_integer(id)
+
+    transactions =
+      Banking.list_transactions()
+      |> then(fn txs ->
+        if company_id, do: Enum.filter(txs, &(&1.company_id == company_id)), else: txs
+      end)
+
+    inflows =
+      transactions
+      |> Enum.filter(&((&1.amount || 0) > 0))
+      |> Enum.reduce(0.0, fn tx, acc -> acc + tx.amount end)
+
+    outflows =
+      transactions
+      |> Enum.filter(&((&1.amount || 0) < 0))
+      |> Enum.reduce(0.0, fn tx, acc -> acc + tx.amount end)
+
+    {:noreply,
+     assign(socket,
+       selected_company_id: id,
+       transactions: transactions,
+       inflows: inflows,
+       outflows: outflows
+     )}
+  end
 
   def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
@@ -103,6 +132,18 @@ defmodule HoldcoWeb.TransactionsLive.Index do
         </div>
       </div>
       <hr class="page-title-rule" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+      <form phx-change="filter_company" style="display: flex; align-items: center; gap: 0.5rem;">
+        <label class="form-label" style="margin: 0; font-size: 0.85rem;">Company</label>
+        <select name="company_id" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+          <option value="">All Companies</option>
+          <%= for c <- @companies do %>
+            <option value={c.id} selected={to_string(c.id) == @selected_company_id}>{c.name}</option>
+          <% end %>
+        </select>
+      </form>
     </div>
 
     <div class="metrics-strip">
