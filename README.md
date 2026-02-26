@@ -341,6 +341,12 @@ These extend existing data into immediately useful outputs.
   entities.
 - **Internal messaging and notes.** Threaded comments on any entity, surfacing
   the existing comments table in the UI.
+- **Budget vs actual variance analysis.** Compare budgets to actuals with
+  drill-down by entity, period, and account. Built on the existing budgets data.
+- **Recurring transactions.** Auto-generate repeating entries such as rent,
+  subscriptions, and management fees on configurable schedules.
+- **Entity comparison.** Side-by-side financials and metrics across companies.
+- **Waterfall charts.** Visualize P&L bridges and NAV change attribution.
 
 ### Phase 2 — Automation and integrations
 
@@ -365,6 +371,12 @@ Reduce manual data entry and connect to external systems.
   object storage instead of only local paths.
 - **Bulk operations.** Batch-edit holdings, batch-assign categories, and
   bulk-approve pending items.
+- **Bank reconciliation workflow.** Formal matching of book entries to bank
+  statements with exception handling, not just raw import.
+- **Period close and lock.** Close a month or quarter to prevent edits, with
+  reopening requiring admin approval.
+- **Import from Excel and Google Sheets.** Beyond CSV, handle `.xlsx` files with
+  column mapping and validation.
 
 ### Phase 3 — Advanced analytics and risk
 
@@ -386,6 +398,9 @@ Turn the platform into a decision-making tool.
   private holdings instead of just manual entry.
 - **Point-in-time snapshots.** View the entire corporate structure and portfolio
   as it was on any historical date.
+- **Tax loss harvesting.** Identify positions to sell for tax losses based on
+  cost basis lots, holding periods, and wash sale rules.
+- **Custom dashboards.** User-configurable widgets instead of a fixed layout.
 
 ### Phase 4 — Fund, LP, and tax structures
 
@@ -407,6 +422,10 @@ For holding companies with fund entities or complex tax planning needs.
   withholding taxes.
 - **Repatriation planning.** Track trapped cash per jurisdiction and model
   optimal repatriation routes considering withholding taxes and treaty networks.
+- **Currency revaluation.** Period-end FX revaluation of foreign-currency
+  balances with translation adjustments posted to the P&L.
+- **Intercompany netting.** Net out payables and receivables across entities
+  before settling, reducing the number of cross-border transfers.
 
 ### Phase 5 — Corporate lifecycle and governance
 
@@ -428,6 +447,24 @@ Full entity management from incorporation to dissolution.
   beneficial owner.
 - **Reporting templates.** Pre-built templates for CRS, FATCA, BO registers, and
   other jurisdiction-specific filings.
+- **Intellectual property register.** Patents, trademarks, domains, and licenses
+  per entity with renewal dates and cost tracking.
+- **Contract lifecycle management.** Vendor contracts with renewal dates, SLA
+  tracking, spend analytics, and expiry alerts.
+- **Legal entity identifier (LEI).** Tracking and renewal alerts for LEIs
+  required by financial regulators.
+- **Related party transaction register.** Track and report related party
+  transactions as required for audit and disclosure.
+- **Conflict of interest register.** Declarations from board members and key
+  personnel with review and clearance workflows.
+- **Board meeting toolkit.** Agenda builder, minutes templates, action item
+  extraction, and voting record management.
+- **Shareholder communications.** Annual reports, investor letters, and notice
+  distribution with delivery tracking.
+- **Insurance claims management.** Claims workflow and loss history tracking on
+  top of the existing insurance policies data.
+- **Payroll and compensation tracking.** Salaries, bonuses, and benefits for key
+  personnel across entities.
 
 ### Phase 6 — Real assets, crypto, and DeFi
 
@@ -465,6 +502,12 @@ Scale from single-user to multi-stakeholder platform.
   when relevant regulations change.
 - **Multi-user real-time collaboration.** Presence indicators ("Alice is viewing
   this company") via LiveView presence.
+- **AML transaction monitoring.** Suspicious transaction detection and reporting
+  beyond sanctions screening.
+- **Audit trail export.** Packaged export in standard formats for external
+  auditors.
+- **Data retention policies.** GDPR and privacy compliance with automated expiry
+  and deletion of stored documents and personal data.
 
 ### Phase 8 — Platform extensibility
 
@@ -483,6 +526,19 @@ Open the system up for custom workflows and external tools.
 - **Multi-language and i18n.** Especially relevant for multi-jurisdiction holding
   companies.
 - **Dark mode.**
+- **Offline and local-first sync.** Full offline operation with sync when
+  reconnected, leveraging the SQLite single-file architecture.
+
+### Phase 9 — Family office and philanthropy
+
+For family offices, trusts, and multi-generational wealth.
+
+- **Trust accounting.** Trust-specific accounting rules, beneficiary
+  distributions, and trustee reporting.
+- **Charitable giving and philanthropy tracking.** Donations, pledges, foundation
+  grants, and tax deduction records.
+- **Family governance.** Family council meetings, family charter documentation,
+  and next-generation education and onboarding tracking.
 
 ## License
 
