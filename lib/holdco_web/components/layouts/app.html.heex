@@ -25,7 +25,7 @@
       <% accounting_active = Enum.any?(accounting_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
       <% portfolio_paths = ~w(/holdings /transactions /bank-accounts /financials /risk/concentration /debt-maturity /cash-forecast) %>
       <% portfolio_active = Enum.any?(portfolio_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
-      <% corp_paths = ~w(/governance /compliance /documents /org-chart) %>
+      <% corp_paths = ~w(/governance /compliance /documents /org-chart /tax-calendar /audit-log) %>
       <% corp_active = Enum.any?(corp_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
       <% reports_paths = ~w(/reports /tax/capital-gains /kpis /aging /management-reports) %>
       <% reports_active = Enum.any?(reports_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
@@ -74,11 +74,17 @@
             <.link navigate={~p"/compliance"} class={if cur == "/compliance", do: "active"}>
               Compliance
             </.link>
+            <.link navigate={~p"/tax-calendar"} class={if cur == "/tax-calendar", do: "active"}>
+              Tax Calendar
+            </.link>
             <.link navigate={~p"/documents"} class={if cur == "/documents", do: "active"}>
               Documents
             </.link>
             <.link navigate={~p"/org-chart"} class={if cur == "/org-chart", do: "active"}>
               Org Chart
+            </.link>
+            <.link navigate={~p"/audit-log"} class={if cur == "/audit-log", do: "active"}>
+              Audit Log
             </.link>
           </div>
         </div>
@@ -173,6 +179,12 @@
         >
           Notifications
         </.link>
+        <.link
+          navigate={~p"/import"}
+          class={"nav-util-link #{if assigns[:current_path] == "/import", do: "active"}"}
+        >
+          Import
+        </.link>
         <form class="nav-search" action={~p"/search"} method="get">
           <input type="text" name="q" placeholder="Search..." />
         </form>
@@ -195,6 +207,7 @@
         <span class="footer-text">Holdco — Open source holding company management</span>
         <div class="footer-links">
           <.link navigate={~p"/audit-log"}>Audit Log</.link>
+          <.link navigate={~p"/audit-diffs"}>Audit Diffs</.link>
           <.link navigate={~p"/settings"}>Settings</.link>
         </div>
       </div>
