@@ -166,9 +166,6 @@ defmodule HoldcoWeb.CompanyLive.Index do
               Tree
             </button>
           </div>
-          <.link navigate={~p"/org-chart"} class="btn btn-secondary">
-            Org Chart
-          </.link>
           <a href={~p"/export/companies.csv"} class="btn btn-secondary">
             Export CSV
           </a>
@@ -182,6 +179,25 @@ defmodule HoldcoWeb.CompanyLive.Index do
       </div>
       <hr class="page-title-rule" />
     </div>
+
+    <%= if @company_tree != [] do %>
+      <div class="section">
+        <div class="section-head">
+          <h2>Org Chart</h2>
+        </div>
+        <div class="panel" style="padding: 2rem; overflow-x: auto;">
+          <div style="text-align: center;">
+            <ul style="padding-top: 0; position: relative; display: inline-flex; justify-content: center; list-style: none; margin: 0; padding-left: 0;">
+              <%= for node <- @company_tree do %>
+                <li style="display: inline-block; vertical-align: top; text-align: center; list-style-type: none; position: relative; padding: 20px 10px 0 10px;">
+                  {render_org_node(assigns, node)}
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    <% end %>
 
     <div class="section">
       <div class="panel">
@@ -412,4 +428,72 @@ defmodule HoldcoWeb.CompanyLive.Index do
   defp status_tag("winding_down"), do: "tag-lemon"
   defp status_tag("dissolved"), do: "tag-crimson"
   defp status_tag(_), do: "tag-ink"
+
+  defp render_org_node(assigns, node) do
+    company = node.company
+    children = node.children
+    has_children = children != []
+
+    assigns =
+      assigns
+      |> Map.put(:org_company, company)
+      |> Map.put(:org_children, children)
+      |> Map.put(:org_has_children, has_children)
+
+    ~H"""
+    <div style={org_card_style(@org_company.wind_down_status)}>
+      <.link navigate={~p"/companies/#{@org_company.id}"} style="text-decoration: none; color: inherit;">
+        <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem;">
+          {@org_company.name}
+        </div>
+      </.link>
+      <div style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem;">
+        {@org_company.country}
+      </div>
+      <%= if @org_company.category do %>
+        <span class="tag tag-ink" style="font-size: 0.7rem; margin-bottom: 0.25rem;">
+          {@org_company.category}
+        </span>
+      <% end %>
+      <%= if @org_company.ownership_pct do %>
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">
+          {@org_company.ownership_pct}% owned
+        </div>
+      <% end %>
+      <div style="margin-top: 0.35rem;">
+        <span class={"tag #{status_tag(@org_company.wind_down_status)}"} style="font-size: 0.7rem;">
+          {@org_company.wind_down_status}
+        </span>
+      </div>
+    </div>
+    <%= if @org_has_children do %>
+      <div style="width: 2px; height: 20px; background: var(--rule, #ccc); margin: 0 auto;"></div>
+      <%= if length(@org_children) > 1 do %>
+        <div style="display: flex; justify-content: center;">
+          <div style={"height: 2px; background: var(--rule, #ccc); width: calc(100% - 20px);"}></div>
+        </div>
+      <% end %>
+      <ul style="padding-top: 0; position: relative; display: inline-flex; justify-content: center; list-style: none; margin: 0; padding-left: 0;">
+        <%= for child <- @org_children do %>
+          <li style="display: inline-block; vertical-align: top; text-align: center; list-style-type: none; position: relative; padding: 0 10px;">
+            <div style="width: 2px; height: 20px; background: var(--rule, #ccc); margin: 0 auto;"></div>
+            {render_org_node(assigns, child)}
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+    """
+  end
+
+  defp org_card_style(status) do
+    border_color =
+      case status do
+        "active" -> "var(--jade, #4a8c87)"
+        "winding_down" -> "var(--lemon, #b89040)"
+        "dissolved" -> "var(--crimson, #b0605e)"
+        _ -> "var(--rule, #ccc)"
+      end
+
+    "display: inline-block; border: 2px solid #{border_color}; border-radius: 8px; padding: 0.75rem 1rem; min-width: 160px; max-width: 220px; background: var(--card-bg, #fff); text-align: center;"
+  end
 end
