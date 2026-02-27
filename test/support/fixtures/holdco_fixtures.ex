@@ -793,9 +793,14 @@ defmodule Holdco.HoldcoFixtures do
 
   def integration_fixture(attrs \\ %{}) do
     provider = attrs[:provider] || "quickbooks_#{System.unique_integer([:positive])}"
+    company_id = attrs[:company_id] || company_fixture().id
 
     {:ok, i} =
-      Holdco.Integrations.upsert_integration(provider, Enum.into(attrs, %{"status" => "connected"}))
+      Holdco.Integrations.upsert_integration(
+        provider,
+        company_id,
+        Enum.into(attrs, %{"status" => "connected"})
+      )
 
     i
   end

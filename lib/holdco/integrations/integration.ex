@@ -12,6 +12,8 @@ defmodule Holdco.Integrations.Integration do
     field :status, :string, default: "disconnected"
     field :metadata, :string
 
+    belongs_to :company, Holdco.Corporate.Company
+
     timestamps(type: :utc_datetime)
   end
 
@@ -25,9 +27,10 @@ defmodule Holdco.Integrations.Integration do
       :token_expires_at,
       :last_synced_at,
       :status,
-      :metadata
+      :metadata,
+      :company_id
     ])
     |> validate_required([:provider])
-    |> unique_constraint(:provider)
+    |> unique_constraint([:provider, :company_id])
   end
 end

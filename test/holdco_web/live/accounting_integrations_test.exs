@@ -6,181 +6,92 @@ defmodule HoldcoWeb.AccountingIntegrationsTest do
 
   setup :register_and_log_in_user
 
-  defp create_connected_qbo(_context) do
-    Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
-    :ok
+  defp create_company_with_qbo(_context) do
+    company = company_fixture(%{name: "QBO Corp"})
+
+    Holdco.Integrations.upsert_integration("quickbooks", company.id, %{
+      "status" => "connected",
+      "realm_id" => "123456"
+    })
+
+    %{company: company}
   end
 
   # ── Mount & Render ──────────────────────────────────────
 
   describe "mount and render" do
-    test "renders page title and deck", %{conn: conn} do
+    test "renders page title", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
 
       assert html =~ "<h1>Integrations</h1>"
-      assert html =~ "Connect external accounting services"
-      assert html =~ "page-title-rule"
+      assert html =~ "Overview of external accounting integrations"
     end
 
-    test "renders QuickBooks Online section", %{conn: conn} do
+    test "renders QuickBooks section header", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
 
       assert html =~ "QuickBooks Online"
     end
 
-    test "shows Disconnected badge when no QBO integration", %{conn: conn} do
+    test "shows table headers", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
+
+      assert html =~ "Company"
+      assert html =~ "Provider"
+      assert html =~ "Status"
+      assert html =~ "Last Synced"
+    end
+  end
+
+  # ── Company listing ─────────────────────────────────────
+
+  describe "company listing" do
+    test "shows companies in summary table", %{conn: conn} do
+      company = company_fixture(%{name: "Summary Co"})
+      {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
+
+      assert html =~ "Summary Co"
+      assert html =~ "/companies/#{company.id}"
+    end
+
+    test "shows Disconnected badge for companies without QBO", %{conn: conn} do
+      _company = company_fixture(%{name: "No QBO Co"})
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
 
       assert html =~ "Disconnected"
       assert html =~ "badge-expense"
     end
-
-    test "shows Connect to QuickBooks link when disconnected", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
-
-      assert html =~ "Connect to QuickBooks"
-      assert html =~ ~s(href="/auth/quickbooks/connect")
-    end
-
-    test "shows description text", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
-
-      assert html =~ "Sync your chart of accounts and journal entries from QuickBooks Online."
-    end
   end
 
-  # ── Connected State ─────────────────────────────────────
+  # ── Connected company ─────────────────────────────────────
 
-  describe "when QBO is connected" do
-    setup [:create_connected_qbo]
+  describe "when a company has QBO connected" do
+    setup [:create_company_with_qbo]
 
-    test "shows Connected badge", %{conn: conn} do
+    test "shows Connected badge for connected company", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
 
       assert html =~ "Connected"
       assert html =~ "badge-asset"
     end
 
-    test "shows Sync Now button", %{conn: conn} do
+    test "shows Manage link to company page", %{conn: conn, company: company} do
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
 
-      assert html =~ "Sync Now"
-      assert html =~ ~s(phx-click="sync")
+      assert html =~ "/companies/#{company.id}"
+      assert html =~ "Manage"
     end
 
-    test "shows company filter for sync", %{conn: conn} do
+    test "shows realm_id for connected company", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
 
-      assert html =~ "All Companies"
-      assert html =~ ~s(phx-change="select_sync_company")
-    end
-
-    test "editor sees Disconnect button", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
-
-      assert html =~ "Disconnect"
-      assert html =~ ~s(phx-click="disconnect")
-    end
-  end
-
-  # ── Select Sync Company ─────────────────────────────────
-
-  describe "select_sync_company event" do
-    setup [:create_connected_qbo]
-
-    test "selects a company for sync", %{conn: conn} do
-      company = company_fixture(%{name: "SyncCo"})
-      {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
-
-      html =
-        view
-        |> form(~s(form[phx-change="select_sync_company"]), %{"company_id" => to_string(company.id)})
-        |> render_change()
-
-      # Page should still render without error
-      assert html =~ "QuickBooks Online"
-    end
-  end
-
-  # ── Sync Event ──────────────────────────────────────────
-
-  describe "sync event" do
-    setup [:create_connected_qbo]
-
-    test "triggers sync and shows syncing state", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
-
-      # The sync event sends a message to self, so after the event the button text changes
-      view |> element(~s(button[phx-click="sync"])) |> render_click()
-
-      # The sync happens async via handle_info(:do_sync), but we can check it doesn't crash
-      html = render(view)
-      assert html =~ "QuickBooks Online"
-    end
-
-    test "viewer cannot sync", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
-
-      render_hook(view, "sync", %{})
-      assert render(view) =~ "permission"
-    end
-  end
-
-  # ── Disconnect Event ────────────────────────────────────
-
-  describe "disconnect event" do
-    setup [:create_connected_qbo]
-
-    test "disconnects QBO integration", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
-
-      view |> element(~s(button[phx-click="disconnect"])) |> render_click()
-
-      html = render(view)
-      assert html =~ "QuickBooks disconnected"
-      assert html =~ "Disconnected"
-      assert html =~ "Connect to QuickBooks"
-    end
-
-    test "viewer cannot disconnect", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
-
-      render_hook(view, "disconnect", %{})
-      assert render(view) =~ "permission"
-    end
-  end
-
-  # ── Sync with Company Selected ────────────────────────
-
-  describe "sync with company selected" do
-    setup [:create_connected_qbo]
-
-    test "sync with a selected company does not crash", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      company = company_fixture(%{name: "SyncWithCo"})
-      {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
-
-      # Select a company first
-      view
-      |> form(~s(form[phx-change="select_sync_company"]), %{"company_id" => to_string(company.id)})
-      |> render_change()
-
-      # Trigger sync
-      view |> element(~s(button[phx-click="sync"])) |> render_click()
-
-      # Let the async handle_info run
-      html = render(view)
-      assert html =~ "QuickBooks Online"
+      assert html =~ "123456"
     end
   end
 
   # ── Handle Info ───────────────────────────────────────
 
   describe "handle_info for PubSub broadcast" do
-    setup [:create_connected_qbo]
-
     test "handles generic broadcast without crashing", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
 
@@ -191,53 +102,13 @@ defmodule HoldcoWeb.AccountingIntegrationsTest do
     end
   end
 
-  # ── Viewer does not see Disconnect button ─────────────
+  # ── Empty state ─────────────────────────────────────────
 
-  describe "viewer role UI" do
-    setup [:create_connected_qbo]
-
-    test "viewer does not see Disconnect button when connected", %{conn: conn} do
+  describe "empty state" do
+    test "shows empty message when no companies exist", %{conn: conn} do
+      # With no companies, the table body is empty but no crash
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
-
-      refute html =~ ~s(phx-click="disconnect")
-    end
-
-    test "viewer still sees Sync Now and company filter when connected", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
-
-      assert html =~ "Sync Now"
-      assert html =~ "All Companies"
-    end
-  end
-
-  # ── Description text and realm_id ─────────────────────
-
-  describe "additional display details" do
-    setup [:create_connected_qbo]
-
-    test "shows description text when connected", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
-
-      assert html =~ "Sync your chart of accounts and journal entries from QuickBooks Online."
-    end
-  end
-
-  # ── Disconnected state shows connect link ─────────────
-
-  describe "disconnected state" do
-    test "shows Connect to QuickBooks link with correct href", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
-
-      assert html =~ "Connect to QuickBooks"
-      assert html =~ "/auth/quickbooks/connect"
-      assert html =~ "btn btn-primary"
-    end
-
-    test "does not show Sync Now or Disconnect when disconnected", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
-
-      refute html =~ "Sync Now"
-      refute html =~ ~s(phx-click="disconnect")
+      assert html =~ "QuickBooks Online"
     end
   end
 end

@@ -333,7 +333,7 @@ defmodule HoldcoWeb.DashboardLive do
       <div class="section">
         <div class="section-head">
           <h2>AI Insights</h2>
-          <.link navigate={~p"/ai-chat"} class="count" style="text-decoration: none;">Chat &rarr;</.link>
+          <span class="count" style="color: var(--color-muted); font-size: 0.85rem;">Use chat button &rarr;</span>
         </div>
         <div class="panel" style="padding: 1.25rem;">
           <%= if @ai_insight_loading do %>

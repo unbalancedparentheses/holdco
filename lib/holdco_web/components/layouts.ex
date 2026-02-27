@@ -247,12 +247,6 @@ defmodule HoldcoWeb.Layouts do
           >
             Import
           </.link>
-          <.link
-            navigate={~p"/ai-chat"}
-            class={"nav-util-link #{if cur == "/ai-chat", do: "active"}"}
-          >
-            AI Chat
-          </.link>
           <form class="nav-search" action={~p"/search"} method="get">
             <input type="text" name="q" placeholder="Search..." />
           </form>
@@ -285,6 +279,10 @@ defmodule HoldcoWeb.Layouts do
         </div>
       </div>
     </footer>
+
+    <%= if @current_scope do %>
+      {live_render(@socket, HoldcoWeb.AiChatLive, id: "ai-chat-drawer", sticky: true)}
+    <% end %>
     """
   end
 

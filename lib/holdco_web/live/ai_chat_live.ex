@@ -3,26 +3,80 @@ defmodule HoldcoWeb.AiChatLive do
 
   alias Holdco.AI
 
-  @impl true
-  def mount(_params, _session, socket) do
-    user_id = socket.assigns.current_scope.user.id
-    conversations = AI.list_conversations(user_id)
+  alias Holdco.Accounts
 
-    {:ok,
-     assign(socket,
-       page_title: "AI Chat",
-       conversations: conversations,
-       current_conversation: nil,
-       messages: [],
-       input: "",
-       loading: false,
-       configured: AI.configured?()
-     )}
+  @impl true
+  def mount(_params, session, socket) do
+    user =
+      cond do
+        socket.assigns[:current_scope] && socket.assigns.current_scope.user ->
+          socket.assigns.current_scope.user
+
+        session["user_token"] ->
+          case Accounts.get_user_by_session_token(session["user_token"]) do
+            {user, _} -> user
+            _ -> nil
+          end
+
+        true ->
+          nil
+      end
+
+    if user do
+      conversations = AI.list_conversations(user.id)
+
+      {:ok,
+       assign(socket,
+         user_id: user.id,
+         conversations: conversations,
+         current_conversation: nil,
+         messages: [],
+         input: "",
+         loading: false,
+         configured: AI.configured?(),
+         chat_open: false,
+         show_history: false
+       ), layout: false}
+    else
+      {:ok,
+       assign(socket,
+         user_id: nil,
+         conversations: [],
+         current_conversation: nil,
+         messages: [],
+         input: "",
+         loading: false,
+         configured: false,
+         chat_open: false,
+         show_history: false
+       ), layout: false}
+    end
   end
 
   @impl true
+  def handle_event("toggle_chat", _params, socket) do
+    opening = !socket.assigns.chat_open
+
+    socket =
+      if opening && socket.assigns.current_conversation == nil && socket.assigns.configured do
+        ensure_conversation(socket)
+      else
+        socket
+      end
+
+    {:noreply, assign(socket, chat_open: opening, show_history: false)}
+  end
+
+  def handle_event("toggle_history", _params, socket) do
+    {:noreply, assign(socket, show_history: !socket.assigns.show_history)}
+  end
+
+  def handle_event("new_conversation", _params, %{assigns: %{user_id: nil}} = socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("new_conversation", _params, socket) do
-    user_id = socket.assigns.current_scope.user.id
+    user_id = socket.assigns.user_id
 
     case AI.create_conversation(%{user_id: user_id, title: "New conversation"}) do
       {:ok, conv} ->
@@ -33,7 +87,8 @@ defmodule HoldcoWeb.AiChatLive do
            conversations: conversations,
            current_conversation: conv,
            messages: [],
-           input: ""
+           input: "",
+           show_history: false
          )}
 
       {:error, _} ->
@@ -48,13 +103,14 @@ defmodule HoldcoWeb.AiChatLive do
      assign(socket,
        current_conversation: conv,
        messages: conv.messages,
-       input: ""
+       input: "",
+       show_history: false
      )}
   end
 
   def handle_event("delete_conversation", %{"id" => id}, socket) do
     AI.delete_conversation(String.to_integer(id))
-    user_id = socket.assigns.current_scope.user.id
+    user_id = socket.assigns.user_id
     conversations = AI.list_conversations(user_id)
 
     current =
@@ -85,10 +141,8 @@ defmodule HoldcoWeb.AiChatLive do
     else
       conv = socket.assigns.current_conversation
 
-      # Save user message
       {:ok, user_msg} = AI.add_message(conv.id, "user", content)
 
-      # Auto-title on first message
       if length(socket.assigns.messages) == 0 do
         title = String.slice(content, 0, 60)
         AI.update_conversation_title(conv, title)
@@ -96,7 +150,6 @@ defmodule HoldcoWeb.AiChatLive do
 
       messages = socket.assigns.messages ++ [user_msg]
 
-      # Trigger async LLM call
       send(self(), :call_llm)
 
       {:noreply, assign(socket, messages: messages, input: "", loading: true)}
@@ -114,7 +167,7 @@ defmodule HoldcoWeb.AiChatLive do
       {:ok, response} ->
         {:ok, assistant_msg} = AI.add_message(conv.id, "assistant", response)
         messages = socket.assigns.messages ++ [assistant_msg]
-        user_id = socket.assigns.current_scope.user.id
+        user_id = socket.assigns.user_id
 
         {:noreply,
          assign(socket,
@@ -133,128 +186,170 @@ defmodule HoldcoWeb.AiChatLive do
 
   def handle_info(_, socket), do: {:noreply, socket}
 
+  defp ensure_conversation(socket) do
+    case socket.assigns.conversations do
+      [latest | _] ->
+        conv = AI.get_conversation!(latest.id)
+        assign(socket, current_conversation: conv, messages: conv.messages)
+
+      [] ->
+        case AI.create_conversation(%{
+               user_id: socket.assigns.user_id,
+               title: "New conversation"
+             }) do
+          {:ok, conv} ->
+            assign(socket,
+              conversations: AI.list_conversations(socket.assigns.user_id),
+              current_conversation: conv,
+              messages: []
+            )
+
+          _ ->
+            socket
+        end
+    end
+  end
+
   @impl true
+  def render(%{user_id: nil} = assigns) do
+    ~H"""
+    <div id="ai-chat-drawer-inner"></div>
+    """
+  end
+
   def render(assigns) do
     ~H"""
-    <div class="page-title">
-      <h1>AI Chat</h1>
-      <p class="deck">Ask questions about your portfolio, companies, and financial data</p>
-      <hr class="page-title-rule" />
-    </div>
-
-    <%= unless @configured do %>
-      <div style="padding: 2rem; text-align: center; background: #fff3e0; border-radius: 6px; margin-bottom: 1.5rem;">
-        <p style="margin-bottom: 0.5rem;">AI is not configured yet.</p>
-        <.link navigate={~p"/settings"} class="btn btn-primary">Go to Settings → AI</.link>
-      </div>
-    <% end %>
-
-    <div style="display: flex; gap: 1rem; height: calc(100vh - 280px); min-height: 400px;">
-      <%!-- Sidebar --%>
-      <div style="width: 260px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid #e0e0e0; padding-right: 1rem;">
-        <button
-          class="btn btn-primary btn-sm"
-          phx-click="new_conversation"
-          style="margin-bottom: 0.75rem; width: 100%;"
-          disabled={not @configured}
-        >
-          + New Chat
+    <div id="ai-chat-drawer-inner">
+      <%!-- FAB — hidden when drawer is open --%>
+      <%= unless @chat_open do %>
+        <button class="ai-chat-fab" phx-click="toggle_chat" aria-label="Open AI Chat">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
         </button>
-        <div style="overflow-y: auto; flex: 1;">
-          <%= for conv <- @conversations do %>
-            <div
-              style={"display: flex; align-items: center; padding: 0.5rem; border-radius: 4px; cursor: pointer; margin-bottom: 2px; #{if @current_conversation && @current_conversation.id == conv.id, do: "background: #e3f2fd;", else: ""}"}
-              phx-click="select_conversation"
-              phx-value-id={conv.id}
+      <% end %>
+
+      <%!-- Drawer --%>
+      <div class={"ai-chat-panel #{if @chat_open, do: "ai-chat-panel-open"}"}>
+        <%!-- Header --%>
+        <div class="ai-chat-header">
+          <div class="ai-chat-header-left">
+            <span class="ai-chat-title">AI Chat</span>
+            <%= if @current_conversation && @current_conversation.title != "New conversation" do %>
+              <span class="ai-chat-conv-title">{@current_conversation.title}</span>
+            <% end %>
+          </div>
+          <div class="ai-chat-header-actions">
+            <button
+              phx-click="toggle_history"
+              class="ai-chat-icon-btn"
+              title="Conversation history"
             >
-              <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;">
-                {conv.title || "Untitled"}
-              </span>
-              <button
-                phx-click="delete_conversation"
-                phx-value-id={conv.id}
-                class="btn btn-danger btn-sm"
-                style="padding: 0.1rem 0.3rem; font-size: 0.7rem; flex-shrink: 0; margin-left: 0.25rem;"
-                data-confirm="Delete this conversation?"
-              >
-                &times;
-              </button>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </button>
+            <button
+              phx-click="new_conversation"
+              class="ai-chat-icon-btn"
+              title="New conversation"
+              disabled={not @configured}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <button
+              phx-click="toggle_chat"
+              class="ai-chat-icon-btn"
+              title="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+        </div>
+
+        <%!-- Config warning --%>
+        <%= unless @configured do %>
+          <div class="ai-chat-notice">
+            AI provider not configured.
+            <.link navigate={~p"/settings"} class="ai-chat-notice-link">Configure in Settings</.link>
+          </div>
+        <% end %>
+
+        <%!-- Conversation history dropdown --%>
+        <%= if @show_history do %>
+          <div class="ai-chat-history">
+            <%= for conv <- @conversations do %>
+              <div class={"ai-chat-history-item #{if @current_conversation && @current_conversation.id == conv.id, do: "active"}"}>
+                <span
+                  phx-click="select_conversation"
+                  phx-value-id={conv.id}
+                  class="ai-chat-history-title"
+                >
+                  {conv.title || "Untitled"}
+                </span>
+                <button
+                  phx-click="delete_conversation"
+                  phx-value-id={conv.id}
+                  data-confirm="Delete this conversation?"
+                  class="ai-chat-history-del"
+                >
+                  &times;
+                </button>
+              </div>
+            <% end %>
+            <%= if @conversations == [] do %>
+              <div class="ai-chat-history-empty">No conversations yet</div>
+            <% end %>
+          </div>
+        <% end %>
+
+        <%!-- Messages --%>
+        <div
+          id="chat-messages"
+          phx-hook="ScrollBottom"
+          class="ai-chat-messages"
+        >
+          <%= for msg <- @messages do %>
+            <div class={"ai-chat-msg #{if msg.role == "user", do: "ai-chat-msg-user", else: "ai-chat-msg-ai"}"}>
+              <div class={"ai-chat-bubble #{if msg.role == "user", do: "ai-chat-bubble-user", else: "ai-chat-bubble-ai"}"}>
+                {msg.content}
+              </div>
             </div>
           <% end %>
-          <%= if @conversations == [] do %>
-            <div style="text-align: center; color: #999; font-size: 0.85rem; padding: 1rem 0;">
-              No conversations yet
+
+          <%= if @loading do %>
+            <div class="ai-chat-msg ai-chat-msg-ai">
+              <div class="ai-chat-bubble ai-chat-bubble-ai ai-chat-thinking">
+                Thinking...
+              </div>
+            </div>
+          <% end %>
+
+          <%= if @messages == [] and not @loading and @current_conversation do %>
+            <div class="ai-chat-empty">
+              Ask a question about your portfolio, companies, or financial data.
             </div>
           <% end %>
         </div>
-      </div>
 
-      <%!-- Chat area --%>
-      <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
-        <%= if @current_conversation do %>
-          <%!-- Messages --%>
-          <div
-            id="chat-messages"
-            phx-hook="ScrollBottom"
-            style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;"
-          >
-            <%= for msg <- @messages do %>
-              <div style={"display: flex; #{if msg.role == "user", do: "justify-content: flex-end;", else: "justify-content: flex-start;"}"}>
-                <div style={"max-width: 75%; padding: 0.75rem 1rem; border-radius: 12px; #{if msg.role == "user", do: "background: #e3f2fd; border-bottom-right-radius: 4px;", else: "background: #f5f5f5; border-bottom-left-radius: 4px;"}"}>
-                  <div style="font-size: 0.7rem; color: #999; margin-bottom: 0.25rem;">
-                    {if msg.role == "user", do: "You", else: "AI Assistant"}
-                  </div>
-                  <div style="white-space: pre-wrap; word-break: break-word; font-size: 0.9rem;">
-                    {msg.content}
-                  </div>
-                </div>
-              </div>
-            <% end %>
-
-            <%= if @loading do %>
-              <div style="display: flex; justify-content: flex-start;">
-                <div style="padding: 0.75rem 1rem; border-radius: 12px; background: #f5f5f5; border-bottom-left-radius: 4px;">
-                  <div style="font-size: 0.7rem; color: #999; margin-bottom: 0.25rem;">AI Assistant</div>
-                  <div style="color: #666;">Thinking...</div>
-                </div>
-              </div>
-            <% end %>
-
-            <%= if @messages == [] and not @loading do %>
-              <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999;">
-                Ask a question about your portfolio data
-              </div>
-            <% end %>
-          </div>
-
-          <%!-- Input bar --%>
-          <div style="border-top: 1px solid #e0e0e0; padding: 0.75rem;">
-            <form phx-submit="send_message" style="display: flex; gap: 0.5rem;">
-              <input
-                type="text"
-                name="message[content]"
-                value={@input}
-                phx-keyup="update_input"
-                class="form-input"
-                style="flex: 1;"
-                placeholder="Ask about your portfolio..."
-                autocomplete="off"
-                disabled={@loading}
-              />
-              <button
-                type="submit"
-                class="btn btn-primary"
-                disabled={@loading or @input == ""}
-              >
-                Send
-              </button>
-            </form>
-          </div>
-        <% else %>
-          <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 1.1rem;">
-            Select a conversation or start a new one
-          </div>
-        <% end %>
+        <%!-- Input --%>
+        <div class="ai-chat-input-bar">
+          <form phx-submit="send_message" class="ai-chat-form">
+            <input
+              type="text"
+              name="message[content]"
+              value={@input}
+              phx-keyup="update_input"
+              class="ai-chat-input"
+              placeholder={if @configured, do: "Ask a question...", else: "AI not configured"}
+              autocomplete="off"
+              disabled={@loading or not @configured}
+            />
+            <button
+              type="submit"
+              class="ai-chat-send"
+              disabled={@loading or @input == "" or not @configured}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
     """

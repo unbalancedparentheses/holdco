@@ -73,12 +73,14 @@ defmodule Holdco.Integrations.QuickbooksTest do
 
   describe "sync_all/1" do
     test "returns error when no integration exists" do
-      assert {:error, :not_connected} = Quickbooks.sync_all()
+      company = company_fixture()
+      assert {:error, :not_connected} = Quickbooks.sync_all(company.id)
     end
 
     test "returns error when integration is disconnected" do
-      Integrations.upsert_integration("quickbooks", %{"status" => "disconnected"})
-      assert {:error, :not_connected} = Quickbooks.sync_all()
+      company = company_fixture()
+      Integrations.upsert_integration("quickbooks", company.id, %{"status" => "disconnected"})
+      assert {:error, :not_connected} = Quickbooks.sync_all(company.id)
     end
 
     test "returns error when no integration exists with company_id" do
@@ -88,8 +90,10 @@ defmodule Holdco.Integrations.QuickbooksTest do
 
   describe "sync_accounts/2" do
     test "handles empty account response" do
+      company = company_fixture()
+
       {:ok, integration} =
-        Integrations.upsert_integration("quickbooks", %{
+        Integrations.upsert_integration("quickbooks", company.id, %{
           "status" => "connected",
           "access_token" => "test_token",
           "realm_id" => "12345",
@@ -98,20 +102,20 @@ defmodule Holdco.Integrations.QuickbooksTest do
 
       # api_get will fail since there's no real QuickBooks API to talk to,
       # but this exercises the code paths through ensure_fresh_token! (not expired)
-      result = Quickbooks.sync_accounts(integration)
+      result = Quickbooks.sync_accounts(integration, company.id)
       assert {:error, _reason} = result
     end
 
     test "handles sync_accounts with company_id parameter" do
+      company = company_fixture()
+
       {:ok, integration} =
-        Integrations.upsert_integration("quickbooks", %{
+        Integrations.upsert_integration("quickbooks", company.id, %{
           "status" => "connected",
           "access_token" => "test_token",
           "realm_id" => "12345",
           "token_expires_at" => DateTime.add(DateTime.utc_now(), 3600, :second)
         })
-
-      company = company_fixture()
       result = Quickbooks.sync_accounts(integration, company.id)
       assert {:error, _reason} = result
     end
@@ -119,28 +123,30 @@ defmodule Holdco.Integrations.QuickbooksTest do
 
   describe "sync_journal_entries/2" do
     test "handles failed API call" do
+      company = company_fixture()
+
       {:ok, integration} =
-        Integrations.upsert_integration("quickbooks", %{
+        Integrations.upsert_integration("quickbooks", company.id, %{
           "status" => "connected",
           "access_token" => "test_token",
           "realm_id" => "12345",
           "token_expires_at" => DateTime.add(DateTime.utc_now(), 3600, :second)
         })
 
-      result = Quickbooks.sync_journal_entries(integration)
+      result = Quickbooks.sync_journal_entries(integration, company.id)
       assert {:error, _reason} = result
     end
 
     test "handles sync_journal_entries with company_id parameter" do
+      company = company_fixture()
+
       {:ok, integration} =
-        Integrations.upsert_integration("quickbooks", %{
+        Integrations.upsert_integration("quickbooks", company.id, %{
           "status" => "connected",
           "access_token" => "test_token",
           "realm_id" => "12345",
           "token_expires_at" => DateTime.add(DateTime.utc_now(), 3600, :second)
         })
-
-      company = company_fixture()
       result = Quickbooks.sync_journal_entries(integration, company.id)
       assert {:error, _reason} = result
     end
@@ -148,8 +154,10 @@ defmodule Holdco.Integrations.QuickbooksTest do
 
   describe "api_get/2" do
     test "attempts refresh when token is expired" do
+      company = company_fixture()
+
       {:ok, integration} =
-        Integrations.upsert_integration("quickbooks", %{
+        Integrations.upsert_integration("quickbooks", company.id, %{
           "status" => "connected",
           "access_token" => "expired_token",
           "refresh_token" => "test_refresh",
@@ -164,8 +172,10 @@ defmodule Holdco.Integrations.QuickbooksTest do
     end
 
     test "uses token directly when not expired" do
+      company = company_fixture()
+
       {:ok, integration} =
-        Integrations.upsert_integration("quickbooks", %{
+        Integrations.upsert_integration("quickbooks", company.id, %{
           "status" => "connected",
           "access_token" => "valid_token",
           "realm_id" => "12345",
@@ -178,8 +188,10 @@ defmodule Holdco.Integrations.QuickbooksTest do
     end
 
     test "uses token when token_expires_at is nil" do
+      company = company_fixture()
+
       {:ok, integration} =
-        Integrations.upsert_integration("quickbooks", %{
+        Integrations.upsert_integration("quickbooks", company.id, %{
           "status" => "connected",
           "access_token" => "valid_token",
           "realm_id" => "12345"

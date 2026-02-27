@@ -34,7 +34,7 @@ defmodule Holdco.Integrations.Quickbooks do
     "#{@auth_base}?#{params}"
   end
 
-  def exchange_code(code, realm_id) do
+  def exchange_code(code, realm_id, company_id) do
     config = config()
 
     body =
@@ -58,7 +58,7 @@ defmodule Holdco.Integrations.Quickbooks do
           |> DateTime.add(body["expires_in"] || 3600, :second)
           |> DateTime.truncate(:second)
 
-        Integrations.upsert_integration("quickbooks", %{
+        Integrations.upsert_integration("quickbooks", company_id, %{
           "access_token" => body["access_token"],
           "refresh_token" => body["refresh_token"],
           "token_expires_at" => expires_at,
@@ -74,7 +74,7 @@ defmodule Holdco.Integrations.Quickbooks do
     end
   end
 
-  def refresh_token(%{refresh_token: refresh_token} = _integration) do
+  def refresh_token(%{refresh_token: refresh_token, company_id: company_id} = _integration) do
     config = config()
 
     body =
@@ -97,7 +97,7 @@ defmodule Holdco.Integrations.Quickbooks do
           |> DateTime.add(body["expires_in"] || 3600, :second)
           |> DateTime.truncate(:second)
 
-        Integrations.upsert_integration("quickbooks", %{
+        Integrations.upsert_integration("quickbooks", company_id, %{
           "access_token" => body["access_token"],
           "refresh_token" => body["refresh_token"],
           "token_expires_at" => expires_at,
@@ -132,8 +132,8 @@ defmodule Holdco.Integrations.Quickbooks do
 
   # Sync
 
-  def sync_all(company_id \\ nil) do
-    case Integrations.get_integration("quickbooks") do
+  def sync_all(company_id) do
+    case Integrations.get_integration("quickbooks", company_id) do
       nil ->
         {:error, :not_connected}
 
@@ -146,13 +146,13 @@ defmodule Holdco.Integrations.Quickbooks do
           journal_entries: sync_journal_entries(integration, company_id)
         }
 
-        Integrations.update_last_synced("quickbooks")
+        Integrations.update_last_synced("quickbooks", company_id)
         Integrations.broadcast({:quickbooks_synced, results})
         {:ok, results}
     end
   end
 
-  def sync_accounts(integration, company_id \\ nil) do
+  def sync_accounts(integration, company_id) do
     case api_get(integration, "/query?query=SELECT * FROM Account MAXRESULTS 1000") do
       {:ok, %{"QueryResponse" => %{"Account" => accounts}}} ->
         synced =
@@ -162,10 +162,10 @@ defmodule Holdco.Integrations.Quickbooks do
               "code" => qbo_account["AcctNum"] || "QBO-#{qbo_account["Id"]}",
               "account_type" => map_account_type(qbo_account["AccountType"]),
               "currency" => qbo_account["CurrencyRef"]["value"] || "USD",
-              "external_id" => to_string(qbo_account["Id"])
+              "external_id" => to_string(qbo_account["Id"]),
+              "company_id" => company_id
             }
 
-            attrs = if company_id, do: Map.put(attrs, "company_id", company_id), else: attrs
             upsert_by_external_id(:account, attrs)
           end)
 
@@ -179,7 +179,7 @@ defmodule Holdco.Integrations.Quickbooks do
     end
   end
 
-  def sync_journal_entries(integration, company_id \\ nil) do
+  def sync_journal_entries(integration, company_id) do
     case api_get(integration, "/query?query=SELECT * FROM JournalEntry MAXRESULTS 1000") do
       {:ok, %{"QueryResponse" => %{"JournalEntry" => entries}}} ->
         synced =
@@ -189,10 +189,9 @@ defmodule Holdco.Integrations.Quickbooks do
               "description" =>
                 qbo_entry["PrivateNote"] || "QBO Journal Entry ##{qbo_entry["Id"]}",
               "reference" => "QBO-#{qbo_entry["DocNumber"] || qbo_entry["Id"]}",
-              "external_id" => to_string(qbo_entry["Id"])
+              "external_id" => to_string(qbo_entry["Id"]),
+              "company_id" => company_id
             }
-
-            entry_attrs = if company_id, do: Map.put(entry_attrs, "company_id", company_id), else: entry_attrs
 
             case upsert_by_external_id(:journal_entry, entry_attrs) do
               {:ok, entry} ->

@@ -9,10 +9,13 @@ defmodule HoldcoWeb.CompanyLive.Show do
     Compliance,
     Finance,
     Governance,
-    Collaboration
+    Collaboration,
+    Integrations
   }
 
-  @tabs ~w(overview holdings bank_accounts transactions documents governance compliance financials accounting comments)
+  alias Holdco.Integrations.Quickbooks
+
+  @tabs ~w(overview holdings bank_accounts transactions documents governance compliance financials accounting integrations comments)
   @upload_dir Path.join([:code.priv_dir(:holdco), "static", "uploads"])
 
   @impl true
@@ -27,6 +30,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
     companies = Corporate.list_companies()
     comments = Collaboration.list_comments("companies", String.to_integer(id))
 
+    qbo_integration = Integrations.get_integration("quickbooks", company.id)
+
     {:ok,
      socket
      |> assign(
@@ -40,7 +45,10 @@ defmodule HoldcoWeb.CompanyLive.Show do
        comment_body: "",
        active_tab: "overview",
        show_form: nil,
-       je_line_count: 2
+       je_line_count: 2,
+       qbo_integration: qbo_integration,
+       qbo_syncing: false,
+       qbo_sync_result: nil
      )
      |> allow_upload(:file,
        accept: ~w(.pdf .doc .docx .xls .xlsx .png .jpg),
@@ -232,6 +240,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
     do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
 
   def handle_event("delete_dividend", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("qbo_disconnect", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("qbo_sync", _params, %{assigns: %{can_write: false}} = socket),
     do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
 
   # --- Holdings ---
@@ -766,6 +780,24 @@ defmodule HoldcoWeb.CompanyLive.Show do
     {:noreply, reload_company(socket) |> put_flash(:info, "Dividend deleted")}
   end
 
+  # --- QuickBooks Integration ---
+  def handle_event("qbo_disconnect", _params, socket) do
+    case Integrations.disconnect_integration("quickbooks", socket.assigns.company.id) do
+      {:ok, _} ->
+        {:noreply,
+         assign(socket, qbo_integration: nil, qbo_sync_result: nil)
+         |> put_flash(:info, "QuickBooks disconnected")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to disconnect")}
+    end
+  end
+
+  def handle_event("qbo_sync", _params, socket) do
+    send(self(), :do_qbo_sync)
+    {:noreply, assign(socket, qbo_syncing: true, qbo_sync_result: nil)}
+  end
+
   # --- Accounts ---
   def handle_event("save_account", %{"account" => params}, socket) do
     params = Map.put(params, "company_id", socket.assigns.company.id)
@@ -893,6 +925,26 @@ defmodule HoldcoWeb.CompanyLive.Show do
     {:noreply, assign(socket, comments: comments)}
   end
 
+  def handle_info(:do_qbo_sync, socket) do
+    company_id = socket.assigns.company.id
+    result = Quickbooks.sync_all(company_id)
+
+    sync_result =
+      case result do
+        {:ok, results} -> {:ok, results}
+        {:error, reason} -> {:error, reason}
+      end
+
+    qbo_integration = Integrations.get_integration("quickbooks", company_id)
+
+    {:noreply,
+     assign(socket,
+       qbo_syncing: false,
+       qbo_sync_result: sync_result,
+       qbo_integration: qbo_integration
+     )}
+  end
+
   def handle_info(_, socket), do: {:noreply, reload_company(socket)}
 
   defp reload_company(socket) do
@@ -963,7 +1015,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <button
         :for={
           tab <-
-            ~w(overview holdings bank_accounts transactions documents governance compliance financials comments)
+            ~w(overview holdings bank_accounts transactions documents governance compliance financials integrations comments)
         }
         class={"tab #{if @active_tab == tab, do: "tab-active"}"}
         phx-click="switch_tab"
@@ -988,6 +1040,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
   defp tab_label("compliance"), do: "Compliance"
   defp tab_label("financials"), do: "Financials"
   defp tab_label("accounting"), do: "Accounting"
+  defp tab_label("integrations"), do: "Integrations"
   defp tab_label("comments"), do: "Comments"
 
   defp render_tab(%{active_tab: "overview"} = assigns) do
@@ -2572,6 +2625,84 @@ defmodule HoldcoWeb.CompanyLive.Show do
     """
   end
 
+  defp render_tab(%{active_tab: "integrations"} = assigns) do
+    ~H"""
+    <div class="section">
+      <div class="section-head">
+        <h2>QuickBooks Online</h2>
+      </div>
+      <div class="panel" style="padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+              <strong style="font-size: 1.1rem;">QuickBooks Online</strong>
+              <%= if @qbo_integration && @qbo_integration.status == "connected" do %>
+                <span class="badge badge-asset">Connected</span>
+              <% else %>
+                <span class="badge badge-expense">Disconnected</span>
+              <% end %>
+            </div>
+            <p style="color: var(--color-muted); margin: 0;">
+              Sync chart of accounts and journal entries from QuickBooks Online.
+            </p>
+            <%= if @qbo_integration && @qbo_integration.realm_id do %>
+              <p style="color: var(--color-muted); margin: 0.25rem 0 0; font-size: 0.85rem;">
+                QBO Company ID: {@qbo_integration.realm_id}
+              </p>
+            <% end %>
+            <%= if @qbo_integration && @qbo_integration.last_synced_at do %>
+              <p style="color: var(--color-muted); margin: 0.25rem 0 0; font-size: 0.85rem;">
+                Last synced: {Calendar.strftime(@qbo_integration.last_synced_at, "%Y-%m-%d %H:%M:%S UTC")}
+              </p>
+            <% end %>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem;">
+            <%= if @qbo_integration && @qbo_integration.status == "connected" do %>
+              <button
+                class="btn btn-primary"
+                phx-click="qbo_sync"
+                disabled={@qbo_syncing}
+              >
+                <%= if @qbo_syncing, do: "Syncing...", else: "Sync Now" %>
+              </button>
+              <%= if @can_write do %>
+                <button
+                  class="btn btn-danger"
+                  phx-click="qbo_disconnect"
+                  data-confirm="Disconnect QuickBooks? This won't delete synced data."
+                >
+                  Disconnect
+                </button>
+              <% end %>
+            <% else %>
+              <.link href={~p"/auth/quickbooks/connect?company_id=#{@company.id}"} class="btn btn-primary">
+                Connect to QuickBooks
+              </.link>
+            <% end %>
+          </div>
+        </div>
+
+        <%= if @qbo_sync_result do %>
+          <div style="margin-top: 1rem; padding: 0.75rem; border-radius: 4px; border: 1px solid var(--color-border); background: var(--color-bg-alt, #f8f9fa);">
+            <%= case @qbo_sync_result do %>
+              <% {:ok, results} -> %>
+                <strong style="color: #00994d;">Sync completed</strong>
+                <ul style="margin: 0.5rem 0 0; padding-left: 1.5rem;">
+                  <li>Accounts: {format_qbo_sync_count(results.accounts)}</li>
+                  <li>Journal Entries: {format_qbo_sync_count(results.journal_entries)}</li>
+                </ul>
+              <% {:error, reason} -> %>
+                <strong style="color: #cc0000;">Sync failed</strong>
+                <p style="margin: 0.25rem 0 0; color: #cc0000;">{inspect(reason)}</p>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
   defp render_tab(%{active_tab: "comments"} = assigns) do
     ~H"""
     <div class="section">
@@ -3860,6 +3991,10 @@ defmodule HoldcoWeb.CompanyLive.Show do
     do: :erlang.float_to_binary(n, decimals: 2)
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) <> ".00"
   defp format_number(_), do: "0.00"
+
+  defp format_qbo_sync_count({:ok, count}), do: "#{count} synced"
+  defp format_qbo_sync_count({:error, reason}), do: "Error: #{inspect(reason)}"
+  defp format_qbo_sync_count(_), do: "—"
 
   defp entry_totals(entry) do
     lines = entry.lines || []

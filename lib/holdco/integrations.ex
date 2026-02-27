@@ -200,15 +200,19 @@ defmodule Holdco.Integrations do
   end
 
   # OAuth Integrations (QuickBooks etc.)
-  def get_integration(provider) do
-    Repo.get_by(Integration, provider: provider)
+  def get_integration(provider, company_id) do
+    Repo.get_by(Integration, provider: provider, company_id: company_id)
   end
 
-  def upsert_integration(provider, attrs) do
-    case get_integration(provider) do
+  def upsert_integration(provider, company_id, attrs) do
+    case get_integration(provider, company_id) do
       nil ->
         %Integration{}
-        |> Integration.changeset(Map.put(attrs, "provider", provider))
+        |> Integration.changeset(
+          attrs
+          |> Map.put("provider", provider)
+          |> Map.put("company_id", company_id)
+        )
         |> Repo.insert()
         |> audit_and_broadcast("integrations", "create")
 
@@ -220,8 +224,8 @@ defmodule Holdco.Integrations do
     end
   end
 
-  def disconnect_integration(provider) do
-    case get_integration(provider) do
+  def disconnect_integration(provider, company_id) do
+    case get_integration(provider, company_id) do
       nil ->
         {:ok, nil}
 
@@ -239,8 +243,8 @@ defmodule Holdco.Integrations do
     end
   end
 
-  def update_last_synced(provider) do
-    case get_integration(provider) do
+  def update_last_synced(provider, company_id) do
+    case get_integration(provider, company_id) do
       nil ->
         {:error, :not_found}
 
@@ -253,6 +257,15 @@ defmodule Holdco.Integrations do
 
   def list_integrations do
     Repo.all(from(i in Integration, order_by: i.provider))
+  end
+
+  def list_connected_integrations do
+    from(i in Integration,
+      where: i.status == "connected",
+      order_by: i.provider,
+      preload: [:company]
+    )
+    |> Repo.all()
   end
 
   # PubSub

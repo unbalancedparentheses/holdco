@@ -60,7 +60,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
     end
 
     test "shows Connected status when integration is connected", %{conn: conn} do
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected", "realm_id" => "123456"})
+      company = company_fixture()
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected", "realm_id" => "123456"})
 
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
 
@@ -70,7 +71,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
 
     test "shows Sync Now button when connected", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
+      company = company_fixture()
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected"})
 
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
 
@@ -79,7 +81,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
 
     test "shows Disconnect button for editor when connected", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
+      company = company_fixture()
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected"})
 
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
 
@@ -89,7 +92,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
 
   describe "integrations - viewer permission guards" do
     test "viewer disconnect returns permission error", %{conn: conn} do
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
+      company = company_fixture()
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected"})
       {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
 
       html = render_hook(view, "disconnect", %{})
@@ -97,7 +101,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
     end
 
     test "viewer sync returns permission error", %{conn: conn} do
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
+      company = company_fixture()
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected"})
       {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
 
       html = render_hook(view, "sync", %{})
@@ -112,7 +117,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
     end
 
     test "editor can disconnect QuickBooks", %{conn: conn} do
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
+      company = company_fixture()
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected"})
       {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
 
       html = view |> element(~s(button[phx-click="disconnect"])) |> render_click()
@@ -129,8 +135,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
     end
 
     test "select_sync_company updates selected company", %{conn: conn} do
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
       company = company_fixture(%{name: "SyncTargetCo"})
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected"})
 
       {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
 
@@ -161,8 +167,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
     end
 
     test "company dropdown shows All Companies option when connected", %{conn: conn} do
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
-      company_fixture(%{name: "DropdownCo"})
+      company = company_fixture(%{name: "DropdownCo"})
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected"})
 
       {:ok, _view, html} = live(conn, ~p"/accounts/integrations")
 
@@ -933,7 +939,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
     end
 
     test "sync event triggers async sync and shows syncing state", %{conn: conn} do
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
+      company = company_fixture()
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected"})
 
       {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
 
@@ -943,7 +950,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
     end
 
     test "do_sync handle_info completes and shows result", %{conn: conn} do
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
+      company = company_fixture()
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected"})
 
       {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
 
@@ -956,8 +964,8 @@ defmodule HoldcoWeb.AccountingLiveTest do
     end
 
     test "sync with selected company passes company_id", %{conn: conn} do
-      Holdco.Integrations.upsert_integration("quickbooks", %{"status" => "connected"})
       company = company_fixture(%{name: "SyncCo"})
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{"status" => "connected"})
 
       {:ok, view, _html} = live(conn, ~p"/accounts/integrations")
 
@@ -977,8 +985,9 @@ defmodule HoldcoWeb.AccountingLiveTest do
   describe "integrations - last_synced_at display" do
     test "shows last synced timestamp when available", %{conn: conn} do
       now = DateTime.utc_now() |> DateTime.truncate(:second)
+      company = company_fixture()
 
-      Holdco.Integrations.upsert_integration("quickbooks", %{
+      Holdco.Integrations.upsert_integration("quickbooks", company.id, %{
         "status" => "connected",
         "realm_id" => "789",
         "last_synced_at" => now
