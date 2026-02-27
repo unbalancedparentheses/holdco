@@ -6,6 +6,7 @@ defmodule Holdco.Depreciation do
   import Ecto.Query
   alias Holdco.Repo
   alias Holdco.Finance.FixedAsset
+  alias Holdco.Money
 
   def list_fixed_assets(company_id \\ nil) do
     query = from(fa in FixedAsset, order_by: fa.name, preload: [:company, :account])
@@ -35,8 +36,8 @@ defmodule Holdco.Depreciation do
   end
 
   def schedule(asset) do
-    cost = asset.purchase_price || 0.0
-    salvage = asset.salvage_value || 0.0
+    cost = Money.to_decimal(asset.purchase_price)
+    salvage = Money.to_decimal(asset.salvage_value)
     months = asset.useful_life_months || 1
     method = asset.depreciation_method || "straight_line"
     start = parse_date(asset.purchase_date) || Date.utc_today()
@@ -48,40 +49,40 @@ defmodule Holdco.Depreciation do
   end
 
   defp straight_line_schedule(cost, salvage, months, start) do
-    depreciable = cost - salvage
-    monthly = if months > 0, do: depreciable / months, else: 0.0
+    depreciable = Money.sub(cost, salvage)
+    monthly = if months > 0, do: Money.div(depreciable, months), else: Decimal.new(0)
 
     Enum.map(0..(months - 1), fn i ->
       date = Date.add(start, i * 30)
-      accumulated = monthly * (i + 1)
+      accumulated = Money.mult(monthly, i + 1)
 
       %{
         month: i + 1,
         date: Date.to_iso8601(date),
-        depreciation: Float.round(monthly, 2),
-        accumulated: Float.round(min(accumulated, depreciable), 2),
-        book_value: Float.round(max(cost - accumulated, salvage), 2)
+        depreciation: Money.to_float(Money.round(monthly, 2)),
+        accumulated: Money.to_float(Money.round(Money.min(accumulated, depreciable), 2)),
+        book_value: Money.to_float(Money.round(Money.max(Money.sub(cost, accumulated), salvage), 2))
       }
     end)
   end
 
   defp declining_balance_schedule(cost, salvage, months, start) do
-    rate = if months > 0, do: 2.0 / months, else: 0.0
+    rate = if months > 0, do: Money.div(Decimal.new(2), months), else: Decimal.new(0)
 
     {rows, _} =
       Enum.reduce(0..(months - 1), {[], cost}, fn i, {acc, book} ->
-        depreciation = max(book * rate, 0.0)
-        depreciation = min(depreciation, book - salvage)
-        depreciation = max(depreciation, 0.0)
-        new_book = book - depreciation
+        depreciation = Money.max(Money.mult(book, rate), Decimal.new(0))
+        depreciation = Money.min(depreciation, Money.sub(book, salvage))
+        depreciation = Money.max(depreciation, Decimal.new(0))
+        new_book = Money.sub(book, depreciation)
         date = Date.add(start, i * 30)
 
         row = %{
           month: i + 1,
           date: Date.to_iso8601(date),
-          depreciation: Float.round(depreciation, 2),
-          accumulated: Float.round(cost - new_book, 2),
-          book_value: Float.round(new_book, 2)
+          depreciation: Money.to_float(Money.round(depreciation, 2)),
+          accumulated: Money.to_float(Money.round(Money.sub(cost, new_book), 2)),
+          book_value: Money.to_float(Money.round(new_book, 2))
         }
 
         {acc ++ [row], new_book}

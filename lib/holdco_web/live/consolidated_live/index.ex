@@ -2,6 +2,7 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Corporate, Finance}
+  alias Holdco.Money
 
   @impl true
   def mount(_params, _session, socket) do
@@ -311,7 +312,7 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
                 <td></td>
                 <td></td>
                 <td></td>
-                <td class={"td-num #{if @consolidated_is.net_income >= 0, do: "num-positive", else: "num-negative"}"} style="font-size: 1.05rem;">
+                <td class={"td-num #{if Money.gte?(@consolidated_is.net_income, 0), do: "num-positive", else: "num-negative"}"} style="font-size: 1.05rem;">
                   ${format_number(@consolidated_is.net_income)}
                 </td>
               </tr>
@@ -320,7 +321,7 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
                 <td></td>
                 <td></td>
                 <td></td>
-                <td class="td-num">${format_number(@consolidated_is.net_income - @consolidated_is.nci_share)}</td>
+                <td class="td-num">${format_number(Money.sub(@consolidated_is.net_income, @consolidated_is.nci_share))}</td>
               </tr>
               <tr>
                 <td>Attributable to NCI</td>
@@ -384,7 +385,7 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
               <tr style="font-weight: 600; border-top: 2px solid var(--rule);">
                 <td colspan="4">Total Eliminations</td>
                 <td class="td-num num-negative">
-                  ${format_number(Enum.reduce(@transfers, 0.0, fn t, acc -> acc + (t.amount || 0) end))}
+                  ${format_number(Enum.reduce(@transfers, Decimal.new(0), fn t, acc -> Money.add(acc, Money.to_decimal(t.amount)) end))}
                 </td>
                 <td></td>
               </tr>
@@ -418,7 +419,7 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
                 <% ownership = c.ownership_pct || 100 %>
                 <% nci_pct = max(100 - ownership, 0) %>
                 <% entity_equity = entity_bs_total(@entity_data, c.id, :equity) %>
-                <% nci_value = entity_equity * nci_pct / 100.0 %>
+                <% nci_value = Money.div(Money.mult(entity_equity, nci_pct), 100) %>
                 <tr>
                   <td class="td-name">
                     <.link navigate={~p"/companies/#{c.id}"} class="td-link">{c.name}</.link>
@@ -460,35 +461,53 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
   end
 
   # -- Eliminations --
+  # Build a map of per-entity elimination amounts from intercompany transfers.
+  # For each transfer: the sending entity has a receivable to eliminate (asset reduction)
+  # and the receiving entity has a payable to eliminate (liability reduction).
 
   defp build_eliminations(transfers) do
-    Enum.reduce(transfers, 0.0, fn t, acc ->
-      acc + (t.amount || 0.0)
+    zero = Decimal.new(0)
+
+    Enum.reduce(transfers, %{total: zero, by_entity: %{}}, fn t, acc ->
+      amount = Money.to_decimal(t.amount)
+      from_id = t.from_company_id
+      to_id = t.to_company_id
+
+      by_entity =
+        acc.by_entity
+        |> Map.update(from_id, %{assets: amount, liabilities: zero}, fn e ->
+          %{e | assets: Money.add(e.assets, amount)}
+        end)
+        |> Map.update(to_id, %{assets: zero, liabilities: amount}, fn e ->
+          %{e | liabilities: Money.add(e.liabilities, amount)}
+        end)
+
+      %{acc | total: Money.add(acc.total, amount), by_entity: by_entity}
     end)
   end
 
   # -- Consolidated Balance Sheet --
 
-  defp build_consolidated_balance_sheet(entity_data, _elimination_total, companies) do
+  defp build_consolidated_balance_sheet(entity_data, eliminations, companies) do
     ownership_map = Map.new(companies, fn c -> {c.id, c.ownership_pct || 100} end)
 
-    assets = merge_consolidated_rows(entity_data, companies, :balance_sheet, :assets, ownership_map)
-    liabilities = merge_consolidated_rows(entity_data, companies, :balance_sheet, :liabilities, ownership_map)
-    equity = merge_consolidated_rows(entity_data, companies, :balance_sheet, :equity, ownership_map)
+    assets = merge_consolidated_rows(entity_data, companies, :balance_sheet, :assets, ownership_map, eliminations)
+    liabilities = merge_consolidated_rows(entity_data, companies, :balance_sheet, :liabilities, ownership_map, eliminations)
+    equity = merge_consolidated_rows(entity_data, companies, :balance_sheet, :equity, ownership_map, eliminations)
 
-    total_assets = Enum.reduce(assets, 0.0, fn r, acc -> acc + r.consolidated end)
-    total_liabilities = Enum.reduce(liabilities, 0.0, fn r, acc -> acc + r.consolidated end)
-    total_equity = Enum.reduce(equity, 0.0, fn r, acc -> acc + r.consolidated end)
+    total_assets = Enum.reduce(assets, Decimal.new(0), fn r, acc -> Money.add(acc, r.consolidated) end)
+    total_liabilities = Enum.reduce(liabilities, Decimal.new(0), fn r, acc -> Money.add(acc, r.consolidated) end)
+    total_equity = Enum.reduce(equity, Decimal.new(0), fn r, acc -> Money.add(acc, r.consolidated) end)
 
     total_nci =
-      Enum.reduce(companies, 0.0, fn c, acc ->
+      Enum.reduce(companies, Decimal.new(0), fn c, acc ->
         nci_pct = max(100 - (c.ownership_pct || 100), 0)
         entity_eq = entity_bs_total(entity_data, c.id, :equity)
-        acc + entity_eq * nci_pct / 100.0
+        Money.add(acc, Money.div(Money.mult(entity_eq, nci_pct), 100))
       end)
 
     total_eliminations =
-      Enum.reduce(assets ++ liabilities ++ equity, 0.0, fn r, acc -> acc + r.elimination end)
+      Enum.reduce(assets ++ liabilities ++ equity, Decimal.new(0), fn r, acc -> Money.add(acc, r.elimination) end)
 
     %{
       assets: assets,
@@ -504,21 +523,21 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
 
   # -- Consolidated Income Statement --
 
-  defp build_consolidated_income_statement(entity_data, _elimination_total, companies) do
+  defp build_consolidated_income_statement(entity_data, eliminations, companies) do
     ownership_map = Map.new(companies, fn c -> {c.id, c.ownership_pct || 100} end)
 
-    revenue = merge_consolidated_is_rows(entity_data, companies, :revenue, ownership_map)
-    expenses = merge_consolidated_is_rows(entity_data, companies, :expenses, ownership_map)
+    revenue = merge_consolidated_is_rows(entity_data, companies, :revenue, ownership_map, eliminations)
+    expenses = merge_consolidated_is_rows(entity_data, companies, :expenses, ownership_map, eliminations)
 
-    total_revenue = Enum.reduce(revenue, 0.0, fn r, acc -> acc + r.consolidated end)
-    total_expenses = Enum.reduce(expenses, 0.0, fn r, acc -> acc + r.consolidated end)
-    net_income = total_revenue - total_expenses
+    total_revenue = Enum.reduce(revenue, Decimal.new(0), fn r, acc -> Money.add(acc, r.consolidated) end)
+    total_expenses = Enum.reduce(expenses, Decimal.new(0), fn r, acc -> Money.add(acc, r.consolidated) end)
+    net_income = Money.sub(total_revenue, total_expenses)
 
     nci_share =
-      Enum.reduce(companies, 0.0, fn c, acc ->
+      Enum.reduce(companies, Decimal.new(0), fn c, acc ->
         nci_pct = max(100 - (c.ownership_pct || 100), 0)
-        entity_net = entity_is_total(entity_data, c.id, :total_revenue) - entity_is_total(entity_data, c.id, :total_expenses)
-        acc + entity_net * nci_pct / 100.0
+        entity_net = Money.sub(entity_is_total(entity_data, c.id, :total_revenue), entity_is_total(entity_data, c.id, :total_expenses))
+        Money.add(acc, Money.div(Money.mult(entity_net, nci_pct), 100))
       end)
 
     %{
@@ -533,7 +552,7 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
 
   # -- Row Merging (Balance Sheet) --
 
-  defp merge_consolidated_rows(entity_data, companies, statement, section, ownership_map) do
+  defp merge_consolidated_rows(entity_data, companies, statement, section, ownership_map, eliminations) do
     all_accounts =
       companies
       |> Enum.flat_map(fn c ->
@@ -545,6 +564,9 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
       |> Enum.uniq_by(fn {code, _} -> code end)
       |> Enum.sort_by(fn {code, _} -> code end)
 
+    # Total elimination for this section distributed proportionally across accounts
+    section_elim_total = compute_section_elimination(eliminations, companies, section)
+
     Enum.map(all_accounts, fn {code, name} ->
       by_entity =
         Map.new(companies, fn c ->
@@ -555,32 +577,64 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
           {c.id, if(account, do: account.balance, else: 0)}
         end)
 
-      raw_sum = Enum.reduce(by_entity, 0.0, fn {_id, val}, acc -> acc + val end)
+      raw_sum = Enum.reduce(by_entity, Decimal.new(0), fn {_id, val}, acc -> Money.add(acc, val) end)
+
+      # Distribute elimination proportionally by account balance weight
+      elimination =
+        if not Money.zero?(raw_sum) and not Money.zero?(section_elim_total) do
+          Money.mult(Money.div(Money.abs(raw_sum), section_total_abs(entity_data, companies, statement, section)), section_elim_total)
+        else
+          Decimal.new(0)
+        end
 
       # NCI portion: sum of non-controlling shares
       nci =
-        Enum.reduce(companies, 0.0, fn c, acc ->
+        Enum.reduce(companies, Decimal.new(0), fn c, acc ->
           nci_pct = max(100 - Map.get(ownership_map, c.id, 100), 0)
           entity_val = Map.get(by_entity, c.id, 0)
-          acc + entity_val * nci_pct / 100.0
+          Money.add(acc, Money.div(Money.mult(entity_val, nci_pct), 100))
         end)
 
-      consolidated = raw_sum - nci
+      consolidated = Money.sub(Money.sub(raw_sum, elimination), nci)
 
       %{
         code: code,
         name: "#{code} - #{name}",
         by_entity: by_entity,
-        elimination: 0.0,
+        elimination: elimination,
         nci: nci,
         consolidated: consolidated
       }
     end)
   end
 
+  defp compute_section_elimination(eliminations, companies, section) do
+    elim_key = case section do
+      :assets -> :assets
+      :liabilities -> :liabilities
+      :equity -> :equity
+    end
+
+    Enum.reduce(companies, Decimal.new(0), fn c, acc ->
+      entity_elim = get_in(eliminations, [:by_entity, c.id]) || %{assets: Decimal.new(0), liabilities: Decimal.new(0)}
+      Money.add(acc, Money.to_decimal(Map.get(entity_elim, elim_key, 0)))
+    end)
+  end
+
+  defp section_total_abs(entity_data, companies, statement, section) do
+    companies
+    |> Enum.flat_map(fn c ->
+      data = Map.get(entity_data, c.id, %{})
+      bs = Map.get(data, statement, %{})
+      Map.get(bs, section, [])
+    end)
+    |> Enum.reduce(Decimal.new(0), fn a, acc -> Money.add(acc, Money.abs(a.balance)) end)
+    |> Money.max(1)
+  end
+
   # -- Row Merging (Income Statement) --
 
-  defp merge_consolidated_is_rows(entity_data, companies, section, ownership_map) do
+  defp merge_consolidated_is_rows(entity_data, companies, section, ownership_map, eliminations) do
     all_accounts =
       companies
       |> Enum.flat_map(fn c ->
@@ -592,6 +646,9 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
       |> Enum.uniq_by(fn {code, _} -> code end)
       |> Enum.sort_by(fn {code, _} -> code end)
 
+    # For income statement, intercompany revenue/expense should be eliminated equally
+    is_elim_total = eliminations.total
+
     Enum.map(all_accounts, fn {code, name} ->
       by_entity =
         Map.new(companies, fn c ->
@@ -602,22 +659,40 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
           {c.id, if(account, do: account.amount, else: 0)}
         end)
 
-      raw_sum = Enum.reduce(by_entity, 0.0, fn {_id, val}, acc -> acc + val end)
+      raw_sum = Enum.reduce(by_entity, Decimal.new(0), fn {_id, val}, acc -> Money.add(acc, val) end)
+
+      # Distribute elimination proportionally by account amount weight
+      is_section_total =
+        companies
+        |> Enum.flat_map(fn c ->
+          data = Map.get(entity_data, c.id, %{})
+          is = Map.get(data, :income_statement, %{})
+          Map.get(is, section, [])
+        end)
+        |> Enum.reduce(Decimal.new(0), fn a, acc -> Money.add(acc, Money.abs(a.amount)) end)
+        |> Money.max(1)
+
+      elimination =
+        if not Money.zero?(raw_sum) and not Money.zero?(is_elim_total) do
+          Money.mult(Money.div(Money.abs(raw_sum), is_section_total), is_elim_total)
+        else
+          Decimal.new(0)
+        end
 
       nci =
-        Enum.reduce(companies, 0.0, fn c, acc ->
+        Enum.reduce(companies, Decimal.new(0), fn c, acc ->
           nci_pct = max(100 - Map.get(ownership_map, c.id, 100), 0)
           entity_val = Map.get(by_entity, c.id, 0)
-          acc + entity_val * nci_pct / 100.0
+          Money.add(acc, Money.div(Money.mult(entity_val, nci_pct), 100))
         end)
 
-      consolidated = raw_sum - nci
+      consolidated = Money.sub(Money.sub(raw_sum, elimination), nci)
 
       %{
         code: code,
         name: "#{code} - #{name}",
         by_entity: by_entity,
-        elimination: 0.0,
+        elimination: elimination,
         nci: nci,
         consolidated: consolidated
       }
@@ -630,17 +705,17 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
     data = Map.get(entity_data, company_id, %{})
     bs = Map.get(data, :balance_sheet, %{})
     total_key = :"total_#{section}"
-    Map.get(bs, total_key, 0.0)
+    Money.to_decimal(Map.get(bs, total_key, 0))
   end
 
   defp entity_is_total(entity_data, company_id, field) do
     data = Map.get(entity_data, company_id, %{})
     is = Map.get(data, :income_statement, %{})
-    Map.get(is, field, 0.0)
+    Money.to_decimal(Map.get(is, field, 0))
   end
 
   defp sum_field_list(rows, field) do
-    Enum.reduce(rows, 0.0, fn r, acc -> acc + Map.get(r, field, 0.0) end)
+    Enum.reduce(rows, Decimal.new(0), fn r, acc -> Money.add(acc, Money.to_decimal(Map.get(r, field, 0))) end)
   end
 
   defp short_name(name) when is_binary(name) do
@@ -651,8 +726,11 @@ defmodule HoldcoWeb.ConsolidatedLive.Index do
 
   # -- Formatting --
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+    do: Money.to_float(Money.round(n, 0)) |> :erlang.float_to_binary(decimals: 0) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"

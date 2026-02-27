@@ -5,7 +5,7 @@ defmodule Holdco.Assets.AssetHolding do
   schema "asset_holdings" do
     field :asset, :string
     field :ticker, :string
-    field :quantity, :float
+    field :quantity, :decimal
     field :unit, :string
     field :currency, :string, default: "USD"
     field :asset_type, :string, default: "other"

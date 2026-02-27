@@ -2,6 +2,7 @@ defmodule HoldcoWeb.ScenarioLive.Show do
   use HoldcoWeb, :live_view
 
   alias Holdco.Scenarios
+  alias Holdco.Money
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -112,7 +113,7 @@ defmodule HoldcoWeb.ScenarioLive.Show do
                 <td class="td-num">{item.amount} {item.currency}</td>
                 <td class="td-num">{item.growth_rate}% ({item.growth_type})</td>
                 <td>{item.recurrence}</td>
-                <td class="td-num">{Float.round((item.probability || 1.0) * 100, 0)}%</td>
+                <td class="td-num">{Money.to_float(Money.round(Money.mult(item.probability || 1, 100), 0))}%</td>
                 <td>
                   <%= if @can_write do %>
                     <button
@@ -177,7 +178,7 @@ defmodule HoldcoWeb.ScenarioLive.Show do
                 <td class="td-mono">Month {p.month}</td>
                 <td class="td-num num-positive">{format_number(p.revenue)}</td>
                 <td class="td-num num-negative">{format_number(p.expenses)}</td>
-                <td class={"td-num #{if p.net >= 0, do: "num-positive", else: "num-negative"}"}>
+                <td class={"td-num #{if Money.gte?(p.net, 0), do: "num-positive", else: "num-negative"}"}>
                   {format_number(p.net)}
                 </td>
               </tr>
@@ -188,17 +189,17 @@ defmodule HoldcoWeb.ScenarioLive.Show do
               <td><strong>Total</strong></td>
               <td class="td-num num-positive">
                 <strong>
-                  {format_number(Enum.reduce(@projection, 0.0, fn p, a -> a + p.revenue end))}
+                  {format_number(Enum.reduce(@projection, Decimal.new(0), fn p, a -> Money.add(a, Money.to_decimal(p.revenue)) end))}
                 </strong>
               </td>
               <td class="td-num num-negative">
                 <strong>
-                  {format_number(Enum.reduce(@projection, 0.0, fn p, a -> a + p.expenses end))}
+                  {format_number(Enum.reduce(@projection, Decimal.new(0), fn p, a -> Money.add(a, Money.to_decimal(p.expenses)) end))}
                 </strong>
               </td>
-              <td class={"td-num #{if Enum.reduce(@projection, 0.0, fn p, a -> a + p.net end) >= 0, do: "num-positive", else: "num-negative"}"}>
+              <td class={"td-num #{if Money.gte?(Enum.reduce(@projection, Decimal.new(0), fn p, a -> Money.add(a, Money.to_decimal(p.net)) end), 0), do: "num-positive", else: "num-negative"}"}>
                 <strong>
-                  {format_number(Enum.reduce(@projection, 0.0, fn p, a -> a + p.net end))}
+                  {format_number(Enum.reduce(@projection, Decimal.new(0), fn p, a -> Money.add(a, Money.to_decimal(p.net)) end))}
                 </strong>
               </td>
             </tr>
@@ -277,8 +278,11 @@ defmodule HoldcoWeb.ScenarioLive.Show do
     """
   end
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(2) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 2) |> add_commas()
+    do: Money.to_float(Money.round(n, 2)) |> :erlang.float_to_binary(decimals: 2) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"
@@ -305,7 +309,7 @@ defmodule HoldcoWeb.ScenarioLive.Show do
       datasets: [
         %{
           label: "Revenue",
-          data: Enum.map(projection, & &1.revenue),
+          data: Enum.map(projection, &Money.to_float(&1.revenue)),
           borderColor: "#00994d",
           backgroundColor: "rgba(0, 153, 77, 0.1)",
           fill: false,
@@ -313,7 +317,7 @@ defmodule HoldcoWeb.ScenarioLive.Show do
         },
         %{
           label: "Expenses",
-          data: Enum.map(projection, & &1.expenses),
+          data: Enum.map(projection, &Money.to_float(&1.expenses)),
           borderColor: "#cc0000",
           backgroundColor: "rgba(204, 0, 0, 0.1)",
           fill: false,
@@ -321,7 +325,7 @@ defmodule HoldcoWeb.ScenarioLive.Show do
         },
         %{
           label: "Net",
-          data: Enum.map(projection, & &1.net),
+          data: Enum.map(projection, &Money.to_float(&1.net)),
           borderColor: "#0d7680",
           backgroundColor: "rgba(13, 118, 128, 0.1)",
           fill: true,

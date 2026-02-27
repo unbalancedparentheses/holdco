@@ -1,6 +1,7 @@
 defmodule Holdco.Governance.ShareholderResolution do
   use Ecto.Schema
   import Ecto.Changeset
+  import Holdco.Validators
 
   schema "shareholder_resolutions" do
     field :title, :string
@@ -31,5 +32,6 @@ defmodule Holdco.Governance.ShareholderResolution do
       :notes
     ])
     |> validate_required([:company_id, :title, :date])
+    |> validate_date_format(:date)
   end
 end

@@ -14,6 +14,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
   }
 
   alias Holdco.Integrations.Quickbooks
+  alias Holdco.Money
 
   @tabs ~w(overview holdings bank_accounts transactions documents governance compliance financials accounting integrations comments)
   @upload_dir Path.join([:code.priv_dir(:holdco), "static", "uploads"])
@@ -844,7 +845,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
       length(lines) < 2 ->
         {:noreply, put_flash(socket, :error, "At least 2 lines required")}
 
-      abs(total_debit - total_credit) > 0.01 ->
+      Money.to_float(Money.abs(Money.sub(total_debit, total_credit))) > 0.01 ->
         {:noreply, put_flash(socket, :error, "Debits must equal credits")}
 
       true ->
@@ -2500,16 +2501,16 @@ defmodule HoldcoWeb.CompanyLive.Show do
       <div class="metric-cell">
         <div class="metric-label">Total Debits</div>
         <div class="metric-value">
-          {format_number(Enum.reduce(@je_list, 0.0, fn e, acc ->
-            acc + Enum.reduce(e.lines || [], 0.0, &((&1.debit || 0.0) + &2))
+          {format_number(Enum.reduce(@je_list, Decimal.new(0), fn e, acc ->
+            Money.add(acc, Enum.reduce(e.lines || [], Decimal.new(0), fn l, a -> Money.add(a, l.debit) end))
           end))}
         </div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Total Credits</div>
         <div class="metric-value">
-          {format_number(Enum.reduce(@je_list, 0.0, fn e, acc ->
-            acc + Enum.reduce(e.lines || [], 0.0, &((&1.credit || 0.0) + &2))
+          {format_number(Enum.reduce(@je_list, Decimal.new(0), fn e, acc ->
+            Money.add(acc, Enum.reduce(e.lines || [], Decimal.new(0), fn l, a -> Money.add(a, l.credit) end))
           end))}
         </div>
       </div>
@@ -3987,8 +3988,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
   defp parse_float(val) when is_float(val), do: val
   defp parse_float(val) when is_integer(val), do: val / 1
 
-  defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 2)
+  defp format_number(%Decimal{} = n), do: n |> Decimal.round(2) |> Decimal.to_string()
+  defp format_number(n) when is_float(n), do: Money.format(n, 2)
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) <> ".00"
   defp format_number(_), do: "0.00"
 
@@ -3998,8 +3999,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp entry_totals(entry) do
     lines = entry.lines || []
-    total_debit = Enum.reduce(lines, 0.0, &((&1.debit || 0.0) + &2))
-    total_credit = Enum.reduce(lines, 0.0, &((&1.credit || 0.0) + &2))
+    total_debit = Enum.reduce(lines, Decimal.new(0), fn l, acc -> Money.add(acc, Money.to_decimal(l.debit)) end)
+    total_credit = Enum.reduce(lines, Decimal.new(0), fn l, acc -> Money.add(acc, Money.to_decimal(l.credit)) end)
     {total_debit, total_credit}
   end
 

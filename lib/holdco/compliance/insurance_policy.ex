@@ -6,8 +6,8 @@ defmodule Holdco.Compliance.InsurancePolicy do
     field :policy_type, :string
     field :provider, :string
     field :policy_number, :string
-    field :coverage_amount, :float
-    field :premium, :float
+    field :coverage_amount, :decimal
+    field :premium, :decimal
     field :currency, :string, default: "USD"
     field :start_date, :string
     field :expiry_date, :string

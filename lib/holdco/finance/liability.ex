@@ -5,9 +5,9 @@ defmodule Holdco.Finance.Liability do
   schema "liabilities" do
     field :liability_type, :string
     field :creditor, :string
-    field :principal, :float
+    field :principal, :decimal
     field :currency, :string, default: "USD"
-    field :interest_rate, :float
+    field :interest_rate, :decimal
     field :maturity_date, :string
     field :status, :string, default: "active"
     field :notes, :string
@@ -31,5 +31,7 @@ defmodule Holdco.Finance.Liability do
       :notes
     ])
     |> validate_required([:company_id, :liability_type, :creditor, :principal])
+    |> validate_number(:principal, greater_than: 0)
+    |> validate_number(:interest_rate, greater_than_or_equal_to: 0)
   end
 end

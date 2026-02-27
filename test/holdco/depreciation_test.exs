@@ -5,6 +5,11 @@ defmodule Holdco.DepreciationTest do
 
   alias Holdco.Depreciation
 
+  # Helper: convert Decimal to float for test assertions
+  defp d(val) when is_struct(val, Decimal), do: Decimal.to_float(val)
+  defp d(val) when is_number(val), do: val / 1
+  defp d(nil), do: 0.0
+
   describe "list_fixed_assets/1" do
     test "returns all fixed assets" do
       fa = fixed_asset_fixture()
@@ -61,7 +66,7 @@ defmodule Holdco.DepreciationTest do
                })
 
       assert fa.name == "Office Furniture"
-      assert fa.purchase_price == 5_000.0
+      assert d(fa.purchase_price) == 5_000.0
     end
 
     test "fails without required fields" do

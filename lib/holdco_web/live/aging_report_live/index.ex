@@ -2,6 +2,7 @@ defmodule HoldcoWeb.AgingReportLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.Banking
+  alias Holdco.Money
 
   @buckets [
     {:current, "Current (0-30d)", 0, 30},
@@ -61,14 +62,14 @@ defmodule HoldcoWeb.AgingReportLive.Index do
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Total</div>
-        <div class={"metric-value #{if grand_total(@totals) >= 0, do: "num-positive", else: "num-negative"}"}>
-          ${format_number(abs(grand_total(@totals)))}
+        <div class={"metric-value #{if Money.gte?(grand_total(@totals), 0), do: "num-positive", else: "num-negative"}"}>
+          ${format_number(Money.abs(grand_total(@totals)))}
         </div>
       </div>
       <%= for {key, label, _, _} <- buckets() do %>
         <div class="metric-cell">
           <div class="metric-label">{label}</div>
-          <div class="metric-value">${format_number(abs(Map.get(@totals, key, 0.0)))}</div>
+          <div class="metric-value">${format_number(Money.abs(Map.get(@totals, key, Decimal.new(0))))}</div>
         </div>
       <% end %>
     </div>
@@ -134,7 +135,7 @@ defmodule HoldcoWeb.AgingReportLive.Index do
                       <% end %>
                     </td>
                     <td class="td-mono">{days_old(tx.date)}</td>
-                    <td class={"td-num #{if tx.amount >= 0, do: "num-positive", else: "num-negative"}"}>
+                    <td class={"td-num #{if Money.gte?(tx.amount, 0), do: "num-positive", else: "num-negative"}"}>
                       {format_currency(tx.amount, tx.currency)}
                     </td>
                   </tr>
@@ -170,8 +171,8 @@ defmodule HoldcoWeb.AgingReportLive.Index do
       transactions
       |> Enum.filter(fn tx ->
         case mode do
-          "ar" -> tx.amount != nil and tx.amount > 0
-          "ap" -> tx.amount != nil and tx.amount < 0
+          "ar" -> tx.amount != nil and Money.positive?(tx.amount)
+          "ap" -> tx.amount != nil and Money.negative?(tx.amount)
           _ -> false
         end
       end)
@@ -193,13 +194,13 @@ defmodule HoldcoWeb.AgingReportLive.Index do
 
   defp bucket_totals(grouped) do
     Enum.reduce(grouped, %{}, fn {key, txns}, acc ->
-      total = Enum.reduce(txns, 0.0, fn tx, sum -> sum + abs(tx.amount || 0.0) end)
+      total = Enum.reduce(txns, Decimal.new(0), fn tx, sum -> Money.add(sum, Money.abs(tx.amount)) end)
       Map.put(acc, key, total)
     end)
   end
 
   defp grand_total(totals) do
-    totals |> Map.values() |> Enum.sum()
+    totals |> Map.values() |> Money.sum()
   end
 
   defp days_old(date_str) do
@@ -220,7 +221,7 @@ defmodule HoldcoWeb.AgingReportLive.Index do
 
     values =
       Enum.map(@buckets, fn {key, _, _, _} ->
-        Float.round(Map.get(totals, key, 0.0), 2)
+        Money.to_float(Money.round(Map.get(totals, key, Decimal.new(0)), 2))
       end)
 
     color = if mode == "ar", do: "#4a8c87", else: "#cc0000"
@@ -237,6 +238,9 @@ defmodule HoldcoWeb.AgingReportLive.Index do
     }
   end
 
+  defp format_number(%Decimal{} = n),
+    do: :erlang.float_to_binary(Money.to_float(n), decimals: 0) |> add_commas()
+
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
 
@@ -250,7 +254,7 @@ defmodule HoldcoWeb.AgingReportLive.Index do
   defp format_currency(nil, _currency), do: "0"
 
   defp format_currency(amount, currency) do
-    sign = if amount < 0, do: "-", else: ""
-    "#{sign}#{format_number(abs(amount))} #{currency}"
+    sign = if Money.negative?(amount), do: "-", else: ""
+    "#{sign}#{format_number(Money.abs(amount))} #{currency}"
   end
 end

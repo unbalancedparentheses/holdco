@@ -2,6 +2,7 @@ defmodule HoldcoWeb.TransactionsLive.Show do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Banking, Corporate}
+  alias Holdco.Money
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -33,7 +34,7 @@ defmodule HoldcoWeb.TransactionsLive.Show do
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Amount</div>
-        <div class={"metric-value #{if (@transaction.amount || 0) < 0, do: "num-negative", else: "num-positive"}"}>
+        <div class={"metric-value #{if Money.negative?(Money.to_decimal(@transaction.amount)), do: "num-negative", else: "num-positive"}"}>
           {format_currency(@transaction.amount, @transaction.currency)}
         </div>
       </div>
@@ -81,8 +82,11 @@ defmodule HoldcoWeb.TransactionsLive.Show do
     """
   end
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+    do: Money.to_float(Money.round(n, 0)) |> :erlang.float_to_binary(decimals: 0) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"
@@ -94,7 +98,7 @@ defmodule HoldcoWeb.TransactionsLive.Show do
   defp format_currency(nil, _currency), do: "0"
 
   defp format_currency(amount, currency) do
-    sign = if amount < 0, do: "-", else: ""
-    "#{sign}#{format_number(abs(amount))} #{currency}"
+    sign = if Money.negative?(amount), do: "-", else: ""
+    "#{sign}#{format_number(Money.abs(amount))} #{currency}"
   end
 end

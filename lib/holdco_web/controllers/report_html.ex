@@ -227,7 +227,7 @@ defmodule HoldcoWeb.ReportHTML do
               </tr>
             </thead>
             <tbody>
-              <% total_alloc = Enum.reduce(@allocation, 0.0, fn a, acc -> acc + a.value end) %>
+              <% total_alloc = Enum.reduce(@allocation, Decimal.new(0), fn a, acc -> Decimal.add(acc, Holdco.Money.to_decimal(a.value)) end) %>
               <%= for alloc <- @allocation do %>
                 <tr>
                   <td>{alloc.type}</td>
@@ -257,7 +257,7 @@ defmodule HoldcoWeb.ReportHTML do
               </tr>
             </thead>
             <tbody>
-              <% total_fx = Enum.reduce(@fx_exposure, 0.0, fn f, acc -> acc + f.usd_value end) %>
+              <% total_fx = Enum.reduce(@fx_exposure, Decimal.new(0), fn f, acc -> Decimal.add(acc, Holdco.Money.to_decimal(f.usd_value)) end) %>
               <%= for fx <- @fx_exposure do %>
                 <tr>
                   <td>{fx.currency}</td>
@@ -376,8 +376,8 @@ defmodule HoldcoWeb.ReportHTML do
             </div>
             <div class="summary-card">
               <div class="label">Net Income</div>
-              <div class={"value #{gain_class(@total_revenue - @total_expenses)}"}>
-                {format_usd(@total_revenue - @total_expenses)}
+              <div class={"value #{gain_class(Decimal.sub(Holdco.Money.to_decimal(@total_revenue), Holdco.Money.to_decimal(@total_expenses)))}"}>
+                {format_usd(Decimal.sub(Holdco.Money.to_decimal(@total_revenue), Holdco.Money.to_decimal(@total_expenses)))}
               </div>
             </div>
             <div class="summary-card">
@@ -404,15 +404,15 @@ defmodule HoldcoWeb.ReportHTML do
               </thead>
               <tbody>
                 <% company_revenue =
-                  Enum.reduce(records, 0.0, fn f, acc -> acc + (f.revenue || 0.0) end) %>
+                  Enum.reduce(records, Decimal.new(0), fn f, acc -> Decimal.add(acc, f.revenue || Decimal.new(0)) end) %>
                 <% company_expenses =
-                  Enum.reduce(records, 0.0, fn f, acc -> acc + (f.expenses || 0.0) end) %>
+                  Enum.reduce(records, Decimal.new(0), fn f, acc -> Decimal.add(acc, f.expenses || Decimal.new(0)) end) %>
                 <%= for f <- records do %>
                   <tr>
                     <td>{f.period}</td>
-                    <td class="num">{format_usd(f.revenue || 0.0)}</td>
-                    <td class="num">{format_usd(f.expenses || 0.0)}</td>
-                    <td class="num">{format_usd((f.revenue || 0.0) - (f.expenses || 0.0))}</td>
+                    <td class="num">{format_usd(f.revenue || Decimal.new(0))}</td>
+                    <td class="num">{format_usd(f.expenses || Decimal.new(0))}</td>
+                    <td class="num">{format_usd(Decimal.sub(f.revenue || Decimal.new(0), f.expenses || Decimal.new(0)))}</td>
                     <td>{f.currency}</td>
                     <td>{f.notes}</td>
                   </tr>
@@ -421,7 +421,7 @@ defmodule HoldcoWeb.ReportHTML do
                   <td>Subtotal</td>
                   <td class="num">{format_usd(company_revenue)}</td>
                   <td class="num">{format_usd(company_expenses)}</td>
-                  <td class="num">{format_usd(company_revenue - company_expenses)}</td>
+                  <td class="num">{format_usd(Decimal.sub(company_revenue, company_expenses))}</td>
                   <td></td>
                   <td></td>
                 </tr>
@@ -451,7 +451,7 @@ defmodule HoldcoWeb.ReportHTML do
                   <td>{l.creditor}</td>
                   <td>{l.liability_type}</td>
                   <td>{if l.company, do: l.company.name, else: "-"}</td>
-                  <td class="num">{format_usd(l.principal || 0.0)}</td>
+                  <td class="num">{format_usd(l.principal || Decimal.new(0))}</td>
                   <td>{l.currency}</td>
                   <td class="num">{if l.interest_rate, do: "#{l.interest_rate}%", else: "-"}</td>
                   <td>{l.maturity_date || "-"}</td>
@@ -604,8 +604,8 @@ defmodule HoldcoWeb.ReportHTML do
                   <td>{ip.policy_type}</td>
                   <td>{ip.provider}</td>
                   <td>{ip.policy_number || "-"}</td>
-                  <td class="num">{format_usd(ip.coverage_amount || 0.0)}</td>
-                  <td class="num">{format_usd(ip.premium || 0.0)}</td>
+                  <td class="num">{format_usd(ip.coverage_amount || Decimal.new(0))}</td>
+                  <td class="num">{format_usd(ip.premium || Decimal.new(0))}</td>
                   <td>{ip.currency}</td>
                   <td>{ip.start_date || "-"}</td>
                   <td>{ip.expiry_date || "-"}</td>
@@ -627,6 +627,11 @@ defmodule HoldcoWeb.ReportHTML do
 
   defp format_usd(nil), do: "$0.00"
 
+  defp format_usd(%Decimal{} = amount) do
+    float_amount = Decimal.to_float(amount)
+    format_usd(float_amount)
+  end
+
   defp format_usd(amount) when is_number(amount) do
     sign = if amount < 0, do: "-", else: ""
     abs_amount = abs(amount)
@@ -647,12 +652,21 @@ defmodule HoldcoWeb.ReportHTML do
   end
 
   defp format_pct(_value, total) when total == 0 or total == 0.0, do: "0.0%"
+  defp format_pct(value, %Decimal{} = total) do
+    if Decimal.equal?(total, 0), do: "0.0%", else: format_pct_calc(value, total)
+  end
+  defp format_pct(value, total), do: format_pct_calc(value, total)
 
-  defp format_pct(value, total) do
-    pct = value / total * 100.0
+  defp format_pct_calc(value, total) do
+    v = if is_struct(value, Decimal), do: Decimal.to_float(value), else: value
+    t = if is_struct(total, Decimal), do: Decimal.to_float(total), else: total
+    pct = v / t * 100.0
     :erlang.float_to_binary(pct, decimals: 1) <> "%"
   end
 
+  defp gain_class(%Decimal{} = value) do
+    if Decimal.compare(value, 0) in [:gt, :eq], do: "positive", else: "negative"
+  end
   defp gain_class(value) when is_number(value) and value >= 0, do: "positive"
   defp gain_class(value) when is_number(value) and value < 0, do: "negative"
   defp gain_class(_), do: ""

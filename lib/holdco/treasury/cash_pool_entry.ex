@@ -3,7 +3,7 @@ defmodule Holdco.Treasury.CashPoolEntry do
   import Ecto.Changeset
 
   schema "cash_pool_entries" do
-    field :allocated_amount, :float, default: 0.0
+    field :allocated_amount, :decimal, default: 0
     field :notes, :string, default: ""
 
     belongs_to :pool, Holdco.Treasury.CashPool

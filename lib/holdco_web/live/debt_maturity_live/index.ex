@@ -2,6 +2,7 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Finance, Portfolio}
+  alias Holdco.Money
 
   @impl true
   def mount(_params, _session, socket) do
@@ -10,8 +11,8 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
     active_liabilities = Enum.filter(liabilities, &(&1.status == "active"))
 
     total_debt =
-      Enum.reduce(active_liabilities, 0.0, fn l, acc ->
-        acc + Portfolio.to_usd(l.principal || 0.0, l.currency)
+      Enum.reduce(active_liabilities, Decimal.new(0), fn l, acc ->
+        Money.add(acc, Money.to_decimal(Portfolio.to_usd(l.principal || 0, l.currency)))
       end)
 
     today = Date.utc_today()
@@ -59,7 +60,7 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
         <div class="metric-label">Avg Maturity</div>
         <div class="metric-value">
           <%= if @avg_maturity_years do %>
-            {Float.round(@avg_maturity_years, 1)} yr
+            {Money.to_float(Money.round(@avg_maturity_years, 1))} yr
           <% else %>
             N/A
           <% end %>
@@ -122,14 +123,14 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
             </thead>
             <tbody>
               <%= for bucket <- @maturity_buckets do %>
-                <% pct = if @total_debt > 0, do: bucket.usd_total / @total_debt * 100, else: 0.0 %>
+                <% pct = if Money.gt?(@total_debt, 0), do: Money.mult(Money.div(bucket.usd_total, @total_debt), 100), else: Decimal.new(0) %>
                 <tr>
                   <td class="td-name">
                     <span class={"tag #{bucket_tag(bucket.label)}"}>{bucket.label}</span>
                   </td>
                   <td class="td-num">{bucket.count}</td>
                   <td class="td-num num-negative">${format_number(bucket.usd_total)}</td>
-                  <td class="td-num">{Float.round(pct, 1)}%</td>
+                  <td class="td-num">{Money.to_float(Money.round(pct, 1))}%</td>
                 </tr>
               <% end %>
             </tbody>
@@ -197,7 +198,7 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
                 <td>{l.currency}</td>
                 <td class="td-num">
                   <%= if l.interest_rate do %>
-                    {Float.round(l.interest_rate * 1.0, 2)}%
+                    {Money.to_float(Money.round(l.interest_rate, 2))}%
                   <% else %>
                     ---
                   <% end %>
@@ -247,8 +248,8 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
       items = Map.get(filled, label, [])
 
       usd_total =
-        Enum.reduce(items, 0.0, fn l, acc ->
-          acc + Portfolio.to_usd(l.principal || 0.0, l.currency)
+        Enum.reduce(items, Decimal.new(0), fn l, acc ->
+          Money.add(acc, Money.to_decimal(Portfolio.to_usd(l.principal || 0, l.currency)))
         end)
 
       %{label: label, count: length(items), usd_total: usd_total}
@@ -315,7 +316,7 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
       datasets: [
         %{
           label: "Debt Maturing (USD)",
-          data: Enum.map(buckets, & &1.usd_total),
+          data: Enum.map(buckets, &Money.to_float(&1.usd_total)),
           backgroundColor: Enum.take(colors, length(buckets))
         }
       ]
@@ -328,13 +329,13 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
       |> Enum.group_by(& &1.liability_type)
       |> Enum.map(fn {type, items} ->
         total =
-          Enum.reduce(items, 0.0, fn l, acc ->
-            acc + Portfolio.to_usd(l.principal || 0.0, l.currency)
+          Enum.reduce(items, Decimal.new(0), fn l, acc ->
+            Money.add(acc, Money.to_decimal(Portfolio.to_usd(l.principal || 0, l.currency)))
           end)
 
         %{type: type || "Unknown", total: total}
       end)
-      |> Enum.sort_by(& &1.total, :desc)
+      |> Enum.sort_by(&Money.to_float(&1.total), :desc)
 
     colors = ["#4a8c87", "#6b87a0", "#5f8f6e", "#8a5a6a", "#c08060", "#b89040", "#b0605e"]
 
@@ -342,7 +343,7 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
       labels: Enum.map(by_type, & &1.type),
       datasets: [
         %{
-          data: Enum.map(by_type, & &1.total),
+          data: Enum.map(by_type, &Money.to_float(&1.total)),
           backgroundColor: Enum.take(Stream.cycle(colors), length(by_type))
         }
       ]
@@ -360,8 +361,11 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
   defp status_tag("restructured"), do: "tag-lemon"
   defp status_tag(_), do: "tag-ink"
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+    do: Money.to_float(Money.round(n, 0)) |> :erlang.float_to_binary(decimals: 0) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"

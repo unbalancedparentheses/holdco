@@ -2,6 +2,7 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.Tax.CapitalGains
+  alias Holdco.Money
 
   @methods [
     {"fifo", "FIFO"},
@@ -9,8 +10,8 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
     {"specific", "Specific Lot"}
   ]
 
-  @short_term_rate 0.37
-  @long_term_rate 0.20
+  @short_term_rate Decimal.new("0.37")
+  @long_term_rate Decimal.new("0.20")
 
   @impl true
   def mount(_params, _session, socket) do
@@ -195,22 +196,22 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
 
   defp compute_summary(results) do
     total_short_term =
-      Enum.reduce(results, 0.0, fn r, acc ->
-        acc + r.short_term_realized + r.short_term_unrealized
+      Enum.reduce(results, Decimal.new(0), fn r, acc ->
+        Money.add(acc, Money.add(r.short_term_realized, r.short_term_unrealized))
       end)
 
     total_long_term =
-      Enum.reduce(results, 0.0, fn r, acc ->
-        acc + r.long_term_realized + r.long_term_unrealized
+      Enum.reduce(results, Decimal.new(0), fn r, acc ->
+        Money.add(acc, Money.add(r.long_term_realized, r.long_term_unrealized))
       end)
 
     # Tax estimate: only on realized gains (positive only)
-    st_realized = Enum.reduce(results, 0.0, fn r, acc -> acc + r.short_term_realized end)
-    lt_realized = Enum.reduce(results, 0.0, fn r, acc -> acc + r.long_term_realized end)
+    st_realized = Enum.reduce(results, Decimal.new(0), fn r, acc -> Money.add(acc, r.short_term_realized) end)
+    lt_realized = Enum.reduce(results, Decimal.new(0), fn r, acc -> Money.add(acc, r.long_term_realized) end)
 
-    estimated_tax =
-      max(st_realized, 0.0) * @short_term_rate +
-        max(lt_realized, 0.0) * @long_term_rate
+    st_taxable = if Money.gt?(st_realized, 0), do: st_realized, else: Decimal.new(0)
+    lt_taxable = if Money.gt?(lt_realized, 0), do: lt_realized, else: Decimal.new(0)
+    estimated_tax = Money.add(Money.mult(st_taxable, @short_term_rate), Money.mult(lt_taxable, @long_term_rate))
 
     %{
       total_short_term: total_short_term,
@@ -220,12 +221,19 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
   end
 
   defp sum_field(results, field) do
-    Enum.reduce(results, 0.0, fn r, acc -> acc + Map.get(r, field, 0.0) end)
+    Enum.reduce(results, Decimal.new(0), fn r, acc -> Money.add(acc, Map.get(r, field, Decimal.new(0))) end)
   end
 
-  defp gain_class(value) when value > 0, do: "num-positive"
-  defp gain_class(value) when value < 0, do: "num-negative"
-  defp gain_class(_), do: ""
+  defp gain_class(value) do
+    cond do
+      Money.positive?(value) -> "num-positive"
+      Money.negative?(value) -> "num-negative"
+      true -> ""
+    end
+  end
+
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(2) |> Decimal.to_string() |> add_commas()
 
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 2) |> add_commas()

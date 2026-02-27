@@ -4,10 +4,10 @@ defmodule Holdco.Compliance.EsgScore do
 
   schema "esg_scores" do
     field :period, :string
-    field :environmental_score, :float
-    field :social_score, :float
-    field :governance_score, :float
-    field :overall_score, :float
+    field :environmental_score, :decimal
+    field :social_score, :decimal
+    field :governance_score, :decimal
+    field :overall_score, :decimal
     field :framework, :string, default: "custom"
     field :notes, :string
 

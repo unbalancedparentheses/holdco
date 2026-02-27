@@ -1,14 +1,15 @@
 defmodule Holdco.Compliance.WithholdingTax do
   use Ecto.Schema
   import Ecto.Changeset
+  import Holdco.Validators
 
   schema "withholding_taxes" do
     field :payment_type, :string
     field :country_from, :string
     field :country_to, :string
-    field :gross_amount, :float
-    field :rate, :float
-    field :tax_amount, :float
+    field :gross_amount, :decimal
+    field :rate, :decimal
+    field :tax_amount, :decimal
     field :currency, :string, default: "USD"
     field :date, :string
     field :notes, :string
@@ -42,5 +43,9 @@ defmodule Holdco.Compliance.WithholdingTax do
       :tax_amount,
       :date
     ])
+    |> validate_number(:gross_amount, greater_than: 0)
+    |> validate_number(:rate, greater_than_or_equal_to: 0)
+    |> validate_number(:tax_amount, greater_than_or_equal_to: 0)
+    |> validate_date_format(:date)
   end
 end

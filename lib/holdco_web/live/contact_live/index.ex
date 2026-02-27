@@ -19,7 +19,11 @@ defmodule HoldcoWeb.ContactLive.Index do
        companies: companies,
        search: "",
        show_form: nil,
-       editing_item: nil
+       editing_item: nil,
+       selected_contact: nil,
+       interactions: nil,
+       show_interactions: false,
+       show_interaction_form: false
      )}
   end
 
@@ -126,6 +130,75 @@ defmodule HoldcoWeb.ContactLive.Index do
        filtered_contacts: filter_contacts(contacts, socket.assigns.search)
      )
      |> put_flash(:info, "Contact deleted")}
+  end
+
+  def handle_event("view_interactions", %{"id" => id}, socket) do
+    contact = Collaboration.get_contact!(String.to_integer(id))
+    interactions = Collaboration.list_interactions(contact.id)
+
+    {:noreply,
+     assign(socket,
+       selected_contact: contact,
+       interactions: interactions,
+       show_interactions: true,
+       show_interaction_form: false
+     )}
+  end
+
+  def handle_event("close_interactions", _, socket) do
+    {:noreply,
+     assign(socket,
+       selected_contact: nil,
+       interactions: nil,
+       show_interactions: false,
+       show_interaction_form: false
+     )}
+  end
+
+  def handle_event("add_interaction", _, socket) do
+    {:noreply, assign(socket, show_interaction_form: true)}
+  end
+
+  def handle_event("cancel_interaction_form", _, socket) do
+    {:noreply, assign(socket, show_interaction_form: false)}
+  end
+
+  def handle_event("save_interaction", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("save_interaction", %{"interaction" => params}, socket) do
+    contact = socket.assigns.selected_contact
+
+    attrs = Map.put(params, "contact_id", contact.id)
+
+    case Collaboration.create_interaction(attrs) do
+      {:ok, _interaction} ->
+        interactions = Collaboration.list_interactions(contact.id)
+
+        {:noreply,
+         socket
+         |> assign(interactions: interactions, show_interaction_form: false)
+         |> put_flash(:info, "Interaction added")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to add interaction")}
+    end
+  end
+
+  def handle_event("delete_interaction", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("delete_interaction", %{"id" => id}, socket) do
+    interaction = Collaboration.get_interaction!(String.to_integer(id))
+    Collaboration.delete_interaction(interaction)
+    interactions = Collaboration.list_interactions(socket.assigns.selected_contact.id)
+
+    {:noreply,
+     socket
+     |> assign(interactions: interactions)
+     |> put_flash(:info, "Interaction deleted")}
   end
 
   @impl true
@@ -235,8 +308,15 @@ defmodule HoldcoWeb.ContactLive.Index do
                   <% end %>
                 </td>
                 <td>
-                  <%= if @can_write do %>
-                    <div style="display: flex; gap: 0.25rem;">
+                  <div style="display: flex; gap: 0.25rem;">
+                    <button
+                      phx-click="view_interactions"
+                      phx-value-id={contact.id}
+                      class="btn btn-secondary btn-sm"
+                    >
+                      History
+                    </button>
+                    <%= if @can_write do %>
                       <button
                         phx-click="edit"
                         phx-value-id={contact.id}
@@ -252,8 +332,8 @@ defmodule HoldcoWeb.ContactLive.Index do
                       >
                         Del
                       </button>
-                    </div>
-                  <% end %>
+                    <% end %>
+                  </div>
                 </td>
               </tr>
             <% end %>
@@ -373,8 +453,135 @@ defmodule HoldcoWeb.ContactLive.Index do
         </div>
       </div>
     <% end %>
+
+    <%= if @show_interactions && @selected_contact do %>
+      <div class="dialog-overlay" phx-click="close_interactions">
+        <div class="dialog-panel" phx-click="noop" style="max-width: 640px;">
+          <div class="dialog-header">
+            <h3>Interaction History &mdash; {@selected_contact.name}</h3>
+          </div>
+          <div class="dialog-body">
+            <%= if @can_write do %>
+              <div style="margin-bottom: 1rem;">
+                <button class="btn btn-primary btn-sm" phx-click="add_interaction">
+                  Add Interaction
+                </button>
+              </div>
+            <% end %>
+
+            <%= if @show_interaction_form do %>
+              <div class="panel" style="margin-bottom: 1rem; padding: 1rem;">
+                <.form for={%{}} phx-submit="save_interaction">
+                  <div class="form-group">
+                    <label class="form-label">Type *</label>
+                    <select name="interaction[interaction_type]" class="form-select" required>
+                      <option value="">Select type...</option>
+                      <option value="call">Call</option>
+                      <option value="meeting">Meeting</option>
+                      <option value="email">Email</option>
+                      <option value="note">Note</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input type="date" name="interaction[date]" class="form-input" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Summary *</label>
+                    <input
+                      type="text"
+                      name="interaction[summary]"
+                      class="form-input"
+                      required
+                      placeholder="Brief description of the interaction"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea
+                      name="interaction[notes]"
+                      class="form-input"
+                      rows="3"
+                      placeholder="Additional details..."
+                    ></textarea>
+                  </div>
+                  <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Interaction</button>
+                    <button
+                      type="button"
+                      phx-click="cancel_interaction_form"
+                      class="btn btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </.form>
+              </div>
+            <% end %>
+
+            <%= if @interactions == [] do %>
+              <div class="empty-state">
+                <p>No interactions recorded yet.</p>
+                <p style="color: var(--muted); font-size: 0.9rem;">
+                  Track calls, meetings, emails, and notes for this contact.
+                </p>
+              </div>
+            <% else %>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Summary</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <%= for interaction <- @interactions do %>
+                    <tr>
+                      <td>
+                        <span class={"tag #{interaction_type_class(interaction.interaction_type)}"}>
+                          {interaction.interaction_type}
+                        </span>
+                      </td>
+                      <td class="td-mono">{interaction.date || "---"}</td>
+                      <td>
+                        <div>{interaction.summary}</div>
+                        <%= if interaction.notes do %>
+                          <div style="color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem;">
+                            {interaction.notes}
+                          </div>
+                        <% end %>
+                      </td>
+                      <td>
+                        <%= if @can_write do %>
+                          <button
+                            phx-click="delete_interaction"
+                            phx-value-id={interaction.id}
+                            class="btn btn-danger btn-sm"
+                            data-confirm="Delete this interaction?"
+                          >
+                            Del
+                          </button>
+                        <% end %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
     """
   end
+
+  defp interaction_type_class("call"), do: "tag-jade"
+  defp interaction_type_class("meeting"), do: "tag-teal"
+  defp interaction_type_class("email"), do: "tag-lemon"
+  defp interaction_type_class("note"), do: "tag-ink"
+  defp interaction_type_class(_), do: "tag-ink"
 
   defp role_tag_class("lawyer"), do: "tag-ink"
   defp role_tag_class("accountant"), do: "tag-jade"

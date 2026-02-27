@@ -5,8 +5,8 @@ defmodule Holdco.Finance.Budget do
   schema "budgets" do
     field :period, :string
     field :category, :string
-    field :budgeted, :float, default: 0.0
-    field :actual, :float, default: 0.0
+    field :budgeted, :decimal, default: 0
+    field :actual, :decimal, default: 0
     field :currency, :string, default: "USD"
     field :notes, :string
 
@@ -19,5 +19,7 @@ defmodule Holdco.Finance.Budget do
     budget
     |> cast(attrs, [:company_id, :period, :category, :budgeted, :actual, :currency, :notes])
     |> validate_required([:company_id, :period, :category])
+    |> validate_number(:budgeted, greater_than_or_equal_to: 0)
+    |> validate_number(:actual, greater_than_or_equal_to: 0)
   end
 end

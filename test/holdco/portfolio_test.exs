@@ -4,6 +4,10 @@ defmodule Holdco.PortfolioTest do
   import Holdco.HoldcoFixtures
 
   alias Holdco.Portfolio
+  alias Holdco.Money
+
+  # Helper to convert Decimal to float for assertions
+  defp f(val), do: Money.to_float(val)
 
   describe "calculate_nav/0" do
     test "returns NAV map with all keys" do
@@ -18,11 +22,11 @@ defmodule Holdco.PortfolioTest do
 
     test "returns zeroes when no data exists" do
       nav = Portfolio.calculate_nav()
-      assert nav.liquid == 0.0
-      assert nav.marketable == 0.0
-      assert nav.illiquid == 0.0
-      assert nav.liabilities == 0.0
-      assert nav.nav == 0.0
+      assert f(nav.liquid) == 0.0
+      assert f(nav.marketable) == 0.0
+      assert f(nav.illiquid) == 0.0
+      assert f(nav.liabilities) == 0.0
+      assert f(nav.nav) == 0.0
     end
 
     test "includes bank account balances in liquid" do
@@ -31,7 +35,7 @@ defmodule Holdco.PortfolioTest do
       bank_account_fixture(%{company: company, balance: 5_000.0, currency: "USD"})
 
       nav = Portfolio.calculate_nav()
-      assert nav.liquid == 15_000.0
+      assert f(nav.liquid) == 15_000.0
     end
 
     test "converts non-USD bank account balances" do
@@ -39,7 +43,7 @@ defmodule Holdco.PortfolioTest do
       bank_account_fixture(%{company: company, balance: 10_000.0, currency: "USD"})
 
       nav = Portfolio.calculate_nav()
-      assert nav.liquid >= 10_000.0
+      assert f(nav.liquid) >= 10_000.0
     end
 
     test "includes real estate in illiquid" do
@@ -53,7 +57,7 @@ defmodule Holdco.PortfolioTest do
       })
 
       nav = Portfolio.calculate_nav()
-      assert nav.illiquid >= 600_000.0
+      assert f(nav.illiquid) >= 600_000.0
     end
 
     test "uses purchase_price as fallback when current_valuation is nil" do
@@ -67,7 +71,7 @@ defmodule Holdco.PortfolioTest do
       })
 
       nav = Portfolio.calculate_nav()
-      assert nav.illiquid >= 500_000.0
+      assert f(nav.illiquid) >= 500_000.0
     end
 
     test "includes fund investments in illiquid" do
@@ -75,7 +79,7 @@ defmodule Holdco.PortfolioTest do
       fund_investment_fixture(%{company: company, nav: 100_000.0, currency: "USD"})
 
       nav = Portfolio.calculate_nav()
-      assert nav.illiquid >= 100_000.0
+      assert f(nav.illiquid) >= 100_000.0
     end
 
     test "subtracts active liabilities" do
@@ -84,8 +88,9 @@ defmodule Holdco.PortfolioTest do
       liability_fixture(%{company: company, principal: 25_000.0, currency: "USD", status: "active"})
 
       nav = Portfolio.calculate_nav()
-      assert nav.liabilities == 25_000.0
-      assert nav.nav == nav.liquid + nav.marketable + nav.illiquid - nav.liabilities
+      assert f(nav.liabilities) == 25_000.0
+      expected_nav = Money.sub(Money.add(Money.add(nav.liquid, nav.marketable), nav.illiquid), nav.liabilities)
+      assert Decimal.equal?(nav.nav, expected_nav)
     end
 
     test "ignores inactive liabilities" do
@@ -93,7 +98,7 @@ defmodule Holdco.PortfolioTest do
       liability_fixture(%{company: company, principal: 25_000.0, currency: "USD", status: "paid"})
 
       nav = Portfolio.calculate_nav()
-      assert nav.liabilities == 0.0
+      assert f(nav.liabilities) == 0.0
     end
 
     test "classifies equity/crypto/commodity holdings as marketable" do
@@ -111,7 +116,7 @@ defmodule Holdco.PortfolioTest do
       Holdco.Pricing.record_price("NAV_AAPL_TEST", 150.0, "USD")
 
       nav = Portfolio.calculate_nav()
-      assert nav.marketable > 0.0
+      assert f(nav.marketable) > 0.0
     end
 
     test "classifies non-equity/crypto/commodity holdings as illiquid" do
@@ -129,7 +134,7 @@ defmodule Holdco.PortfolioTest do
       Holdco.Pricing.record_price("NAV_PRIV_TEST", 50.0, "USD")
 
       nav = Portfolio.calculate_nav()
-      assert nav.illiquid > 0.0
+      assert f(nav.illiquid) > 0.0
     end
   end
 
@@ -139,29 +144,29 @@ defmodule Holdco.PortfolioTest do
       Holdco.Pricing.record_price("HV_TEST_1", 50.0, "USD")
 
       value = Portfolio.holding_value(holding)
-      assert value == 500.0
+      assert f(value) == 500.0
     end
 
-    test "returns 0.0 when ticker is nil" do
+    test "returns 0 when ticker is nil" do
       holding = holding_fixture(%{ticker: nil, quantity: 10.0, currency: "USD"})
-      assert Portfolio.holding_value(holding) == 0.0
+      assert f(Portfolio.holding_value(holding)) == 0.0
     end
 
-    test "returns 0.0 when ticker is empty string" do
+    test "returns 0 when ticker is empty string" do
       holding = holding_fixture(%{ticker: "", quantity: 10.0, currency: "USD"})
-      assert Portfolio.holding_value(holding) == 0.0
+      assert f(Portfolio.holding_value(holding)) == 0.0
     end
 
-    test "returns 0.0 when no price exists for ticker" do
+    test "returns 0 when no price exists for ticker" do
       holding = holding_fixture(%{ticker: "NONEXISTENT_TICKER_999", quantity: 10.0, currency: "USD"})
-      assert Portfolio.holding_value(holding) == 0.0
+      assert f(Portfolio.holding_value(holding)) == 0.0
     end
 
-    test "returns 0.0 when quantity is nil" do
+    test "returns 0 when quantity is nil" do
       holding = holding_fixture(%{ticker: "HV_TEST_2", quantity: nil, currency: "USD"})
       Holdco.Pricing.record_price("HV_TEST_2", 50.0, "USD")
 
-      assert Portfolio.holding_value(holding) == 0.0
+      assert f(Portfolio.holding_value(holding)) == 0.0
     end
 
     test "returns a value using the price from the database" do
@@ -169,49 +174,45 @@ defmodule Holdco.PortfolioTest do
       Holdco.Pricing.record_price("HV_TEST_3", 50.0, "USD")
 
       value = Portfolio.holding_value(holding)
-      assert value == 500.0
+      assert f(value) == 500.0
     end
   end
 
   describe "get_fx_rate/1" do
-    test "returns 1.0 for USD" do
-      assert Portfolio.get_fx_rate("USD") == 1.0
+    test "returns 1 for USD" do
+      assert Decimal.equal?(Portfolio.get_fx_rate("USD"), Decimal.new(1))
     end
 
     test "returns a rate for known currencies (fallback)" do
-      # This will likely use fallback rates since Yahoo won't work in tests
       rate = Portfolio.get_fx_rate("EUR")
-      assert is_number(rate)
-      assert rate > 0
+      assert Money.gt?(rate, 0)
     end
 
     test "returns fallback rate for unknown currency" do
       rate = Portfolio.get_fx_rate("XYZ_UNKNOWN")
-      # Falls back to Map.get with default 1.0
-      assert is_number(rate)
+      assert Money.gt?(rate, 0)
     end
   end
 
   describe "to_usd/2" do
-    test "returns 0.0 for nil amount" do
-      assert Portfolio.to_usd(nil, "EUR") == 0.0
-      assert Portfolio.to_usd(nil, "USD") == 0.0
+    test "returns 0 for nil amount" do
+      assert f(Portfolio.to_usd(nil, "EUR")) == 0.0
+      assert f(Portfolio.to_usd(nil, "USD")) == 0.0
     end
 
     test "returns same amount for USD" do
-      assert Portfolio.to_usd(100.0, "USD") == 100.0
-      assert Portfolio.to_usd(0.0, "USD") == 0.0
-      assert Portfolio.to_usd(999.99, "USD") == 999.99
+      assert f(Portfolio.to_usd(100.0, "USD")) == 100.0
+      assert f(Portfolio.to_usd(0.0, "USD")) == 0.0
+      assert_in_delta f(Portfolio.to_usd(999.99, "USD")), 999.99, 0.01
     end
 
     test "converts non-USD currencies" do
       result = Portfolio.to_usd(100.0, "EUR")
-      assert is_number(result)
-      assert result > 0
+      assert Money.gt?(result, 0)
     end
 
     test "handles zero amount" do
-      assert Portfolio.to_usd(0.0, "EUR") == 0.0
+      assert f(Portfolio.to_usd(0.0, "EUR")) == 0.0
     end
   end
 
@@ -227,9 +228,9 @@ defmodule Holdco.PortfolioTest do
     test "returns empty per_holding when no holdings exist" do
       gains = Portfolio.calculate_gains()
       assert gains.per_holding == []
-      assert gains.aggregate.total_unrealized == 0.0
-      assert gains.aggregate.total_realized == 0.0
-      assert gains.aggregate.total_gain == 0.0
+      assert f(gains.aggregate.total_unrealized) == 0.0
+      assert f(gains.aggregate.total_realized) == 0.0
+      assert f(gains.aggregate.total_gain) == 0.0
     end
 
     test "calculates unrealized gain from cost basis lots" do
@@ -243,7 +244,6 @@ defmodule Holdco.PortfolioTest do
         currency: "USD"
       })
 
-      # Create cost basis lot
       cost_basis_lot_fixture(%{
         holding: holding,
         quantity: 100.0,
@@ -251,7 +251,6 @@ defmodule Holdco.PortfolioTest do
         sold_quantity: 0.0
       })
 
-      # Record current price
       Holdco.Pricing.record_price("GAINS_TICKER", 75.0, "USD")
 
       gains = Portfolio.calculate_gains()
@@ -259,9 +258,9 @@ defmodule Holdco.PortfolioTest do
 
       gain_entry = Enum.find(gains.per_holding, &(&1.ticker == "GAINS_TICKER"))
       assert gain_entry != nil
-      assert gain_entry.cost_basis == 5_000.0
-      assert gain_entry.current_value == 7_500.0
-      assert gain_entry.unrealized_gain == 2_500.0
+      assert f(gain_entry.cost_basis) == 5_000.0
+      assert f(gain_entry.current_value) == 7_500.0
+      assert f(gain_entry.unrealized_gain) == 2_500.0
     end
 
     test "calculates realized gains from sold lots" do
@@ -288,8 +287,7 @@ defmodule Holdco.PortfolioTest do
       gains = Portfolio.calculate_gains()
       gain_entry = Enum.find(gains.per_holding, &(&1.ticker == "RGAINS_TICKER"))
       assert gain_entry != nil
-      # Realized: 50 * 80.0 - 50 * 50.0 = 4000 - 2500 = 1500
-      assert gain_entry.realized_gain == 1_500.0
+      assert f(gain_entry.realized_gain) == 1_500.0
     end
 
     test "handles holdings with no cost basis lots" do
@@ -306,7 +304,7 @@ defmodule Holdco.PortfolioTest do
       gains = Portfolio.calculate_gains()
       gain_entry = Enum.find(gains.per_holding, &(&1.ticker == "NOLOTS_TICKER"))
       assert gain_entry != nil
-      assert gain_entry.cost_basis == 0.0
+      assert f(gain_entry.cost_basis) == 0.0
     end
 
     test "aggregate sums all gains" do
@@ -335,7 +333,8 @@ defmodule Holdco.PortfolioTest do
       Holdco.Pricing.record_price("AGG_TICKER_2", 25.0, "USD")
 
       gains = Portfolio.calculate_gains()
-      assert gains.aggregate.total_gain == gains.aggregate.total_unrealized + gains.aggregate.total_realized
+      expected_total = Money.add(gains.aggregate.total_unrealized, gains.aggregate.total_realized)
+      assert Decimal.equal?(gains.aggregate.total_gain, expected_total)
     end
   end
 
@@ -374,7 +373,7 @@ defmodule Holdco.PortfolioTest do
       Holdco.Pricing.record_price("SORT_T2", 1.0, "USD")
 
       alloc = Portfolio.asset_allocation()
-      values = Enum.map(alloc, & &1.value)
+      values = Enum.map(alloc, &f(&1.value))
       assert values == Enum.sort(values, :desc)
     end
   end
@@ -393,7 +392,7 @@ defmodule Holdco.PortfolioTest do
       exposure = Portfolio.fx_exposure()
       usd_entry = Enum.find(exposure, &(&1.currency == "USD"))
       assert usd_entry != nil
-      assert usd_entry.usd_value >= 15_000.0
+      assert f(usd_entry.usd_value) >= 15_000.0
     end
 
     test "includes multiple currencies" do
@@ -414,7 +413,7 @@ defmodule Holdco.PortfolioTest do
       bank_account_fixture(%{company: company, balance: 1.0, currency: "EUR"})
 
       exposure = Portfolio.fx_exposure()
-      values = Enum.map(exposure, & &1.usd_value)
+      values = Enum.map(exposure, &f(&1.usd_value))
       assert values == Enum.sort(values, :desc)
     end
 
@@ -435,8 +434,7 @@ defmodule Holdco.PortfolioTest do
       exposure = Portfolio.fx_exposure()
       usd_entry = Enum.find(exposure, &(&1.currency == "USD"))
       assert usd_entry != nil
-      # Should be at least the bank balance plus the holding value
-      assert usd_entry.usd_value >= 10_000.0
+      assert f(usd_entry.usd_value) >= 10_000.0
     end
   end
 end

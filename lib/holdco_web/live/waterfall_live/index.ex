@@ -2,6 +2,7 @@ defmodule HoldcoWeb.WaterfallLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Finance, Corporate}
+  alias Holdco.Money
 
   @impl true
   def mount(_params, _session, socket) do
@@ -93,7 +94,7 @@ defmodule HoldcoWeb.WaterfallLive.Index do
       </div>
       <div class="metric-cell">
         <div class="metric-label">Net Income</div>
-        <div class={"metric-value #{if @statement.net_income >= 0, do: "num-positive", else: "num-negative"}"}>
+        <div class={"metric-value #{if Money.gte?(@statement.net_income, 0), do: "num-positive", else: "num-negative"}"}>
           ${format_number(@statement.net_income)}
         </div>
       </div>
@@ -221,7 +222,7 @@ defmodule HoldcoWeb.WaterfallLive.Index do
             <% end %>
             <tr style="font-weight: 600; border-top: 2px solid var(--rule);">
               <td class="td-name">Net Income</td>
-              <td class={"td-num #{if @statement.net_income >= 0, do: "num-positive", else: "num-negative"}"}>
+              <td class={"td-num #{if Money.gte?(@statement.net_income, 0), do: "num-positive", else: "num-negative"}"}>
                 ${format_number(@statement.net_income)}
               </td>
             </tr>
@@ -260,9 +261,9 @@ defmodule HoldcoWeb.WaterfallLive.Index do
         %{
           label: "Revenue",
           data:
-            [revenue] ++
+            [Money.to_float(revenue)] ++
               List.duplicate(0, length(expenses)) ++
-              [if(net >= 0, do: net, else: 0)],
+              [if(Money.gte?(net, 0), do: Money.to_float(net), else: 0)],
           backgroundColor: "#00994d",
           stack: "waterfall"
         },
@@ -270,8 +271,8 @@ defmodule HoldcoWeb.WaterfallLive.Index do
           label: "Expense",
           data:
             [0] ++
-              Enum.map(expenses, & &1.amount) ++
-              [if(net < 0, do: abs(net), else: 0)],
+              Enum.map(expenses, &Money.to_float(&1.amount)) ++
+              [if(Money.negative?(net), do: Money.to_float(Money.abs(net)), else: 0)],
           backgroundColor: "#cc0000",
           stack: "waterfall"
         }
@@ -279,7 +280,7 @@ defmodule HoldcoWeb.WaterfallLive.Index do
     }
   end
 
-  defp build_waterfall_bars(revenue, expenses, net) do
+  defp build_waterfall_bars(revenue, expenses, _net) do
     # Base values: invisible bars that position visible bars at correct heights
     # Revenue bar starts at 0
     # Each expense bar starts at where the previous one ended
@@ -287,18 +288,21 @@ defmodule HoldcoWeb.WaterfallLive.Index do
 
     {_running, expense_bases} =
       Enum.reduce(expenses, {revenue, []}, fn exp, {running, bases} ->
-        new_running = running - exp.amount
-        {new_running, bases ++ [new_running]}
+        new_running = Money.sub(running, exp.amount)
+        {new_running, bases ++ [Money.to_float(new_running)]}
       end)
 
     base_values = [0] ++ expense_bases ++ [0]
-    value_values = [revenue] ++ Enum.map(expenses, & &1.amount) ++ [net]
+    value_values = [Money.to_float(revenue)] ++ Enum.map(expenses, &Money.to_float(&1.amount)) ++ [Money.to_float(revenue)]
 
     {base_values, value_values}
   end
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+    do: Money.to_float(Money.round(n, 0)) |> :erlang.float_to_binary(decimals: 0) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"

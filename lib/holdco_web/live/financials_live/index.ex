@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.FinancialsLive.Index do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Finance, Corporate, Portfolio}
+  alias Holdco.{Finance, Corporate, Portfolio, Money}
 
   @currencies ~w(USD EUR GBP ARS BRL CHF JPY CAD AUD)
 
@@ -198,27 +198,27 @@ defmodule HoldcoWeb.FinancialsLive.Index do
 
   defp consolidated_totals(financials, target_currency) do
     {rev, exp} =
-      Enum.reduce(financials, {0.0, 0.0}, fn f, {r, e} ->
+      Enum.reduce(financials, {Decimal.new(0), Decimal.new(0)}, fn f, {r, e} ->
         rate = convert_rate(f.currency, target_currency)
-        {r + (f.revenue || 0.0) * rate, e + (f.expenses || 0.0) * rate}
+        {Money.add(r, Money.mult(f.revenue, rate)), Money.add(e, Money.mult(f.expenses, rate))}
       end)
 
     liab =
       Finance.list_liabilities()
       |> Enum.filter(&(&1.status == "active"))
-      |> Enum.reduce(0.0, fn l, acc ->
-        acc + (l.principal || 0.0) * convert_rate(l.currency, target_currency)
+      |> Enum.reduce(Decimal.new(0), fn l, acc ->
+        Money.add(acc, Money.mult(l.principal, convert_rate(l.currency, target_currency)))
       end)
 
     {rev, exp, liab}
   end
 
-  defp convert_rate(from, to) when from == to, do: 1.0
+  defp convert_rate(from, to) when from == to, do: Decimal.new(1)
 
   defp convert_rate(from, to) do
     from_usd = Portfolio.get_fx_rate(from)
     to_usd = Portfolio.get_fx_rate(to)
-    if to_usd > 0, do: from_usd / to_usd, else: 1.0
+    if Money.gt?(to_usd, 0), do: Money.div(from_usd, to_usd), else: Decimal.new(1)
   end
 
   @impl true
@@ -270,8 +270,8 @@ defmodule HoldcoWeb.FinancialsLive.Index do
       </div>
       <div class="metric-cell">
         <div class="metric-label">Net Income</div>
-        <div class={"metric-value #{if @total_revenue - @total_expenses >= 0, do: "num-positive", else: "num-negative"}"}>
-          {sym}{format_number(@total_revenue - @total_expenses)}
+        <div class={"metric-value #{if Money.gte?(Money.sub(@total_revenue, @total_expenses), 0), do: "num-positive", else: "num-negative"}"}>
+          {sym}{format_number(Money.sub(@total_revenue, @total_expenses))}
         </div>
       </div>
       <div class="metric-cell">
@@ -319,7 +319,7 @@ defmodule HoldcoWeb.FinancialsLive.Index do
           </thead>
           <tbody>
             <%= for f <- @financials do %>
-              <% net = (f.revenue || 0) - (f.expenses || 0) %>
+              <% net = Money.sub(f.revenue, f.expenses) %>
               <tr>
                 <td class="td-mono">{f.period}</td>
                 <td>
@@ -331,7 +331,7 @@ defmodule HoldcoWeb.FinancialsLive.Index do
                 </td>
                 <td class="td-num num-positive">{format_number(f.revenue || 0)}</td>
                 <td class="td-num num-negative">{format_number(f.expenses || 0)}</td>
-                <td class={"td-num #{if net >= 0, do: "num-positive", else: "num-negative"}"}>
+                <td class={"td-num #{if Money.gte?(net, 0), do: "num-positive", else: "num-negative"}"}>
                   {format_number(net)}
                 </td>
                 <td>{f.currency}</td>
@@ -704,6 +704,9 @@ defmodule HoldcoWeb.FinancialsLive.Index do
   defp currency_symbol("CHF"), do: "CHF "
   defp currency_symbol(ccy), do: "#{ccy} "
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
 
@@ -720,8 +723,8 @@ defmodule HoldcoWeb.FinancialsLive.Index do
     %{
       labels: Enum.map(sorted, & &1.period),
       datasets: [
-        %{label: "Revenue", data: Enum.map(sorted, & &1.revenue), backgroundColor: "#00994d"},
-        %{label: "Expenses", data: Enum.map(sorted, & &1.expenses), backgroundColor: "#cc0000"}
+        %{label: "Revenue", data: Enum.map(sorted, &Money.to_float(&1.revenue)), backgroundColor: "#00994d"},
+        %{label: "Expenses", data: Enum.map(sorted, &Money.to_float(&1.expenses)), backgroundColor: "#cc0000"}
       ]
     }
   end

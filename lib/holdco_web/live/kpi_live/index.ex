@@ -3,6 +3,16 @@ defmodule HoldcoWeb.KpiLive.Index do
 
   alias Holdco.{Analytics, Corporate}
 
+  @data_source_options [
+    {"", "Manual"},
+    {"revenue", "Revenue"},
+    {"expenses", "Expenses"},
+    {"net_income", "Net Income"},
+    {"cash_balance", "Cash Balance"},
+    {"nav", "Portfolio NAV"},
+    {"liability_total", "Total Liabilities"}
+  ]
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: Analytics.subscribe()
@@ -20,7 +30,8 @@ defmodule HoldcoWeb.KpiLive.Index do
        editing_item: nil,
        selected_kpi: nil,
        snapshots: [],
-       show_snapshot_form: false
+       show_snapshot_form: false,
+       data_source_options: @data_source_options
      )}
   end
 
@@ -76,6 +87,10 @@ defmodule HoldcoWeb.KpiLive.Index do
   end
 
   def handle_event("save_snapshot", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("refresh_auto_kpis", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
 
@@ -143,6 +158,14 @@ defmodule HoldcoWeb.KpiLive.Index do
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to record snapshot")}
     end
+  end
+
+  def handle_event("refresh_auto_kpis", _params, socket) do
+    Analytics.auto_snapshot_kpis()
+
+    {:noreply,
+     reload(socket)
+     |> put_flash(:info, "Auto-KPIs refreshed")}
   end
 
   @impl true
@@ -238,6 +261,16 @@ defmodule HoldcoWeb.KpiLive.Index do
     }
   end
 
+  defp data_source_label(nil), do: nil
+  defp data_source_label(""), do: nil
+
+  defp data_source_label(source) do
+    case Enum.find(@data_source_options, fn {k, _v} -> k == source end) do
+      {_, label} -> label
+      nil -> source
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -258,6 +291,7 @@ defmodule HoldcoWeb.KpiLive.Index do
             </select>
           </form>
           <%= if @can_write do %>
+            <button class="btn btn-secondary" phx-click="refresh_auto_kpis">Refresh Auto-KPIs</button>
             <button class="btn btn-primary" phx-click="show_form">Add KPI</button>
           <% end %>
         </div>
@@ -298,6 +332,7 @@ defmodule HoldcoWeb.KpiLive.Index do
               <tr>
                 <th>Name</th>
                 <th>Type</th>
+                <th>Source</th>
                 <th>Company</th>
                 <th class="th-num">Current</th>
                 <th class="th-num">Target</th>
@@ -318,6 +353,13 @@ defmodule HoldcoWeb.KpiLive.Index do
                     </a>
                   </td>
                   <td><span class="tag tag-ink">{kpi.metric_type}</span></td>
+                  <td>
+                    <%= if data_source_label(kpi.data_source) do %>
+                      <span class="tag tag-jade">{data_source_label(kpi.data_source)}</span>
+                    <% else %>
+                      <span class="tag tag-ink">Manual</span>
+                    <% end %>
+                  </td>
                   <td>
                     <%= if kpi.company do %>
                       <.link navigate={~p"/companies/#{kpi.company.id}"} class="td-link">{kpi.company.name}</.link>
@@ -504,6 +546,17 @@ defmodule HoldcoWeb.KpiLive.Index do
                     <option value={c.id} selected={@editing_item && @editing_item.company_id == c.id}>{c.name}</option>
                   <% end %>
                 </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Data Source</label>
+                <select name="kpi[data_source]" class="form-select">
+                  <%= for {value, label} <- @data_source_options do %>
+                    <option value={value} selected={@editing_item && (@editing_item.data_source || "") == value}>{label}</option>
+                  <% end %>
+                </select>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
+                  Select a data source to auto-populate this KPI from financial data, or leave as Manual for manual entry.
+                </p>
               </div>
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary">

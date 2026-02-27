@@ -79,10 +79,13 @@ defmodule HoldcoWeb.XbrlController do
       "<#{taxonomy_element} contextRef=\"current\" unitRef=\"USD\" decimals=\"2\">#{balance}</#{taxonomy_element}>"
   end
 
+  defp account_balance(%{balance: %Decimal{} = balance}), do: balance
   defp account_balance(%{balance: balance}) when is_number(balance), do: balance
+  defp account_balance(%{amount: %Decimal{} = amount}), do: amount
   defp account_balance(%{amount: amount}) when is_number(amount), do: amount
-  defp account_balance(_), do: 0.0
+  defp account_balance(_), do: Decimal.new(0)
 
+  defp format_value(%Decimal{} = d), do: Decimal.round(d, 2) |> Decimal.to_string()
   defp format_value(n) when is_float(n), do: Float.round(n, 2) |> to_string()
   defp format_value(n) when is_integer(n), do: to_string(n)
   defp format_value(_), do: "0.0"

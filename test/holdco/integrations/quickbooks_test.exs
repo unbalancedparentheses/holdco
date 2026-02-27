@@ -18,43 +18,53 @@ defmodule Holdco.Integrations.QuickbooksTest do
   end
 
   describe "authorize_url/0" do
+    test "returns a {url, state} tuple" do
+      {url, state} = Quickbooks.authorize_url()
+      assert is_binary(url)
+      assert is_binary(state)
+      assert String.length(state) > 0
+    end
+
     test "returns a URL with the correct base" do
-      url = Quickbooks.authorize_url()
+      {url, _state} = Quickbooks.authorize_url()
       assert url =~ "https://appcenter.intuit.com/connect/oauth2"
     end
 
     test "includes client_id parameter" do
-      url = Quickbooks.authorize_url()
+      {url, _state} = Quickbooks.authorize_url()
       assert url =~ "client_id=test_client_id"
     end
 
     test "includes redirect_uri parameter" do
-      url = Quickbooks.authorize_url()
+      {url, _state} = Quickbooks.authorize_url()
       assert url =~ "redirect_uri="
     end
 
     test "includes response_type=code" do
-      url = Quickbooks.authorize_url()
+      {url, _state} = Quickbooks.authorize_url()
       assert url =~ "response_type=code"
     end
 
     test "includes scope parameter" do
-      url = Quickbooks.authorize_url()
+      {url, _state} = Quickbooks.authorize_url()
       assert url =~ "scope=com.intuit.quickbooks.accounting"
     end
 
     test "includes state parameter for CSRF protection" do
-      url = Quickbooks.authorize_url()
+      {url, _state} = Quickbooks.authorize_url()
       assert url =~ "state="
     end
 
     test "generates different state values each time" do
-      url1 = Quickbooks.authorize_url()
-      url2 = Quickbooks.authorize_url()
-      # Extract state param - they should differ
-      state1 = url1 |> URI.parse() |> Map.get(:query) |> URI.decode_query() |> Map.get("state")
-      state2 = url2 |> URI.parse() |> Map.get(:query) |> URI.decode_query() |> Map.get("state")
+      {_url1, state1} = Quickbooks.authorize_url()
+      {_url2, state2} = Quickbooks.authorize_url()
       assert state1 != state2
+    end
+
+    test "returned state matches the state in the URL" do
+      {url, state} = Quickbooks.authorize_url()
+      url_state = url |> URI.parse() |> Map.get(:query) |> URI.decode_query() |> Map.get("state")
+      assert url_state == state
     end
 
     test "uses production base when environment is production" do
@@ -65,8 +75,7 @@ defmodule Holdco.Integrations.QuickbooksTest do
         environment: :production
       )
 
-      # authorize_url uses @auth_base not api_base, so it should still work
-      url = Quickbooks.authorize_url()
+      {url, _state} = Quickbooks.authorize_url()
       assert url =~ "client_id=prod_id"
     end
   end

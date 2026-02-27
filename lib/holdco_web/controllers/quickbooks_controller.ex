@@ -4,9 +4,12 @@ defmodule HoldcoWeb.QuickbooksController do
   alias Holdco.Integrations.Quickbooks
 
   def connect(conn, %{"company_id" => company_id}) do
+    {url, state} = Quickbooks.authorize_url()
+
     conn
     |> put_session(:qbo_company_id, company_id)
-    |> redirect(external: Quickbooks.authorize_url())
+    |> put_session(:qbo_oauth_state, state)
+    |> redirect(external: url)
   end
 
   def connect(conn, _params) do
@@ -15,29 +18,47 @@ defmodule HoldcoWeb.QuickbooksController do
     |> redirect(to: ~p"/accounts/integrations")
   end
 
-  def callback(conn, %{"code" => code, "realmId" => realm_id}) do
+  def callback(conn, %{"code" => code, "realmId" => realm_id} = params) do
     company_id = get_session(conn, :qbo_company_id)
+    expected_state = get_session(conn, :qbo_oauth_state)
+    received_state = params["state"]
 
-    if company_id do
-      company_id = if is_binary(company_id), do: String.to_integer(company_id), else: company_id
+    cond do
+      expected_state == nil or received_state != expected_state ->
+        conn
+        |> delete_session(:qbo_company_id)
+        |> delete_session(:qbo_oauth_state)
+        |> put_flash(:error, "OAuth state mismatch — possible CSRF attack. Please try again.")
+        |> redirect(to: ~p"/accounts/integrations")
 
-      case Quickbooks.exchange_code(code, realm_id, company_id) do
-        {:ok, _integration} ->
-          conn
-          |> delete_session(:qbo_company_id)
-          |> put_flash(:info, "QuickBooks connected successfully")
-          |> redirect(to: ~p"/companies/#{company_id}")
+      company_id == nil ->
+        conn
+        |> delete_session(:qbo_oauth_state)
+        |> put_flash(:error, "Missing company context for QuickBooks connection")
+        |> redirect(to: ~p"/accounts/integrations")
 
-        {:error, reason} ->
-          conn
-          |> delete_session(:qbo_company_id)
-          |> put_flash(:error, "Failed to connect QuickBooks: #{inspect(reason)}")
-          |> redirect(to: ~p"/companies/#{company_id}")
-      end
-    else
-      conn
-      |> put_flash(:error, "Missing company context for QuickBooks connection")
-      |> redirect(to: ~p"/accounts/integrations")
+      true ->
+        do_callback(conn, code, realm_id, company_id)
+    end
+  end
+
+  defp do_callback(conn, code, realm_id, company_id) do
+    company_id = if is_binary(company_id), do: String.to_integer(company_id), else: company_id
+
+    case Quickbooks.exchange_code(code, realm_id, company_id) do
+      {:ok, _integration} ->
+        conn
+        |> delete_session(:qbo_company_id)
+        |> delete_session(:qbo_oauth_state)
+        |> put_flash(:info, "QuickBooks connected successfully")
+        |> redirect(to: ~p"/companies/#{company_id}")
+
+      {:error, reason} ->
+        conn
+        |> delete_session(:qbo_company_id)
+        |> delete_session(:qbo_oauth_state)
+        |> put_flash(:error, "Failed to connect QuickBooks: #{inspect(reason)}")
+        |> redirect(to: ~p"/companies/#{company_id}")
     end
   end
 

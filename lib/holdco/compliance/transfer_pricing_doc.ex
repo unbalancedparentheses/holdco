@@ -5,7 +5,7 @@ defmodule Holdco.Compliance.TransferPricingDoc do
   schema "transfer_pricing_docs" do
     field :description, :string
     field :method, :string, default: "comparable_uncontrolled"
-    field :amount, :float, default: 0.0
+    field :amount, :decimal, default: 0
     field :currency, :string, default: "USD"
     field :period, :string
     field :notes, :string

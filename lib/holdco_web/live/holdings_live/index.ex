@@ -2,6 +2,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Assets, Corporate, Portfolio}
+  alias Holdco.Money
 
   @impl true
   def mount(_params, _session, socket) do
@@ -10,7 +11,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     holdings = Assets.list_holdings()
     companies = Corporate.list_companies()
     allocation = Portfolio.asset_allocation()
-    total_value = Enum.reduce(holdings, 0.0, fn h, acc -> acc + (h.quantity || 0.0) end)
+    total_value = Enum.reduce(holdings, Decimal.new(0), fn h, acc -> Money.add(acc, Money.to_decimal(h.quantity)) end)
 
     asset_types =
       case Holdco.Platform.get_setting_value("asset_types") do
@@ -114,7 +115,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
   defp reload(socket) do
     holdings = Assets.list_holdings()
     allocation = Portfolio.asset_allocation()
-    total_value = Enum.reduce(holdings, 0.0, fn h, acc -> acc + (h.quantity || 0.0) end)
+    total_value = Enum.reduce(holdings, Decimal.new(0), fn h, acc -> Money.add(acc, Money.to_decimal(h.quantity)) end)
 
     assign(socket,
       all_holdings: holdings,
@@ -222,11 +223,11 @@ defmodule HoldcoWeb.HoldingsLive.Index do
         </div>
         <div class="panel" style="padding: 1rem;">
           <% alloc_colors = ["#4a8c87", "#6b87a0", "#5f8f6e", "#8a5a6a", "#c08060", "#b89040", "#b0605e"] %>
-          <% alloc_total = Enum.reduce(@allocation, 0.0, fn a, acc -> acc + max(a.value, a.count) end) %>
+          <% alloc_total = Enum.reduce(@allocation, Decimal.new(0), fn a, acc -> Money.add(acc, Money.max(a.value, a.count)) end) %>
           <div class="stacked-bar">
             <%= for {a, color} <- Enum.zip(@allocation, alloc_colors) do %>
-              <% val = if a.value > 0, do: a.value, else: a.count %>
-              <% pct = if alloc_total > 0, do: Float.round(val / alloc_total * 100, 1), else: 0 %>
+              <% val = if Money.gt?(a.value, 0), do: a.value, else: Money.to_decimal(a.count) %>
+              <% pct = if Money.gt?(alloc_total, 0), do: Money.to_float(Money.round(Money.mult(Money.div(val, alloc_total), 100), 1)), else: 0 %>
               <div class="stacked-bar-segment" style={"width: #{pct}%; background: #{color};"} title={"#{a.type}: #{pct}%"}>
                 <%= if pct > 12 do %>
                   <span class="stacked-bar-label">{a.type}</span>
@@ -236,8 +237,8 @@ defmodule HoldcoWeb.HoldingsLive.Index do
           </div>
           <div class="stacked-bar-legend">
             <%= for {a, color} <- Enum.zip(@allocation, alloc_colors) do %>
-              <% val = if a.value > 0, do: a.value, else: a.count %>
-              <% pct = if alloc_total > 0, do: Float.round(val / alloc_total * 100, 1), else: 0 %>
+              <% val = if Money.gt?(a.value, 0), do: a.value, else: Money.to_decimal(a.count) %>
+              <% pct = if Money.gt?(alloc_total, 0), do: Money.to_float(Money.round(Money.mult(Money.div(val, alloc_total), 100), 1)), else: 0 %>
               <span class="stacked-bar-legend-item">
                 <span class="stacked-bar-swatch" style={"background: #{color};"}></span>
                 {a.type} <span class="stacked-bar-pct">{pct}%</span>
@@ -401,8 +402,11 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     """
   end
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+    do: Money.to_float(Money.round(n, 0)) |> :erlang.float_to_binary(decimals: 0) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"

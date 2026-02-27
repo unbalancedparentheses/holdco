@@ -4,7 +4,7 @@ defmodule Holdco.Pricing.PriceHistory do
 
   schema "price_history" do
     field :ticker, :string
-    field :price, :float
+    field :price, :decimal
     field :currency, :string, default: "USD"
 
     timestamps(type: :utc_datetime)

@@ -3,8 +3,8 @@ defmodule Holdco.Finance.JournalLine do
   import Ecto.Changeset
 
   schema "journal_lines" do
-    field :debit, :float, default: 0.0
-    field :credit, :float, default: 0.0
+    field :debit, :decimal, default: 0
+    field :credit, :decimal, default: 0
     field :notes, :string
 
     belongs_to :entry, Holdco.Finance.JournalEntry
@@ -18,5 +18,7 @@ defmodule Holdco.Finance.JournalLine do
     journal_line
     |> cast(attrs, [:entry_id, :account_id, :debit, :credit, :notes, :segment_id])
     |> validate_required([:entry_id, :account_id])
+    |> validate_number(:debit, greater_than_or_equal_to: 0)
+    |> validate_number(:credit, greater_than_or_equal_to: 0)
   end
 end

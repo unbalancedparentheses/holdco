@@ -5,6 +5,11 @@ defmodule Holdco.ComplianceTest do
 
   alias Holdco.Compliance
 
+  # Helper: convert Decimal to float for test assertions
+  defp d(val) when is_struct(val, Decimal), do: Decimal.to_float(val)
+  defp d(val) when is_number(val), do: val / 1
+  defp d(nil), do: 0.0
+
   describe "tax_deadlines" do
     test "CRUD operations" do
       company = company_fixture()
@@ -125,7 +130,7 @@ defmodule Holdco.ComplianceTest do
       assert Compliance.get_withholding_tax!(wt.id).id == wt.id
 
       {:ok, updated} = Compliance.update_withholding_tax(wt, %{rate: 0.10})
-      assert updated.rate == 0.10
+      assert d(updated.rate) == 0.10
 
       {:ok, _} = Compliance.delete_withholding_tax(updated)
     end
@@ -155,7 +160,7 @@ defmodule Holdco.ComplianceTest do
       assert Compliance.get_esg_score!(es.id).id == es.id
 
       {:ok, updated} = Compliance.update_esg_score(es, %{overall_score: 90.0})
-      assert updated.overall_score == 90.0
+      assert d(updated.overall_score) == 90.0
 
       {:ok, _} = Compliance.delete_esg_score(updated)
     end

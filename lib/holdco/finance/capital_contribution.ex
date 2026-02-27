@@ -1,10 +1,11 @@
 defmodule Holdco.Finance.CapitalContribution do
   use Ecto.Schema
   import Ecto.Changeset
+  import Holdco.Validators
 
   schema "capital_contributions" do
     field :contributor, :string
-    field :amount, :float
+    field :amount, :decimal
     field :currency, :string, default: "USD"
     field :date, :string
     field :contribution_type, :string, default: "cash"
@@ -27,5 +28,7 @@ defmodule Holdco.Finance.CapitalContribution do
       :notes
     ])
     |> validate_required([:company_id, :contributor, :amount, :date])
+    |> validate_number(:amount, greater_than: 0)
+    |> validate_date_format(:date)
   end
 end

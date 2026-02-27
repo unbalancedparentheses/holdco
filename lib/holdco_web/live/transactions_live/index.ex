@@ -2,6 +2,7 @@ defmodule HoldcoWeb.TransactionsLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Banking, Corporate}
+  alias Holdco.Money
 
   @impl true
   def mount(_params, _session, socket) do
@@ -12,13 +13,13 @@ defmodule HoldcoWeb.TransactionsLive.Index do
 
     inflows =
       transactions
-      |> Enum.filter(&((&1.amount || 0) > 0))
-      |> Enum.reduce(0.0, fn tx, acc -> acc + tx.amount end)
+      |> Enum.filter(&Money.positive?(&1.amount))
+      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
 
     outflows =
       transactions
-      |> Enum.filter(&((&1.amount || 0) < 0))
-      |> Enum.reduce(0.0, fn tx, acc -> acc + tx.amount end)
+      |> Enum.filter(&Money.negative?(&1.amount))
+      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
 
     {:ok,
      assign(socket,
@@ -58,13 +59,13 @@ defmodule HoldcoWeb.TransactionsLive.Index do
 
     inflows =
       transactions
-      |> Enum.filter(&((&1.amount || 0) > 0))
-      |> Enum.reduce(0.0, fn tx, acc -> acc + tx.amount end)
+      |> Enum.filter(&Money.positive?(&1.amount))
+      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
 
     outflows =
       transactions
-      |> Enum.filter(&((&1.amount || 0) < 0))
-      |> Enum.reduce(0.0, fn tx, acc -> acc + tx.amount end)
+      |> Enum.filter(&Money.negative?(&1.amount))
+      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
 
     {:noreply,
      assign(socket,
@@ -127,13 +128,13 @@ defmodule HoldcoWeb.TransactionsLive.Index do
 
     inflows =
       transactions
-      |> Enum.filter(&((&1.amount || 0) > 0))
-      |> Enum.reduce(0.0, fn tx, acc -> acc + tx.amount end)
+      |> Enum.filter(&Money.positive?(&1.amount))
+      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
 
     outflows =
       transactions
-      |> Enum.filter(&((&1.amount || 0) < 0))
-      |> Enum.reduce(0.0, fn tx, acc -> acc + tx.amount end)
+      |> Enum.filter(&Money.negative?(&1.amount))
+      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
 
     assign(socket, transactions: transactions, inflows: inflows, outflows: outflows)
   end
@@ -181,12 +182,12 @@ defmodule HoldcoWeb.TransactionsLive.Index do
       </div>
       <div class="metric-cell">
         <div class="metric-label">Total Outflows</div>
-        <div class="metric-value num-negative">${format_number(abs(@outflows))}</div>
+        <div class="metric-value num-negative">${format_number(Money.abs(@outflows))}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Net</div>
-        <div class={"metric-value #{if @inflows + @outflows >= 0, do: "num-positive", else: "num-negative"}"}>
-          ${format_number(@inflows + @outflows)}
+        <div class={"metric-value #{if Money.gte?(Money.add(@inflows, @outflows), 0), do: "num-positive", else: "num-negative"}"}>
+          ${format_number(Money.add(@inflows, @outflows))}
         </div>
       </div>
     </div>
@@ -236,7 +237,7 @@ defmodule HoldcoWeb.TransactionsLive.Index do
                 <td><span class="tag tag-ink">{tx.transaction_type}</span></td>
                 <td class="td-name">{tx.description}</td>
                 <td>{tx.counterparty}</td>
-                <td class={"td-num #{if (tx.amount || 0) < 0, do: "num-negative", else: "num-positive"}"}>
+                <td class={"td-num #{if Money.negative?(tx.amount), do: "num-negative", else: "num-positive"}"}>
                   {format_currency(tx.amount, tx.currency)}
                 </td>
                 <td>{tx.currency}</td>
@@ -335,6 +336,9 @@ defmodule HoldcoWeb.TransactionsLive.Index do
     """
   end
 
+  defp format_number(%Decimal{} = n),
+    do: :erlang.float_to_binary(Money.to_float(n), decimals: 0) |> add_commas()
+
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
 
@@ -348,8 +352,8 @@ defmodule HoldcoWeb.TransactionsLive.Index do
   defp format_currency(nil, _currency), do: "0"
 
   defp format_currency(amount, currency) do
-    sign = if amount < 0, do: "-", else: ""
-    "#{sign}#{format_number(abs(amount))} #{currency}"
+    sign = if Money.negative?(amount), do: "-", else: ""
+    "#{sign}#{format_number(Money.abs(amount))} #{currency}"
   end
 
   defp tx_chart_data(transactions) do
@@ -368,15 +372,17 @@ defmodule HoldcoWeb.TransactionsLive.Index do
     inflows =
       Enum.map(by_month, fn {_, txs} ->
         txs
-        |> Enum.filter(&((&1.amount || 0) > 0))
-        |> Enum.reduce(0.0, fn t, a -> a + t.amount end)
+        |> Enum.filter(&Money.positive?(&1.amount))
+        |> Enum.reduce(Decimal.new(0), fn t, a -> Money.add(a, t.amount) end)
+        |> Money.to_float()
       end)
 
     outflows =
       Enum.map(by_month, fn {_, txs} ->
         txs
-        |> Enum.filter(&((&1.amount || 0) < 0))
-        |> Enum.reduce(0.0, fn t, a -> a + abs(t.amount) end)
+        |> Enum.filter(&Money.negative?(&1.amount))
+        |> Enum.reduce(Decimal.new(0), fn t, a -> Money.add(a, Money.abs(t.amount)) end)
+        |> Money.to_float()
       end)
 
     %{

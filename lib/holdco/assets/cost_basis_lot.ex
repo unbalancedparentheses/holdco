@@ -4,13 +4,13 @@ defmodule Holdco.Assets.CostBasisLot do
 
   schema "cost_basis_lots" do
     field :purchase_date, :string
-    field :quantity, :float
-    field :price_per_unit, :float
-    field :fees, :float, default: 0.0
+    field :quantity, :decimal
+    field :price_per_unit, :decimal
+    field :fees, :decimal, default: 0
     field :currency, :string, default: "USD"
-    field :sold_quantity, :float, default: 0.0
+    field :sold_quantity, :decimal, default: 0
     field :sold_date, :string
-    field :sold_price, :float
+    field :sold_price, :decimal
     field :notes, :string
 
     belongs_to :holding, Holdco.Assets.AssetHolding

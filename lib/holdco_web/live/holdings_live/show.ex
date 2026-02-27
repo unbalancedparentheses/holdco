@@ -2,6 +2,7 @@ defmodule HoldcoWeb.HoldingsLive.Show do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Assets, Portfolio, Pricing}
+  alias Holdco.Money
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -146,11 +147,11 @@ defmodule HoldcoWeb.HoldingsLive.Show do
                   <td class="td-num">{format_decimal(lot.quantity)}</td>
                   <td class="td-num">{format_usd(lot.price_per_unit)}</td>
                   <td class="td-num">
-                    {format_usd((lot.quantity || 0.0) * (lot.price_per_unit || 0.0))}
+                    {format_usd(Money.mult(Money.to_decimal(lot.quantity), Money.to_decimal(lot.price_per_unit)))}
                   </td>
                   <td class="td-num">{format_decimal(lot.sold_quantity)}</td>
                   <td class="td-num">
-                    <%= if (lot.sold_quantity || 0.0) > 0 do %>
+                    <%= if Money.positive?(Money.to_decimal(lot.sold_quantity)) do %>
                       {format_usd(lot.sold_price)}
                     <% else %>
                       ---
@@ -215,8 +216,8 @@ defmodule HoldcoWeb.HoldingsLive.Show do
             <dd>{format_usd(@gains.cost_basis)}</dd>
 
             <dt style="font-weight: 600; opacity: 0.7;">Total Gain/Loss</dt>
-            <dd style={gain_color(@gains.unrealized + @gains.realized)}>
-              {format_gain(@gains.unrealized + @gains.realized)}
+            <dd style={gain_color(Money.add(@gains.unrealized, @gains.realized))}>
+              {format_gain(Money.add(@gains.unrealized, @gains.realized))}
             </dd>
           </dl>
         </div>
@@ -235,38 +236,38 @@ defmodule HoldcoWeb.HoldingsLive.Show do
   end
 
   defp compute_gains(holding, lots) do
-    current_value = Portfolio.holding_value(holding)
+    current_value = Money.to_decimal(Portfolio.holding_value(holding))
 
     cost_basis =
       lots
-      |> Enum.reduce(0.0, fn lot, acc ->
-        remaining = (lot.quantity || 0.0) - (lot.sold_quantity || 0.0)
-        if remaining > 0, do: acc + remaining * (lot.price_per_unit || 0.0), else: acc
+      |> Enum.reduce(Decimal.new(0), fn lot, acc ->
+        remaining = Money.sub(Money.to_decimal(lot.quantity), Money.to_decimal(lot.sold_quantity))
+        if Money.positive?(remaining), do: Money.add(acc, Money.mult(remaining, Money.to_decimal(lot.price_per_unit))), else: acc
       end)
 
-    unrealized = current_value - cost_basis
+    unrealized = Money.sub(current_value, cost_basis)
 
     realized =
       lots
-      |> Enum.filter(&((&1.sold_quantity || 0.0) > 0))
-      |> Enum.reduce(0.0, fn lot, acc ->
-        proceeds = (lot.sold_quantity || 0.0) * (lot.sold_price || 0.0)
-        cost = (lot.sold_quantity || 0.0) * (lot.price_per_unit || 0.0)
-        acc + (proceeds - cost)
+      |> Enum.filter(&Money.positive?(Money.to_decimal(&1.sold_quantity)))
+      |> Enum.reduce(Decimal.new(0), fn lot, acc ->
+        proceeds = Money.mult(Money.to_decimal(lot.sold_quantity), Money.to_decimal(lot.sold_price))
+        cost = Money.mult(Money.to_decimal(lot.sold_quantity), Money.to_decimal(lot.price_per_unit))
+        Money.add(acc, Money.sub(proceeds, cost))
       end)
 
     %{cost_basis: cost_basis, unrealized: unrealized, realized: realized}
   end
 
   defp lot_gain(lot) do
-    sold_qty = lot.sold_quantity || 0.0
+    sold_qty = Money.to_decimal(lot.sold_quantity)
 
-    if sold_qty > 0 do
-      proceeds = sold_qty * (lot.sold_price || 0.0)
-      cost = sold_qty * (lot.price_per_unit || 0.0)
-      proceeds - cost
+    if Money.positive?(sold_qty) do
+      proceeds = Money.mult(sold_qty, Money.to_decimal(lot.sold_price))
+      cost = Money.mult(sold_qty, Money.to_decimal(lot.price_per_unit))
+      Money.sub(proceeds, cost)
     else
-      0.0
+      Decimal.new(0)
     end
   end
 
@@ -283,7 +284,7 @@ defmodule HoldcoWeb.HoldingsLive.Show do
       datasets: [
         %{
           label: ticker,
-          data: Enum.map(sorted, & &1.price),
+          data: Enum.map(sorted, &Money.to_float(&1.price)),
           borderColor: "#0d7680",
           backgroundColor: "rgba(13, 118, 128, 0.1)",
           fill: true,
@@ -298,37 +299,48 @@ defmodule HoldcoWeb.HoldingsLive.Show do
 
   defp format_usd(nil), do: "$0.00"
 
-  defp format_usd(n) when is_float(n) do
-    formatted = :erlang.float_to_binary(abs(n), decimals: 2) |> add_commas()
-    if n < 0, do: "-$" <> formatted, else: "$" <> formatted
+  defp format_usd(%Decimal{} = n) do
+    formatted = Money.abs(n) |> Decimal.round(2) |> Decimal.to_string() |> add_commas()
+    if Money.negative?(n), do: "-$" <> formatted, else: "$" <> formatted
   end
 
-  defp format_usd(n) when is_integer(n), do: format_usd(n * 1.0)
+  defp format_usd(n) when is_float(n), do: format_usd(Money.to_decimal(n))
+  defp format_usd(n) when is_integer(n), do: format_usd(Money.to_decimal(n))
   defp format_usd(_), do: "$0.00"
 
-  defp format_gain(n) when is_float(n) and n >= 0,
-    do: "+$" <> (:erlang.float_to_binary(n, decimals: 2) |> add_commas())
+  defp format_gain(%Decimal{} = n) do
+    formatted = Money.abs(n) |> Decimal.round(2) |> Decimal.to_string() |> add_commas()
+    if Money.gte?(n, 0), do: "+$" <> formatted, else: "-$" <> formatted
+  end
 
-  defp format_gain(n) when is_float(n),
-    do: "-$" <> (:erlang.float_to_binary(abs(n), decimals: 2) |> add_commas())
-
+  defp format_gain(n) when is_float(n), do: format_gain(Money.to_decimal(n))
   defp format_gain(_), do: "$0.00"
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(2) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 2) |> add_commas()
+    do: Money.to_float(Money.round(n, 2)) |> :erlang.float_to_binary(decimals: 2) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"
 
   defp format_decimal(nil), do: "---"
-  defp format_decimal(n) when n == 0.0, do: "0"
 
-  defp format_decimal(n) when is_float(n),
-    do:
-      :erlang.float_to_binary(n, decimals: 4)
+  defp format_decimal(%Decimal{} = n) do
+    if Decimal.equal?(n, 0) do
+      "0"
+    else
+      n
+      |> Decimal.round(4)
+      |> Decimal.to_string()
       |> String.trim_trailing("0")
       |> String.trim_trailing(".")
+    end
+  end
 
+  defp format_decimal(n) when is_float(n), do: format_decimal(Money.to_decimal(n))
+  defp format_decimal(n) when n == 0, do: "0"
   defp format_decimal(n), do: to_string(n)
 
   defp add_commas(str) do
@@ -346,6 +358,14 @@ defmodule HoldcoWeb.HoldingsLive.Show do
         |> String.reverse()
         |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
         |> String.reverse()
+    end
+  end
+
+  defp gain_color(%Decimal{} = n) do
+    cond do
+      Money.positive?(n) -> "color: #00994d;"
+      Money.negative?(n) -> "color: #cc0000;"
+      true -> ""
     end
   end
 

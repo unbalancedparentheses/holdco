@@ -1,14 +1,15 @@
 defmodule Holdco.Governance.CapTableEntry do
   use Ecto.Schema
   import Ecto.Changeset
+  import Holdco.Validators
 
   schema "cap_table_entries" do
     field :round_name, :string
     field :investor, :string
     field :instrument_type, :string, default: "equity"
-    field :shares, :float, default: 0.0
-    field :price_per_share, :float
-    field :amount_invested, :float, default: 0.0
+    field :shares, :decimal, default: 0
+    field :price_per_share, :decimal
+    field :amount_invested, :decimal, default: 0
     field :currency, :string, default: "USD"
     field :date, :string
     field :notes, :string
@@ -33,5 +34,9 @@ defmodule Holdco.Governance.CapTableEntry do
       :notes
     ])
     |> validate_required([:company_id, :investor, :round_name])
+    |> validate_number(:shares, greater_than_or_equal_to: 0)
+    |> validate_number(:price_per_share, greater_than: 0)
+    |> validate_number(:amount_invested, greater_than_or_equal_to: 0)
+    |> validate_date_format(:date)
   end
 end

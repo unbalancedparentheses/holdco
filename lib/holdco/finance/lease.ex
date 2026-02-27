@@ -7,8 +7,8 @@ defmodule Holdco.Finance.Lease do
     field :asset_description, :string
     field :start_date, :string
     field :end_date, :string
-    field :monthly_payment, :float
-    field :discount_rate, :float, default: 0.05
+    field :monthly_payment, :decimal
+    field :discount_rate, :decimal, default: Decimal.new("0.05")
     field :lease_type, :string, default: "operating"
     field :currency, :string, default: "USD"
     field :notes, :string

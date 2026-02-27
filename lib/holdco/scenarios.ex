@@ -2,6 +2,7 @@ defmodule Holdco.Scenarios do
   import Ecto.Query
   alias Holdco.Repo
   alias Holdco.Scenarios.{Scenario, ScenarioItem}
+  alias Holdco.Money
 
   # Scenarios
   def list_scenarios do
@@ -63,27 +64,28 @@ defmodule Holdco.Scenarios do
   def project(%Scenario{} = scenario) do
     scenario = Repo.preload(scenario, :items)
     months = scenario.projection_months || 12
+    zero = Decimal.new(0)
 
     Enum.map(1..months, fn month ->
       {revenue, expenses} =
-        Enum.reduce(scenario.items, {0.0, 0.0}, fn item, {rev, exp} ->
+        Enum.reduce(scenario.items, {zero, zero}, fn item, {rev, exp} ->
           amount = calculate_item_amount(item, month)
 
           case item.item_type do
-            "revenue" -> {rev + amount, exp}
-            "expense" -> {rev, exp + amount}
-            _ -> {rev, exp + amount}
+            "revenue" -> {Money.add(rev, amount), exp}
+            "expense" -> {rev, Money.add(exp, amount)}
+            _ -> {rev, Money.add(exp, amount)}
           end
         end)
 
-      %{month: month, revenue: revenue, expenses: expenses, net: revenue - expenses}
+      %{month: month, revenue: Money.to_float(revenue), expenses: Money.to_float(expenses), net: Money.to_float(Money.sub(revenue, expenses))}
     end)
   end
 
   defp calculate_item_amount(item, month) do
-    base_amount = item.amount || 0.0
-    growth_rate = item.growth_rate || 0.0
-    probability = item.probability || 1.0
+    base_amount = Money.to_float(Money.to_decimal(item.amount))
+    growth_rate = Money.to_float(Money.to_decimal(item.growth_rate))
+    probability = Money.to_float(Money.to_decimal(item.probability))
 
     # Apply recurrence filter
     active =
@@ -107,9 +109,9 @@ defmodule Holdco.Scenarios do
             base_amount
         end
 
-      grown_amount * probability
+      Decimal.from_float(grown_amount * probability)
     else
-      0.0
+      Decimal.new(0)
     end
   end
 

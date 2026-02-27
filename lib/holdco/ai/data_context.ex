@@ -66,7 +66,7 @@ defmodule Holdco.AI.DataContext do
     lines =
       Enum.take(holdings, 30)
       |> Enum.map(fn h ->
-        "- #{h.name} (#{h.asset_type}, #{h.ticker || "no ticker"}): #{h.quantity} units @ $#{format_num(h.cost_basis)} cost"
+        "- #{h.asset} (#{h.asset_type}, #{h.ticker || "no ticker"}): #{h.quantity} units"
       end)
 
     "## Holdings (#{length(holdings)} total, showing first 30)\n" <> Enum.join(lines, "\n")
@@ -105,6 +105,7 @@ defmodule Holdco.AI.DataContext do
   end
 
   defp format_num(nil), do: "0"
+  defp format_num(%Decimal{} = d), do: Decimal.round(d, 2) |> Decimal.to_string()
   defp format_num(n) when is_float(n), do: :erlang.float_to_binary(n, decimals: 2)
   defp format_num(n) when is_integer(n), do: Integer.to_string(n)
   defp format_num(n), do: to_string(n)

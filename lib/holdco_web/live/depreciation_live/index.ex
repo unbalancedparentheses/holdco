@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.DepreciationLive.Index do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Depreciation, Corporate}
+  alias Holdco.{Depreciation, Corporate, Money}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -424,27 +424,27 @@ defmodule HoldcoWeb.DepreciationLive.Index do
     today = Date.utc_today()
 
     {total_value, total_depreciation} =
-      Enum.reduce(assets, {0.0, 0.0}, fn asset, {tv, td} ->
-        cost = asset.purchase_price || 0.0
+      Enum.reduce(assets, {Decimal.new(0), Decimal.new(0)}, fn asset, {tv, td} ->
+        cost = Money.to_decimal(asset.purchase_price)
         schedule = Depreciation.schedule(asset)
 
         accumulated =
           case elapsed_months(asset, today) do
             0 ->
-              0.0
+              Decimal.new(0)
 
             months ->
               row = Enum.find(schedule, fn r -> r.month == months end)
-              if row, do: row.accumulated, else: List.last(schedule)[:accumulated] || 0.0
+              if row, do: Money.to_decimal(row.accumulated), else: Money.to_decimal(List.last(schedule)[:accumulated])
           end
 
-        {tv + cost, td + accumulated}
+        {Money.add(tv, cost), Money.add(td, accumulated)}
       end)
 
     %{
       total_value: total_value,
       total_depreciation: total_depreciation,
-      net_book_value: total_value - total_depreciation
+      net_book_value: Money.sub(total_value, total_depreciation)
     }
   end
 
@@ -466,14 +466,14 @@ defmodule HoldcoWeb.DepreciationLive.Index do
 
     cond do
       months <= 0 ->
-        asset.purchase_price || 0.0
+        Money.to_decimal(asset.purchase_price)
 
       schedule == [] ->
-        asset.purchase_price || 0.0
+        Money.to_decimal(asset.purchase_price)
 
       true ->
         row = Enum.find(schedule, fn r -> r.month == months end)
-        if row, do: row.book_value, else: List.last(schedule).book_value
+        if row, do: Money.to_decimal(row.book_value), else: Money.to_decimal(List.last(schedule).book_value)
     end
   end
 
@@ -492,6 +492,9 @@ defmodule HoldcoWeb.DepreciationLive.Index do
   defp humanize_method("straight_line"), do: "Straight Line"
   defp humanize_method("declining_balance"), do: "Declining Balance"
   defp humanize_method(other), do: other || "Straight Line"
+
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(2) |> Decimal.to_string() |> add_commas()
 
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 2) |> add_commas()

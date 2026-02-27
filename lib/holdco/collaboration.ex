@@ -3,7 +3,9 @@ defmodule Holdco.Collaboration do
   alias Holdco.Repo
   alias Holdco.Collaboration.Comment
   alias Holdco.Collaboration.Contact
+  alias Holdco.Collaboration.ContactInteraction
   alias Holdco.Collaboration.Project
+  alias Holdco.Collaboration.ProjectMilestone
 
   def list_comments(entity_type, entity_id) do
     from(c in Comment,
@@ -190,5 +192,71 @@ defmodule Holdco.Collaboration do
       _ ->
         :ok
     end)
+  end
+
+  # --- Project Milestones ---
+
+  def list_milestones(project_id) do
+    from(m in ProjectMilestone,
+      where: m.project_id == ^project_id,
+      order_by: [asc: m.due_date, asc: m.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def create_milestone(attrs) do
+    %ProjectMilestone{}
+    |> ProjectMilestone.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("project_milestones", "create")
+  end
+
+  def update_milestone(%ProjectMilestone{} = m, attrs) do
+    m
+    |> ProjectMilestone.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("project_milestones", "update")
+  end
+
+  def delete_milestone(%ProjectMilestone{} = m) do
+    Repo.delete(m)
+    |> audit_and_broadcast("project_milestones", "delete")
+  end
+
+  def get_milestone!(id), do: Repo.get!(ProjectMilestone, id)
+
+  # --- Contact Interactions ---
+
+  def list_interactions(contact_id) do
+    from(i in ContactInteraction,
+      where: i.contact_id == ^contact_id,
+      order_by: [desc: i.date, desc: i.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def create_interaction(attrs) do
+    %ContactInteraction{}
+    |> ContactInteraction.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("contact_interactions", "create")
+  end
+
+  def delete_interaction(%ContactInteraction{} = interaction) do
+    Repo.delete(interaction)
+    |> audit_and_broadcast("contact_interactions", "delete")
+  end
+
+  def get_interaction!(id), do: Repo.get!(ContactInteraction, id)
+
+  defp audit_and_broadcast(result, table, action) do
+    case result do
+      {:ok, record} ->
+        Holdco.Platform.log_action(action, table, record.id)
+        {:ok, record}
+
+      error ->
+        error
+    end
   end
 end

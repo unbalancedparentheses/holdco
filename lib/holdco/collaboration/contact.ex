@@ -11,6 +11,8 @@ defmodule Holdco.Collaboration.Contact do
     field :role_tag, :string
     field :notes, :string
 
+    has_many :interactions, Holdco.Collaboration.ContactInteraction
+
     many_to_many :companies, Holdco.Corporate.Company,
       join_through: "contact_companies",
       on_replace: :delete

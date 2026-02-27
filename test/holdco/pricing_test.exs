@@ -5,18 +5,23 @@ defmodule Holdco.PricingTest do
 
   alias Holdco.Pricing
 
+  # Helper: convert Decimal to float for test assertions
+  defp d(val) when is_struct(val, Decimal), do: Decimal.to_float(val)
+  defp d(val) when is_number(val), do: val / 1
+  defp d(nil), do: 0.0
+
   describe "record_price/3" do
     test "creates price history with default currency" do
       {:ok, ph} = Pricing.record_price("AAPL", 175.0)
       assert ph.ticker == "AAPL"
-      assert ph.price == 175.0
+      assert d(ph.price) == 175.0
       assert ph.currency == "USD"
     end
 
     test "creates price history with explicit currency" do
       {:ok, ph} = Pricing.record_price("AAPL", 175.0, "EUR")
       assert ph.ticker == "AAPL"
-      assert ph.price == 175.0
+      assert d(ph.price) == 175.0
       assert ph.currency == "EUR"
     end
 
@@ -24,7 +29,7 @@ defmodule Holdco.PricingTest do
       {:ok, ph1} = Pricing.record_price("MULTI_P", 100.0, "USD")
       {:ok, ph2} = Pricing.record_price("MULTI_P", 105.0, "USD")
       assert ph1.id != ph2.id
-      assert ph2.price == 105.0
+      assert d(ph2.price) == 105.0
     end
 
     test "records audit log on success" do
@@ -82,7 +87,7 @@ defmodule Holdco.PricingTest do
       assert latest != nil
       assert latest.ticker == "MULTI_LAT"
       # Should be one of the recorded prices
-      assert latest.price in [100.0, 110.0, 120.0]
+      assert d(latest.price) in [100.0, 110.0, 120.0]
     end
 
     test "returns only one record even when multiple prices exist" do
@@ -147,7 +152,7 @@ defmodule Holdco.PricingTest do
       [record] = Pricing.get_price_history("STRUCT_T", 1)
       assert is_struct(record, Holdco.Pricing.PriceHistory)
       assert record.ticker == "STRUCT_T"
-      assert record.price == 100.0
+      assert d(record.price) == 100.0
     end
   end
 

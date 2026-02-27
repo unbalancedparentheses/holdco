@@ -101,7 +101,13 @@ defmodule HoldcoWeb.SettingsLive.Index do
   end
 
   # --- Webhooks ---
-  def handle_event("save_webhook", %{"webhook" => params}, socket) do
+  def handle_event("save_webhook", %{"webhook" => params} = full_params, socket) do
+    # Encode selected event checkboxes as JSON array
+    selected_events = Map.get(full_params, "webhook_events", [])
+    selected_events = if is_list(selected_events), do: selected_events, else: [selected_events]
+    events_json = Jason.encode!(selected_events)
+    params = Map.put(params, "events", events_json)
+
     case Platform.create_webhook(params) do
       {:ok, _} ->
         {:noreply,
@@ -235,6 +241,20 @@ defmodule HoldcoWeb.SettingsLive.Index do
     </div>
     """
   end
+
+  defp format_webhook_events(nil), do: "All events"
+  defp format_webhook_events(""), do: "All events"
+  defp format_webhook_events("[]"), do: "All events"
+
+  defp format_webhook_events(events_json) when is_binary(events_json) do
+    case Jason.decode(events_json) do
+      {:ok, []} -> "All events"
+      {:ok, events} when is_list(events) -> Enum.join(events, ", ")
+      _ -> "All events"
+    end
+  end
+
+  defp format_webhook_events(_), do: "All events"
 
   defp tab_label("settings"), do: "Settings"
   defp tab_label("categories"), do: "Categories"
@@ -419,7 +439,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
             <%= for w <- @webhooks do %>
               <tr>
                 <td class="td-mono">{w.url}</td>
-                <td>{w.events}</td>
+                <td>{format_webhook_events(w.events)}</td>
                 <td>{if w.is_active, do: "Yes", else: "No"}</td>
                 <td>
                   <%= if @can_admin do %>
@@ -455,8 +475,24 @@ defmodule HoldcoWeb.SettingsLive.Index do
                 <input type="url" name="webhook[url]" class="form-input" required />
               </div>
               <div class="form-group">
-                <label class="form-label">Events (JSON array)</label>
-                <input type="text" name="webhook[events]" class="form-input" value="[]" />
+                <label class="form-label">Subscribe to</label>
+                <p style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">
+                  Select which events trigger this webhook. Leave all unchecked for all events.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                  <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                    <input type="checkbox" name="webhook_events[]" value="create" />
+                    <span><strong>create</strong> -- New records created</span>
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                    <input type="checkbox" name="webhook_events[]" value="update" />
+                    <span><strong>update</strong> -- Records updated</span>
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                    <input type="checkbox" name="webhook_events[]" value="delete" />
+                    <span><strong>delete</strong> -- Records deleted</span>
+                  </label>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Secret</label>

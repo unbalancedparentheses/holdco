@@ -5,7 +5,7 @@ defmodule Holdco.Corporate.BeneficialOwner do
   schema "beneficial_owners" do
     field :name, :string
     field :nationality, :string
-    field :ownership_pct, :float, default: 0.0
+    field :ownership_pct, :decimal, default: 0
     field :control_type, :string, default: "direct"
     field :verified, :boolean, default: false
     field :verified_date, :string

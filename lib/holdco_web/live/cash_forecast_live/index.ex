@@ -2,6 +2,7 @@ defmodule HoldcoWeb.CashForecastLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Banking, Finance, Compliance, Portfolio}
+  alias Holdco.Money
 
   @months_ahead 12
 
@@ -14,19 +15,19 @@ defmodule HoldcoWeb.CashForecastLive.Index do
     tax_deadlines = Compliance.list_tax_deadlines()
 
     current_cash =
-      Enum.reduce(bank_accounts, 0.0, fn ba, acc ->
-        acc + Portfolio.to_usd(ba.balance || 0.0, ba.currency)
+      Enum.reduce(bank_accounts, Decimal.new(0), fn ba, acc ->
+        Money.add(acc, Money.to_decimal(Portfolio.to_usd(ba.balance || 0, ba.currency)))
       end)
 
     recurring = detect_recurring(transactions)
-    recurring_income = Enum.filter(recurring, &(&1.avg_amount > 0))
-    recurring_expenses = Enum.filter(recurring, &(&1.avg_amount < 0))
+    recurring_income = Enum.filter(recurring, &Money.positive?(&1.avg_amount))
+    recurring_expenses = Enum.filter(recurring, &Money.negative?(&1.avg_amount))
 
     monthly_recurring_inflow =
-      Enum.reduce(recurring_income, 0.0, fn r, acc -> acc + r.avg_amount end)
+      Enum.reduce(recurring_income, Decimal.new(0), fn r, acc -> Money.add(acc, r.avg_amount) end)
 
     monthly_recurring_outflow =
-      Enum.reduce(recurring_expenses, 0.0, fn r, acc -> acc + abs(r.avg_amount) end)
+      Enum.reduce(recurring_expenses, Decimal.new(0), fn r, acc -> Money.add(acc, Money.abs(r.avg_amount)) end)
 
     one_time_expenses = build_one_time_expenses(liabilities, tax_deadlines, today)
     projections = project_monthly(current_cash, monthly_recurring_inflow, monthly_recurring_outflow, one_time_expenses, today)
@@ -67,26 +68,26 @@ defmodule HoldcoWeb.CashForecastLive.Index do
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Current Cash Position</div>
-        <div class={"metric-value #{if @current_cash >= 0, do: "num-positive", else: "num-negative"}"}>
+        <div class={"metric-value #{if Money.gte?(@current_cash, 0), do: "num-positive", else: "num-negative"}"}>
           ${format_number(@current_cash)}
         </div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Projected End of Quarter</div>
-        <div class={"metric-value #{if @projected_eoq >= 0, do: "num-positive", else: "num-negative"}"}>
+        <div class={"metric-value #{if Money.gte?(@projected_eoq, 0), do: "num-positive", else: "num-negative"}"}>
           ${format_number(@projected_eoq)}
         </div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Projected End of Year</div>
-        <div class={"metric-value #{if @projected_eoy >= 0, do: "num-positive", else: "num-negative"}"}>
+        <div class={"metric-value #{if Money.gte?(@projected_eoy, 0), do: "num-positive", else: "num-negative"}"}>
           ${format_number(@projected_eoy)}
         </div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Monthly Net Cash Flow</div>
-        <% net_monthly = @monthly_recurring_inflow - @monthly_recurring_outflow %>
-        <div class={"metric-value #{if net_monthly >= 0, do: "num-positive", else: "num-negative"}"}>
+        <% net_monthly = Money.sub(@monthly_recurring_inflow, @monthly_recurring_outflow) %>
+        <div class={"metric-value #{if Money.gte?(net_monthly, 0), do: "num-positive", else: "num-negative"}"}>
           ${format_number(net_monthly)}
         </div>
       </div>
@@ -143,17 +144,17 @@ defmodule HoldcoWeb.CashForecastLive.Index do
                 <td class="td-mono">{p.label}</td>
                 <td class="td-num num-positive">${format_number(p.inflows)}</td>
                 <td class="td-num num-negative">${format_number(p.outflows)}</td>
-                <td class={"td-num #{if p.one_time < 0, do: "num-negative", else: ""}"}>
-                  <%= if p.one_time != 0.0 do %>
+                <td class={"td-num #{if Money.negative?(p.one_time), do: "num-negative", else: ""}"}>
+                  <%= if not Money.zero?(p.one_time) do %>
                     ${format_number(p.one_time)}
                   <% else %>
                     ---
                   <% end %>
                 </td>
-                <td class={"td-num #{if p.net >= 0, do: "num-positive", else: "num-negative"}"}>
+                <td class={"td-num #{if Money.gte?(p.net, 0), do: "num-positive", else: "num-negative"}"}>
                   ${format_number(p.net)}
                 </td>
-                <td class={"td-num #{if p.ending_balance >= 0, do: "num-positive", else: "num-negative"}"} style="font-weight: 600;">
+                <td class={"td-num #{if Money.gte?(p.ending_balance, 0), do: "num-positive", else: "num-negative"}"} style="font-weight: 600;">
                   ${format_number(p.ending_balance)}
                 </td>
               </tr>
@@ -230,7 +231,7 @@ defmodule HoldcoWeb.CashForecastLive.Index do
             <tfoot>
               <tr style="font-weight: 600; border-top: 2px solid var(--rule);">
                 <td class="td-name">Total Monthly Outflow</td>
-                <td class="td-num num-negative">${format_number(-@monthly_recurring_outflow)}</td>
+                <td class="td-num num-negative">${format_number(Money.negate(@monthly_recurring_outflow))}</td>
                 <td></td>
               </tr>
             </tfoot>
@@ -289,10 +290,11 @@ defmodule HoldcoWeb.CashForecastLive.Index do
     |> Enum.group_by(& &1.description)
     |> Enum.filter(fn {_desc, txns} -> length(txns) >= 3 end)
     |> Enum.map(fn {desc, txns} ->
-      avg_amount = Enum.reduce(txns, 0.0, fn t, acc -> (t.amount || 0.0) + acc end) / length(txns)
+      total = Enum.reduce(txns, Decimal.new(0), fn t, acc -> Money.add(acc, Money.to_decimal(t.amount)) end)
+      avg_amount = Money.div(total, length(txns))
       %{description: desc, avg_amount: avg_amount, count: length(txns)}
     end)
-    |> Enum.sort_by(&abs(&1.avg_amount), :desc)
+    |> Enum.sort_by(&Money.to_float(Money.abs(&1.avg_amount)), :desc)
   end
 
   # -- One-Time Expenses --
@@ -312,7 +314,7 @@ defmodule HoldcoWeb.CashForecastLive.Index do
           description: "#{l.creditor} - #{l.liability_type} maturity",
           type: "Liability",
           due_date: l.maturity_date,
-          amount: Portfolio.to_usd(l.principal || 0.0, l.currency)
+          amount: Money.to_decimal(Portfolio.to_usd(l.principal || 0, l.currency))
         }
       end)
 
@@ -328,7 +330,7 @@ defmodule HoldcoWeb.CashForecastLive.Index do
           description: "#{td.description} (#{td.jurisdiction})",
           type: "Tax",
           due_date: td.due_date,
-          amount: td.estimated_amount || 0.0
+          amount: Money.to_decimal(td.estimated_amount)
         }
       end)
 
@@ -353,7 +355,7 @@ defmodule HoldcoWeb.CashForecastLive.Index do
             _ -> false
           end
         end)
-        |> Enum.reduce(0.0, fn e, acc -> acc - e.amount end)
+        |> Enum.reduce(Decimal.new(0), fn e, acc -> Money.sub(acc, e.amount) end)
 
       %{
         label: label,
@@ -361,8 +363,8 @@ defmodule HoldcoWeb.CashForecastLive.Index do
         inflows: monthly_inflow,
         outflows: monthly_outflow,
         one_time: one_time_for_month,
-        net: 0.0,
-        ending_balance: 0.0
+        net: Decimal.new(0),
+        ending_balance: Decimal.new(0)
       }
     end)
     |> compute_running_balance(current_cash)
@@ -371,8 +373,8 @@ defmodule HoldcoWeb.CashForecastLive.Index do
   defp compute_running_balance(projections, starting_balance) do
     {result, _} =
       Enum.map_reduce(projections, starting_balance, fn p, balance ->
-        net = p.inflows - p.outflows + p.one_time
-        ending = balance + net
+        net = Money.add(Money.sub(p.inflows, p.outflows), p.one_time)
+        ending = Money.add(balance, net)
         {%{p | net: net, ending_balance: ending}, ending}
       end)
 
@@ -386,7 +388,7 @@ defmodule HoldcoWeb.CashForecastLive.Index do
     quarter_end_label = "#{today.year}-#{String.pad_leading(Integer.to_string(quarter_end_month), 2, "0")}"
 
     case Enum.find(projections, fn p -> p.label == quarter_end_label end) do
-      nil -> List.last(projections)[:ending_balance] || 0.0
+      nil -> Money.to_decimal(List.last(projections)[:ending_balance])
       p -> p.ending_balance
     end
   end
@@ -395,7 +397,7 @@ defmodule HoldcoWeb.CashForecastLive.Index do
     eoy_label = "#{today.year}-12"
 
     case Enum.find(projections, fn p -> p.label == eoy_label end) do
-      nil -> List.last(projections)[:ending_balance] || 0.0
+      nil -> Money.to_decimal(List.last(projections)[:ending_balance])
       p -> p.ending_balance
     end
   end
@@ -408,21 +410,21 @@ defmodule HoldcoWeb.CashForecastLive.Index do
       datasets: [
         %{
           label: "Ending Balance",
-          data: Enum.map(projections, & &1.ending_balance),
+          data: Enum.map(projections, &Money.to_float(&1.ending_balance)),
           borderColor: "#4a8c87",
           backgroundColor: "rgba(74, 140, 135, 0.1)",
           fill: true
         },
         %{
           label: "Inflows",
-          data: Enum.map(projections, & &1.inflows),
+          data: Enum.map(projections, &Money.to_float(&1.inflows)),
           borderColor: "#5f8f6e",
           backgroundColor: "transparent",
           borderDash: [5, 5]
         },
         %{
           label: "Outflows",
-          data: Enum.map(projections, fn p -> -p.outflows end),
+          data: Enum.map(projections, fn p -> Money.to_float(Money.negate(p.outflows)) end),
           borderColor: "#b0605e",
           backgroundColor: "transparent",
           borderDash: [5, 5]
@@ -437,8 +439,11 @@ defmodule HoldcoWeb.CashForecastLive.Index do
   defp one_time_tag("Tax"), do: "tag-lemon"
   defp one_time_tag(_), do: "tag-ink"
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+    do: Money.to_float(Money.round(n, 0)) |> :erlang.float_to_binary(decimals: 0) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"

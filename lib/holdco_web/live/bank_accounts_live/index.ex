@@ -2,6 +2,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Banking, Corporate, Treasury}
+  alias Holdco.Money
 
   @impl true
   def mount(_params, _session, socket) do
@@ -49,7 +50,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
         if company_id, do: Enum.filter(accts, &(&1.company_id == company_id)), else: accts
       end)
 
-    total_balance = Enum.reduce(accounts, 0.0, fn a, acc -> acc + (a.balance || 0.0) end)
+    total_balance = Enum.reduce(accounts, Decimal.new(0), fn a, acc -> Money.add(acc, a.balance) end)
 
     {:noreply,
      assign(socket,
@@ -227,7 +228,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
                   <td>{currency}</td>
                   <td class="td-num">{length(accts)}</td>
                   <td class="td-num">
-                    {format_number(Enum.reduce(accts, 0.0, fn a, acc -> acc + (a.balance || 0.0) end))}
+                    {format_number(Enum.reduce(accts, Decimal.new(0), fn a, acc -> Money.add(acc, a.balance) end))}
                   </td>
                 </tr>
               <% end %>
@@ -263,7 +264,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
                 <td class="td-mono">{ba.iban}</td>
                 <td>{ba.account_type}</td>
                 <td>{ba.currency}</td>
-                <td class="td-num">{format_number(ba.balance || 0.0)}</td>
+                <td class="td-num">{format_number(Money.to_decimal(ba.balance))}</td>
                 <td>
                   <%= if ba.company do %>
                     <.link navigate={~p"/companies/#{ba.company.id}"} class="td-link">{ba.company.name}</.link>
@@ -330,7 +331,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
               <tr>
                 <td class="td-name">{pool.name}</td>
                 <td>{pool.currency}</td>
-                <td class="td-num">{format_number(pool.target_balance || 0.0)}</td>
+                <td class="td-num">{format_number(Money.to_decimal(pool.target_balance))}</td>
                 <td class="td-num">{length(pool.entries || [])}</td>
                 <td>
                   <%= if @can_write do %>
@@ -475,6 +476,9 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
     """
   end
 
+  defp format_number(%Decimal{} = n),
+    do: :erlang.float_to_binary(Money.to_float(n), decimals: 0) |> add_commas()
+
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
 
@@ -490,9 +494,9 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
       accounts
       |> Enum.group_by(& &1.currency)
       |> Enum.map(fn {cur, accts} ->
-        {cur, Enum.reduce(accts, 0.0, fn a, acc -> acc + (a.balance || 0.0) end)}
+        {cur, Enum.reduce(accts, Decimal.new(0), fn a, acc -> Money.add(acc, a.balance) end)}
       end)
-      |> Enum.sort_by(fn {_, v} -> -v end)
+      |> Enum.sort_by(fn {_, v} -> -Money.to_float(v) end)
 
     colors = ["#0d7680", "#0f5499", "#00994d", "#990f3d", "#ff8833", "#f2a900", "#cc0000"]
 
@@ -500,7 +504,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
       labels: Enum.map(by_currency, fn {c, _} -> c end),
       datasets: [
         %{
-          data: Enum.map(by_currency, fn {_, v} -> v end),
+          data: Enum.map(by_currency, fn {_, v} -> Money.to_float(v) end),
           backgroundColor: Enum.take(colors, length(by_currency))
         }
       ]

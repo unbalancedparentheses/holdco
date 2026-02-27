@@ -5,7 +5,7 @@ defmodule Holdco.Treasury.CashPool do
   schema "cash_pools" do
     field :name, :string
     field :currency, :string, default: "USD"
-    field :target_balance, :float, default: 0.0
+    field :target_balance, :decimal, default: 0
     field :notes, :string, default: ""
 
     has_many :entries, Holdco.Treasury.CashPoolEntry, foreign_key: :pool_id

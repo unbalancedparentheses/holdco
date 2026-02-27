@@ -2,6 +2,7 @@ defmodule HoldcoWeb.BankAccountsLive.Show do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Banking, Corporate}
+  alias Holdco.Money
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -38,7 +39,7 @@ defmodule HoldcoWeb.BankAccountsLive.Show do
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Balance</div>
-        <div class="metric-value">${format_number(@account.balance || 0.0)}</div>
+        <div class="metric-value">${format_number(@account.balance || 0)}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Currency</div>
@@ -108,7 +109,7 @@ defmodule HoldcoWeb.BankAccountsLive.Show do
                 <td class="td-mono">{tx.date}</td>
                 <td><span class="tag tag-ink">{tx.transaction_type}</span></td>
                 <td class="td-name">{tx.description}</td>
-                <td class={"td-num #{if (tx.amount || 0) < 0, do: "num-negative", else: "num-positive"}"}>
+                <td class={"td-num #{if Money.negative?(Money.to_decimal(tx.amount)), do: "num-negative", else: "num-positive"}"}>
                   {format_currency(tx.amount, tx.currency)}
                 </td>
                 <td>{tx.currency}</td>
@@ -124,8 +125,11 @@ defmodule HoldcoWeb.BankAccountsLive.Show do
     """
   end
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+    do: Money.to_float(Money.round(n, 0)) |> :erlang.float_to_binary(decimals: 0) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"
@@ -137,7 +141,7 @@ defmodule HoldcoWeb.BankAccountsLive.Show do
   defp format_currency(nil, _currency), do: "0"
 
   defp format_currency(amount, currency) do
-    sign = if amount < 0, do: "-", else: ""
-    "#{sign}#{format_number(abs(amount))} #{currency}"
+    sign = if Money.negative?(amount), do: "-", else: ""
+    "#{sign}#{format_number(Money.abs(amount))} #{currency}"
   end
 end

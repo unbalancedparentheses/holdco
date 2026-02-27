@@ -15,6 +15,8 @@ defmodule Holdco.Collaboration.Project do
 
     belongs_to :contact, Holdco.Collaboration.Contact
 
+    has_many :milestones, Holdco.Collaboration.ProjectMilestone
+
     many_to_many :companies, Holdco.Corporate.Company,
       join_through: "project_companies",
       on_replace: :delete

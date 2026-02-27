@@ -5,6 +5,11 @@ defmodule Holdco.BankingTest do
 
   alias Holdco.Banking
 
+  # Helper: convert Decimal to float for test assertions
+  defp d(val) when is_struct(val, Decimal), do: Decimal.to_float(val)
+  defp d(val) when is_number(val), do: val / 1
+  defp d(nil), do: 0.0
+
   describe "bank_accounts" do
     test "list_bank_accounts/0 returns all bank accounts" do
       ba = bank_account_fixture()
@@ -65,7 +70,7 @@ defmodule Holdco.BankingTest do
       company = company_fixture()
       attrs = %{company_id: company.id, transaction_type: "debit", description: "Payment", amount: 500.0, date: "2024-02-01"}
       assert {:ok, t} = Banking.create_transaction(attrs)
-      assert t.amount == 500.0
+      assert d(t.amount) == 500.0
     end
 
     test "create_transaction/1 with invalid data" do
@@ -90,12 +95,12 @@ defmodule Holdco.BankingTest do
       company = company_fixture()
       bank_account_fixture(%{company: company, balance: 1000.0})
       bank_account_fixture(%{company: company, balance: 2000.0})
-      assert Banking.total_balance() >= 3000.0
+      assert d(Banking.total_balance()) >= 3000.0
     end
 
     test "total_balance/0 returns 0 with no accounts" do
       # May already have accounts from other tests, just ensure it returns a number
-      assert is_number(Banking.total_balance())
+      assert is_number(d(Banking.total_balance()))
     end
   end
 

@@ -5,9 +5,9 @@ defmodule Holdco.Finance.FixedAsset do
   schema "fixed_assets" do
     field :name, :string
     field :purchase_date, :string
-    field :purchase_price, :float
+    field :purchase_price, :decimal
     field :useful_life_months, :integer
-    field :salvage_value, :float, default: 0.0
+    field :salvage_value, :decimal, default: 0
     field :depreciation_method, :string, default: "straight_line"
     field :currency, :string, default: "USD"
     field :notes, :string

@@ -1,9 +1,10 @@
 defmodule Holdco.Finance.Dividend do
   use Ecto.Schema
   import Ecto.Changeset
+  import Holdco.Validators
 
   schema "dividends" do
-    field :amount, :float
+    field :amount, :decimal
     field :currency, :string, default: "USD"
     field :date, :string
     field :recipient, :string
@@ -19,5 +20,7 @@ defmodule Holdco.Finance.Dividend do
     dividend
     |> cast(attrs, [:company_id, :amount, :currency, :date, :recipient, :dividend_type, :notes])
     |> validate_required([:company_id, :amount, :date])
+    |> validate_number(:amount, greater_than: 0)
+    |> validate_date_format(:date)
   end
 end

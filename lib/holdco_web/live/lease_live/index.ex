@@ -2,6 +2,7 @@ defmodule HoldcoWeb.LeaseLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Finance, Corporate}
+  alias Holdco.Money
 
   @impl true
   def mount(_params, _session, socket) do
@@ -493,13 +494,13 @@ defmodule HoldcoWeb.LeaseLive.Index do
 
   defp compute_metrics(leases) do
     total_rou =
-      Enum.reduce(leases, 0.0, fn lease, acc -> acc + rou_asset_at_inception(lease) end)
+      Enum.reduce(leases, Decimal.new(0), fn lease, acc -> Money.add(acc, rou_asset_at_inception(lease)) end)
 
     total_liability =
-      Enum.reduce(leases, 0.0, fn lease, acc -> acc + present_value(lease) end)
+      Enum.reduce(leases, Decimal.new(0), fn lease, acc -> Money.add(acc, present_value(lease)) end)
 
     total_monthly =
-      Enum.reduce(leases, 0.0, fn lease, acc -> acc + (lease.monthly_payment || 0.0) end)
+      Enum.reduce(leases, Decimal.new(0), fn lease, acc -> Money.add(acc, Money.to_decimal(lease.monthly_payment)) end)
 
     %{
       total_rou_assets: total_rou,
@@ -514,19 +515,19 @@ defmodule HoldcoWeb.LeaseLive.Index do
   # PV = payment * (1 - (1 + r)^(-n)) / r
   # where r is monthly discount rate, n is remaining months.
   defp present_value(lease) do
-    payment = lease.monthly_payment || 0.0
+    payment = Money.to_float(lease.monthly_payment || 0)
     n = remaining_months(lease)
     r = monthly_rate(lease)
 
-    calculate_pv(payment, r, n)
+    Money.to_decimal(calculate_pv(payment, r, n))
   end
 
   defp rou_asset_at_inception(lease) do
-    payment = lease.monthly_payment || 0.0
+    payment = Money.to_float(lease.monthly_payment || 0)
     n = total_months(lease)
     r = monthly_rate(lease)
 
-    calculate_pv(payment, r, n)
+    Money.to_decimal(calculate_pv(payment, r, n))
   end
 
   defp calculate_pv(_payment, _r, n) when n <= 0, do: 0.0
@@ -542,7 +543,7 @@ defmodule HoldcoWeb.LeaseLive.Index do
   end
 
   defp monthly_rate(lease) do
-    annual_rate = (lease.discount_rate || 5.0) / 100.0
+    annual_rate = Money.to_float(lease.discount_rate || 5) / 100.0
     annual_rate / 12.0
   end
 
@@ -571,10 +572,10 @@ defmodule HoldcoWeb.LeaseLive.Index do
   end
 
   defp amortization_schedule(lease) do
-    payment = lease.monthly_payment || 0.0
+    payment = Money.to_float(lease.monthly_payment || 0)
     n = remaining_months(lease)
     r = monthly_rate(lease)
-    pv = present_value(lease)
+    pv = Money.to_float(present_value(lease))
 
     if n <= 0 or payment <= 0 or pv <= 0 do
       []
@@ -589,22 +590,22 @@ defmodule HoldcoWeb.LeaseLive.Index do
   end
 
   defp build_schedule(month, total_months, opening, payment, r, acc) do
-    interest = Float.round(opening * r, 2)
+    interest = Money.round(opening * r, 2)
     # On the last month, adjust payment to close out the balance
-    effective_payment = if month == total_months, do: opening + interest, else: payment
-    principal = Float.round(effective_payment - interest, 2)
-    closing = Float.round(max(opening - principal, 0.0), 2)
+    effective_payment = if month == total_months, do: Money.add(opening, interest), else: Money.to_decimal(payment)
+    principal = Money.round(Money.sub(effective_payment, interest), 2)
+    closing = Money.round(Money.max(Money.sub(opening, principal), 0), 2)
 
     row = %{
       month: month,
-      opening_balance: Float.round(opening, 2),
-      payment: Float.round(effective_payment, 2),
+      opening_balance: Money.round(opening, 2),
+      payment: Money.round(effective_payment, 2),
       interest: interest,
       principal: principal,
       closing_balance: closing
     }
 
-    build_schedule(month + 1, total_months, closing, payment, r, [row | acc])
+    build_schedule(month + 1, total_months, Money.to_float(closing), payment, r, [row | acc])
   end
 
   # -- Chart data --
@@ -627,12 +628,12 @@ defmodule HoldcoWeb.LeaseLive.Index do
       datasets: [
         %{
           label: "ROU Asset (inception)",
-          data: Enum.map(data, & &1.rou),
+          data: Enum.map(data, &Money.to_float(&1.rou)),
           backgroundColor: "#4a8c87"
         },
         %{
           label: "Lease Liability (remaining)",
-          data: Enum.map(data, & &1.liability),
+          data: Enum.map(data, &Money.to_float(&1.liability)),
           backgroundColor: "#b0605e"
         }
       ]
@@ -659,10 +660,14 @@ defmodule HoldcoWeb.LeaseLive.Index do
   defp humanize_lease_type(other), do: other || "Operating"
 
   defp format_rate(nil), do: "0.00"
-  defp format_rate(r), do: :erlang.float_to_binary(r * 1.0, decimals: 2)
+  defp format_rate(%Decimal{} = r), do: Money.format(r, 2)
+  defp format_rate(r), do: Money.format(r, 2)
+
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(2) |> Decimal.to_string() |> add_commas()
 
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 2) |> add_commas()
+    do: Money.to_float(Money.round(n, 2)) |> :erlang.float_to_binary(decimals: 2) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0.00"

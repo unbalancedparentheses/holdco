@@ -2,6 +2,7 @@ defmodule HoldcoWeb.DashboardLive do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Corporate, Banking, Assets, Platform, Portfolio, Compliance, AI}
+  alias Holdco.Money
 
   @currencies ~w(USD EUR GBP ARS BRL CHF JPY CAD AUD)
 
@@ -44,7 +45,7 @@ defmodule HoldcoWeb.DashboardLive do
        snapshots: snapshots,
        allocation: allocation,
        display_currency: "USD",
-       fx_rate: 1.0,
+       fx_rate: Decimal.new(1),
        pending_approvals: pending_approvals,
        upcoming_deadlines: upcoming_deadlines,
        ai_insight: nil,
@@ -56,11 +57,11 @@ defmodule HoldcoWeb.DashboardLive do
   def handle_event("change_currency", %{"currency" => currency}, socket) do
     fx_rate =
       if currency == "USD" do
-        1.0
+        Decimal.new(1)
       else
         case Portfolio.get_fx_rate(currency) do
-          rate when rate > 0 -> 1.0 / rate
-          _ -> 1.0
+          rate when rate > 0 -> Money.div(1, rate)
+          _ -> Decimal.new(1)
         end
       end
 
@@ -121,26 +122,26 @@ defmodule HoldcoWeb.DashboardLive do
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Net Asset Value</div>
-        <div class="metric-value">{sym}{format_number(@nav.nav * @fx_rate)}</div>
+        <div class="metric-value">{sym}{format_number(Money.mult(@nav.nav, @fx_rate))}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Liquid</div>
-        <div class="metric-value">{sym}{format_number(@nav.liquid * @fx_rate)}</div>
+        <div class="metric-value">{sym}{format_number(Money.mult(@nav.liquid, @fx_rate))}</div>
         <div class="metric-note">Bank balances</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Marketable</div>
-        <div class="metric-value">{sym}{format_number(@nav.marketable * @fx_rate)}</div>
+        <div class="metric-value">{sym}{format_number(Money.mult(@nav.marketable, @fx_rate))}</div>
         <div class="metric-note">Stocks, crypto, commodities</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Illiquid</div>
-        <div class="metric-value">{sym}{format_number(@nav.illiquid * @fx_rate)}</div>
+        <div class="metric-value">{sym}{format_number(Money.mult(@nav.illiquid, @fx_rate))}</div>
         <div class="metric-note">Real estate, PE, funds</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Liabilities</div>
-        <div class="metric-value num-negative">{sym}{format_number(@nav.liabilities * @fx_rate)}</div>
+        <div class="metric-value num-negative">{sym}{format_number(Money.mult(@nav.liabilities, @fx_rate))}</div>
       </div>
     </div>
 
@@ -151,11 +152,11 @@ defmodule HoldcoWeb.DashboardLive do
         </div>
         <div class="panel" style="padding: 1rem;">
           <% alloc_colors = ["#4a8c87", "#6b87a0", "#5f8f6e", "#8a5a6a", "#c08060", "#b89040", "#b0605e"] %>
-          <% alloc_total = Enum.reduce(@allocation, 0.0, fn a, acc -> acc + max(a.value, a.count) end) %>
+          <% alloc_total = Enum.reduce(@allocation, Decimal.new(0), fn a, acc -> Money.add(acc, Money.max(a.value, a.count)) end) %>
           <div class="stacked-bar">
             <%= for {a, color} <- Enum.zip(@allocation, alloc_colors) do %>
-              <% val = if a.value > 0, do: a.value, else: a.count %>
-              <% pct = if alloc_total > 0, do: Float.round(val / alloc_total * 100, 1), else: 0 %>
+              <% val = if Money.gt?(a.value, 0), do: a.value, else: a.count %>
+              <% pct = if Money.gt?(alloc_total, 0), do: Money.to_float(Money.round(Money.mult(Money.div(val, alloc_total), 100), 1)), else: 0 %>
               <div class="stacked-bar-segment" style={"width: #{pct}%; background: #{color};"} title={"#{a.type}: #{pct}%"}>
                 <%= if pct > 12 do %>
                   <span class="stacked-bar-label">{a.type}</span>
@@ -165,8 +166,8 @@ defmodule HoldcoWeb.DashboardLive do
           </div>
           <div class="stacked-bar-legend">
             <%= for {a, color} <- Enum.zip(@allocation, alloc_colors) do %>
-              <% val = if a.value > 0, do: a.value, else: a.count %>
-              <% pct = if alloc_total > 0, do: Float.round(val / alloc_total * 100, 1), else: 0 %>
+              <% val = if Money.gt?(a.value, 0), do: a.value, else: a.count %>
+              <% pct = if Money.gt?(alloc_total, 0), do: Money.to_float(Money.round(Money.mult(Money.div(val, alloc_total), 100), 1)), else: 0 %>
               <span class="stacked-bar-legend-item">
                 <span class="stacked-bar-swatch" style={"background: #{color};"}></span>
                 {a.type} <span class="stacked-bar-pct">{pct}%</span>
@@ -368,7 +369,7 @@ defmodule HoldcoWeb.DashboardLive do
                 <td><span class="tag tag-ink">{tx.transaction_type}</span></td>
                 <td class="td-name">{tx.description}</td>
                 <td>{tx.counterparty}</td>
-                <td class={"td-num #{if tx.amount && tx.amount < 0, do: "num-negative", else: "num-positive"}"}>
+                <td class={"td-num #{if tx.amount && Money.negative?(tx.amount), do: "num-negative", else: "num-positive"}"}>
                   {format_currency(tx.amount, tx.currency)}
                 </td>
               </tr>
@@ -389,6 +390,9 @@ defmodule HoldcoWeb.DashboardLive do
   defp currency_symbol("CHF"), do: "CHF "
   defp currency_symbol(ccy), do: "#{ccy} "
 
+  defp format_number(%Decimal{} = n),
+    do: :erlang.float_to_binary(Money.to_float(n), decimals: 0) |> add_commas()
+
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
 
@@ -402,8 +406,8 @@ defmodule HoldcoWeb.DashboardLive do
   defp format_currency(nil, _currency), do: "0"
 
   defp format_currency(amount, currency) do
-    sign = if amount < 0, do: "-", else: ""
-    "#{sign}#{format_number(abs(amount))} #{currency}"
+    sign = if Money.negative?(amount), do: "-", else: ""
+    "#{sign}#{format_number(Money.abs(amount))} #{currency}"
   end
 
   defp format_time(nil), do: ""
@@ -439,7 +443,7 @@ defmodule HoldcoWeb.DashboardLive do
       datasets: [
         %{
           label: "NAV",
-          data: Enum.map(sorted, & &1.nav),
+          data: Enum.map(sorted, &Money.to_float(&1.nav)),
           borderColor: "#4a8c87",
           backgroundColor: "rgba(74, 140, 135, 0.1)",
           fill: true,

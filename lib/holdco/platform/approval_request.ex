@@ -12,6 +12,9 @@ defmodule Holdco.Platform.ApprovalRequest do
     field :reviewed_by, :string
     field :notes, :string
     field :reviewed_at, :utc_datetime
+    field :required_approvals, :integer, default: 1
+
+    has_many :votes, Holdco.Platform.ApprovalVote
 
     timestamps(type: :utc_datetime)
   end
@@ -27,8 +30,10 @@ defmodule Holdco.Platform.ApprovalRequest do
       :status,
       :reviewed_by,
       :notes,
-      :reviewed_at
+      :reviewed_at,
+      :required_approvals
     ])
     |> validate_required([:requested_by, :table_name, :action])
+    |> validate_number(:required_approvals, greater_than: 0)
   end
 end

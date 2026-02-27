@@ -1,6 +1,7 @@
 defmodule Holdco.Finance do
   import Ecto.Query
   alias Holdco.Repo
+  alias Holdco.Money
 
   alias Holdco.Finance.{
     Financial,
@@ -87,6 +88,52 @@ defmodule Holdco.Finance do
     |> JournalEntry.changeset(attrs)
     |> Repo.insert()
     |> audit_and_broadcast("journal_entries", "create")
+  end
+
+  @doc """
+  Creates a journal entry with its lines atomically in a single transaction.
+  Validates that debits equal credits before inserting.
+  Returns {:ok, entry_with_lines} or {:error, reason}.
+  """
+  def create_journal_entry_with_lines(entry_attrs, lines_attrs) when is_list(lines_attrs) do
+    total_debit = Enum.reduce(lines_attrs, Decimal.new(0), fn l, acc -> Money.add(acc, parse_line_amount(l, "debit")) end)
+    total_credit = Enum.reduce(lines_attrs, Decimal.new(0), fn l, acc -> Money.add(acc, parse_line_amount(l, "credit")) end)
+
+    cond do
+      length(lines_attrs) < 2 ->
+        {:error, :insufficient_lines}
+
+      Money.gt?(Money.abs(Money.sub(total_debit, total_credit)), "0.01") ->
+        {:error, :unbalanced}
+
+      true ->
+        Repo.transaction(fn ->
+          case %JournalEntry{} |> JournalEntry.changeset(entry_attrs) |> Repo.insert() do
+            {:ok, entry} ->
+              lines =
+                Enum.map(lines_attrs, fn l ->
+                  line_attrs = Map.put(l, "entry_id", entry.id)
+
+                  case %JournalLine{} |> JournalLine.changeset(line_attrs) |> Repo.insert() do
+                    {:ok, line} -> line
+                    {:error, changeset} -> Repo.rollback({:line_error, changeset})
+                  end
+                end)
+
+              Holdco.Platform.log_action("create", "journal_entries", entry.id)
+              broadcast({:journal_entries_created, entry})
+              %{entry | lines: lines}
+
+            {:error, changeset} ->
+              Repo.rollback({:entry_error, changeset})
+          end
+        end)
+    end
+  end
+
+  defp parse_line_amount(attrs, key) do
+    val = Map.get(attrs, key) || Map.get(attrs, String.to_atom(key))
+    Money.to_decimal(val)
   end
 
   def update_journal_entry(%JournalEntry{} = je, attrs) do
@@ -331,21 +378,21 @@ defmodule Holdco.Finance do
     assets =
       accounts
       |> Enum.filter(&(&1.account_type == "asset"))
-      |> Enum.map(&Map.put(&1, :balance, &1.total_debit - &1.total_credit))
+      |> Enum.map(&Map.put(&1, :balance, Money.sub(&1.total_debit, &1.total_credit)))
 
     liabilities =
       accounts
       |> Enum.filter(&(&1.account_type == "liability"))
-      |> Enum.map(&Map.put(&1, :balance, &1.total_credit - &1.total_debit))
+      |> Enum.map(&Map.put(&1, :balance, Money.sub(&1.total_credit, &1.total_debit)))
 
     equity =
       accounts
       |> Enum.filter(&(&1.account_type == "equity"))
-      |> Enum.map(&Map.put(&1, :balance, &1.total_credit - &1.total_debit))
+      |> Enum.map(&Map.put(&1, :balance, Money.sub(&1.total_credit, &1.total_debit)))
 
-    total_assets = Enum.reduce(assets, 0.0, &(&1.balance + &2))
-    total_liabilities = Enum.reduce(liabilities, 0.0, &(&1.balance + &2))
-    total_equity = Enum.reduce(equity, 0.0, &(&1.balance + &2))
+    total_assets = Enum.reduce(assets, Decimal.new(0), &Money.add(&1.balance, &2))
+    total_liabilities = Enum.reduce(liabilities, Decimal.new(0), &Money.add(&1.balance, &2))
+    total_equity = Enum.reduce(equity, Decimal.new(0), &Money.add(&1.balance, &2))
 
     %{
       assets: assets,
@@ -407,29 +454,29 @@ defmodule Holdco.Finance do
 
     revenue = Repo.all(revenue_query)
     expenses = Repo.all(expense_query)
-    total_revenue = Enum.reduce(revenue, 0.0, &(&1.amount + &2))
-    total_expenses = Enum.reduce(expenses, 0.0, &(&1.amount + &2))
+    total_revenue = Enum.reduce(revenue, Decimal.new(0), &Money.add(&1.amount, &2))
+    total_expenses = Enum.reduce(expenses, Decimal.new(0), &Money.add(&1.amount, &2))
 
     %{
       revenue: revenue,
       expenses: expenses,
       total_revenue: total_revenue,
       total_expenses: total_expenses,
-      net_income: total_revenue - total_expenses
+      net_income: Money.sub(total_revenue, total_expenses)
     }
   end
 
   # Aggregations
   def total_revenue do
-    Repo.one(from f in Financial, select: sum(f.revenue)) || 0.0
+    Repo.one(from f in Financial, select: sum(f.revenue)) || Decimal.new(0)
   end
 
   def total_expenses do
-    Repo.one(from f in Financial, select: sum(f.expenses)) || 0.0
+    Repo.one(from f in Financial, select: sum(f.expenses)) || Decimal.new(0)
   end
 
   def total_liabilities do
-    Repo.one(from l in Liability, select: sum(l.principal)) || 0.0
+    Repo.one(from l in Liability, select: sum(l.principal)) || Decimal.new(0)
   end
 
   # Segments

@@ -2,6 +2,7 @@ defmodule HoldcoWeb.AccountingLive.Journal do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Finance, Corporate}
+  alias Holdco.Money
 
   @impl true
   def mount(_params, _session, socket) do
@@ -95,14 +96,14 @@ defmodule HoldcoWeb.AccountingLive.Journal do
       |> Enum.map(fn {_k, v} -> v end)
       |> Enum.reject(fn l -> (l["account_id"] || "") == "" end)
 
-    total_debit = lines |> Enum.map(&parse_float(&1["debit"])) |> Enum.sum()
-    total_credit = lines |> Enum.map(&parse_float(&1["credit"])) |> Enum.sum()
+    total_debit = lines |> Enum.map(&parse_decimal(&1["debit"])) |> Money.sum()
+    total_credit = lines |> Enum.map(&parse_decimal(&1["credit"])) |> Money.sum()
 
     cond do
       length(lines) < 2 ->
         {:noreply, assign(socket, form_error: "At least 2 lines required")}
 
-      abs(total_debit - total_credit) > 0.01 ->
+      Money.gt?(Money.abs(Money.sub(total_debit, total_credit)), "0.01") ->
         {:noreply,
          assign(socket,
            form_error:
@@ -115,22 +116,28 @@ defmodule HoldcoWeb.AccountingLive.Journal do
             do: Map.delete(entry_params, "company_id"),
             else: entry_params
 
-        case Finance.create_journal_entry(entry_params) do
-          {:ok, entry} ->
-            Enum.each(lines, fn l ->
-              Finance.create_journal_line(%{
-                "entry_id" => entry.id,
-                "account_id" => l["account_id"],
-                "debit" => parse_float(l["debit"]),
-                "credit" => parse_float(l["credit"]),
-                "notes" => l["notes"]
-              })
-            end)
+        line_attrs =
+          Enum.map(lines, fn l ->
+            %{
+              "account_id" => l["account_id"],
+              "debit" => parse_decimal(l["debit"]),
+              "credit" => parse_decimal(l["credit"]),
+              "notes" => l["notes"]
+            }
+          end)
 
+        case Finance.create_journal_entry_with_lines(entry_params, line_attrs) do
+          {:ok, _entry} ->
             {:noreply,
              reload(socket)
              |> put_flash(:info, "Journal entry created")
              |> assign(show_form: false, form_error: nil)}
+
+          {:error, :unbalanced} ->
+            {:noreply, assign(socket, form_error: "Debits must equal credits")}
+
+          {:error, :insufficient_lines} ->
+            {:noreply, assign(socket, form_error: "At least 2 lines required")}
 
           {:error, _} ->
             {:noreply, put_flash(socket, :error, "Failed to create journal entry")}
@@ -183,25 +190,19 @@ defmodule HoldcoWeb.AccountingLive.Journal do
     end)
   end
 
-  defp parse_float(nil), do: 0.0
-  defp parse_float(""), do: 0.0
-
-  defp parse_float(val) when is_binary(val) do
-    case Float.parse(val) do
-      {f, _} -> f
-      :error -> 0.0
-    end
-  end
-
-  defp parse_float(val) when is_float(val), do: val
-  defp parse_float(val) when is_integer(val), do: val / 1
+  defp parse_decimal(nil), do: Decimal.new(0)
+  defp parse_decimal(""), do: Decimal.new(0)
+  defp parse_decimal(val), do: Money.to_decimal(val)
 
   defp entry_totals(entry) do
     lines = entry.lines || []
-    total_debit = Enum.reduce(lines, 0.0, &((&1.debit || 0.0) + &2))
-    total_credit = Enum.reduce(lines, 0.0, &((&1.credit || 0.0) + &2))
+    total_debit = Enum.reduce(lines, Decimal.new(0), fn line, acc -> Money.add(acc, line.debit) end)
+    total_credit = Enum.reduce(lines, Decimal.new(0), fn line, acc -> Money.add(acc, line.credit) end)
     {total_debit, total_credit}
   end
+
+  defp format_number(%Decimal{} = n),
+    do: :erlang.float_to_binary(Money.to_float(n), decimals: 2) |> add_commas()
 
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 2) |> add_commas()
@@ -316,10 +317,10 @@ defmodule HoldcoWeb.AccountingLive.Journal do
                       <% end %>
                     </td>
                     <td class="td-num" style="font-size: 0.85rem;">
-                      <%= if (line.debit || 0.0) > 0, do: format_number(line.debit) %>
+                      <%= if Money.gt?(line.debit, 0), do: format_number(line.debit) %>
                     </td>
                     <td class="td-num" style="font-size: 0.85rem;">
-                      <%= if (line.credit || 0.0) > 0, do: format_number(line.credit) %>
+                      <%= if Money.gt?(line.credit, 0), do: format_number(line.credit) %>
                     </td>
                     <td></td>
                     <td></td>

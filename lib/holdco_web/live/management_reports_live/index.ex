@@ -1,7 +1,8 @@
 defmodule HoldcoWeb.ManagementReportsLive.Index do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Analytics, Corporate, Finance, Portfolio, Compliance}
+  alias Holdco.{Analytics, Banking, Corporate, Finance, Portfolio, Compliance}
+  alias Holdco.Money
 
   @available_sections [
     {"balance_sheet", "Balance Sheet"},
@@ -288,7 +289,7 @@ defmodule HoldcoWeb.ManagementReportsLive.Index do
           Finance.trial_balance(company_id)
 
         "cash_flow" ->
-          Finance.income_statement(company_id, date_from, date_to)
+          build_cash_flow_data(company_id)
 
         "portfolio_nav" ->
           Portfolio.calculate_nav()
@@ -303,13 +304,113 @@ defmodule HoldcoWeb.ManagementReportsLive.Index do
           Analytics.list_kpis(company_id)
 
         "aging_report" ->
-          Finance.trial_balance(company_id)
+          build_aging_data()
 
         _ ->
           nil
       end
 
     %{section: section, company_id: company_id, data: data}
+  end
+
+  defp build_cash_flow_data(company_id) do
+    bank_accounts = Banking.list_bank_accounts()
+
+    accounts =
+      if company_id,
+        do: Enum.filter(bank_accounts, &(&1.company_id == company_id)),
+        else: bank_accounts
+
+    current_cash =
+      Enum.reduce(accounts, Decimal.new(0), fn ba, acc ->
+        Money.add(acc, Portfolio.to_usd(Money.to_decimal(ba.balance), ba.currency))
+      end)
+
+    transactions = Banking.list_transactions()
+
+    txns =
+      if company_id,
+        do: Enum.filter(transactions, &(&1.company_id == company_id)),
+        else: transactions
+
+    inflows =
+      txns
+      |> Enum.filter(&Money.positive?(&1.amount))
+      |> Enum.reduce(Decimal.new(0), fn t, acc -> Money.add(acc, t.amount) end)
+
+    outflows =
+      txns
+      |> Enum.filter(&Money.negative?(&1.amount))
+      |> Enum.reduce(Decimal.new(0), fn t, acc -> Money.add(acc, Money.abs(t.amount)) end)
+
+    %{
+      current_cash: current_cash,
+      total_inflows: inflows,
+      total_outflows: outflows,
+      net_flow: Money.sub(inflows, outflows)
+    }
+  end
+
+  defp build_aging_data do
+    transactions = Banking.list_transactions()
+    today = Date.utc_today()
+
+    buckets = [
+      {:current, "Current (0-30d)", 0, 30},
+      {:days_30, "31-60 days", 31, 60},
+      {:days_60, "61-90 days", 61, 90},
+      {:days_90, "91-120 days", 91, 120},
+      {:days_120, "120+ days", 121, nil}
+    ]
+
+    receivables =
+      transactions
+      |> Enum.filter(&Money.positive?(&1.amount))
+      |> Enum.reduce(Map.new(buckets, fn {k, _, _, _} -> {k, Decimal.new(0)} end), fn t, acc ->
+        days = days_old(t, today)
+        bucket = find_bucket(days, buckets)
+        Map.update!(acc, bucket, &Money.add(&1, t.amount))
+      end)
+
+    payables =
+      transactions
+      |> Enum.filter(&Money.negative?(&1.amount))
+      |> Enum.reduce(Map.new(buckets, fn {k, _, _, _} -> {k, Decimal.new(0)} end), fn t, acc ->
+        days = days_old(t, today)
+        bucket = find_bucket(days, buckets)
+        Map.update!(acc, bucket, &Money.add(&1, Money.abs(t.amount)))
+      end)
+
+    %{
+      buckets: Enum.map(buckets, fn {k, label, _, _} -> {k, label} end),
+      receivables: receivables,
+      payables: payables,
+      total_ar: Enum.reduce(receivables, Decimal.new(0), fn {_, v}, acc -> Money.add(acc, v) end),
+      total_ap: Enum.reduce(payables, Decimal.new(0), fn {_, v}, acc -> Money.add(acc, v) end)
+    }
+  end
+
+  defp days_old(txn, today) do
+    case txn.date do
+      nil -> 0
+      date_str when is_binary(date_str) ->
+        case Date.from_iso8601(date_str) do
+          {:ok, d} -> Date.diff(today, d)
+          _ -> 0
+        end
+      %Date{} = d -> Date.diff(today, d)
+      _ -> 0
+    end
+  end
+
+  defp find_bucket(days, buckets) do
+    Enum.find_value(buckets, :current, fn {key, _, min, max} ->
+      cond do
+        max == nil and days >= min -> key
+        max != nil and days >= min and days <= max -> key
+        true -> nil
+      end
+    end)
   end
 
   defp safe_decode_json(nil), do: []
@@ -343,6 +444,9 @@ defmodule HoldcoWeb.ManagementReportsLive.Index do
   defp format_datetime(dt) do
     Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
   end
+
+  defp format_number(%Decimal{} = n),
+    do: :erlang.float_to_binary(Money.to_float(n), decimals: 2) |> add_commas()
 
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 2) |> add_commas()
@@ -677,7 +781,7 @@ defmodule HoldcoWeb.ManagementReportsLive.Index do
       </div>
       <div class="metric-cell">
         <div class="metric-label">Net Income</div>
-        <div class={"metric-value #{if @data.net_income >= 0, do: "num-positive", else: "num-negative"}"}>
+        <div class={"metric-value #{if Money.gte?(@data.net_income, 0), do: "num-positive", else: "num-negative"}"}>
           ${format_number(@data.net_income)}
         </div>
       </div>
@@ -699,7 +803,7 @@ defmodule HoldcoWeb.ManagementReportsLive.Index do
             <td>{row.name}</td>
             <td class="td-num">{format_number(row.total_debit)}</td>
             <td class="td-num">{format_number(row.total_credit)}</td>
-            <td class={"td-num #{if row.balance >= 0, do: "num-positive", else: "num-negative"}"}>{format_number(row.balance)}</td>
+            <td class={"td-num #{if Money.gte?(row.balance, 0), do: "num-positive", else: "num-negative"}"}>{format_number(row.balance)}</td>
           </tr>
         <% end %>
       </tbody>
@@ -787,6 +891,64 @@ defmodule HoldcoWeb.ManagementReportsLive.Index do
     <%= if @data == [] do %>
       <div class="empty-state">No KPIs defined.</div>
     <% end %>
+    """
+  end
+
+  defp render_section_data(%{section: "cash_flow", data: data} = assigns) when is_map(data) do
+    ~H"""
+    <div class="metrics-strip" style="margin-bottom: 0.75rem;">
+      <div class="metric-cell">
+        <div class="metric-label">Current Cash</div>
+        <div class="metric-value">${format_number(@data.current_cash)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Total Inflows</div>
+        <div class="metric-value num-positive">${format_number(@data.total_inflows)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Total Outflows</div>
+        <div class="metric-value num-negative">${format_number(@data.total_outflows)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Net Flow</div>
+        <div class={"metric-value #{if Money.gte?(@data.net_flow, 0), do: "num-positive", else: "num-negative"}"}>
+          ${format_number(@data.net_flow)}
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_section_data(%{section: "aging_report", data: data} = assigns) when is_map(data) do
+    ~H"""
+    <div class="metrics-strip" style="margin-bottom: 0.75rem;">
+      <div class="metric-cell">
+        <div class="metric-label">Total AR</div>
+        <div class="metric-value num-positive">${format_number(@data.total_ar)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Total AP</div>
+        <div class="metric-value num-negative">${format_number(@data.total_ap)}</div>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Bucket</th>
+          <th class="th-num">Receivables</th>
+          <th class="th-num">Payables</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for {key, label} <- @data.buckets do %>
+          <tr>
+            <td>{label}</td>
+            <td class="td-num num-positive">{format_number(Map.get(@data.receivables, key, Decimal.new(0)))}</td>
+            <td class="td-num num-negative">{format_number(Map.get(@data.payables, key, Decimal.new(0)))}</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
     """
   end
 

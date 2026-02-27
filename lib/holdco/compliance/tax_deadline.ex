@@ -8,7 +8,7 @@ defmodule Holdco.Compliance.TaxDeadline do
     field :due_date, :string
     field :status, :string, default: "pending"
     field :notes, :string
-    field :estimated_amount, :float
+    field :estimated_amount, :decimal
 
     belongs_to :company, Holdco.Corporate.Company
 

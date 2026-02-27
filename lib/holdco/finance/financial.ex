@@ -4,8 +4,8 @@ defmodule Holdco.Finance.Financial do
 
   schema "financials" do
     field :period, :string
-    field :revenue, :float, default: 0.0
-    field :expenses, :float, default: 0.0
+    field :revenue, :decimal, default: 0
+    field :expenses, :decimal, default: 0
     field :currency, :string, default: "USD"
     field :notes, :string
 
@@ -18,5 +18,7 @@ defmodule Holdco.Finance.Financial do
     financial
     |> cast(attrs, [:company_id, :period, :revenue, :expenses, :currency, :notes])
     |> validate_required([:company_id, :period])
+    |> validate_number(:revenue, greater_than_or_equal_to: 0)
+    |> validate_number(:expenses, greater_than_or_equal_to: 0)
   end
 end

@@ -1,6 +1,7 @@
 defmodule Holdco.Finance.JournalEntry do
   use Ecto.Schema
   import Ecto.Changeset
+  import Holdco.Validators
 
   schema "journal_entries" do
     field :date, :string
@@ -18,5 +19,6 @@ defmodule Holdco.Finance.JournalEntry do
     journal_entry
     |> cast(attrs, [:date, :description, :reference, :external_id, :company_id])
     |> validate_required([:date, :description])
+    |> validate_date_format(:date)
   end
 end

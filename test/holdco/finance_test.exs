@@ -5,6 +5,11 @@ defmodule Holdco.FinanceTest do
 
   alias Holdco.Finance
 
+  # Helper: convert Decimal to float for test assertions
+  defp d(val) when is_struct(val, Decimal), do: Decimal.to_float(val)
+  defp d(val) when is_number(val), do: val / 1
+  defp d(nil), do: 0.0
+
   describe "financials" do
     test "CRUD operations" do
       company = company_fixture()
@@ -14,7 +19,7 @@ defmodule Holdco.FinanceTest do
       assert Finance.get_financial!(f.id).id == f.id
 
       {:ok, updated} = Finance.update_financial(f, %{revenue: 120_000.0})
-      assert updated.revenue == 120_000.0
+      assert d(updated.revenue) == 120_000.0
 
       {:ok, _} = Finance.delete_financial(updated)
     end
@@ -64,7 +69,7 @@ defmodule Holdco.FinanceTest do
       assert Finance.get_journal_line!(jl.id).id == jl.id
 
       {:ok, updated} = Finance.update_journal_line(jl, %{debit: 600.0})
-      assert updated.debit == 600.0
+      assert d(updated.debit) == 600.0
 
       {:ok, _} = Finance.delete_journal_line(updated)
     end
@@ -80,7 +85,7 @@ defmodule Holdco.FinanceTest do
       assert Finance.get_inter_company_transfer!(ict.id).id == ict.id
 
       {:ok, updated} = Finance.update_inter_company_transfer(ict, %{amount: 20_000.0})
-      assert updated.amount == 20_000.0
+      assert d(updated.amount) == 20_000.0
 
       {:ok, _} = Finance.delete_inter_company_transfer(updated)
     end
@@ -95,7 +100,7 @@ defmodule Holdco.FinanceTest do
       assert Finance.get_dividend!(d.id).id == d.id
 
       {:ok, updated} = Finance.update_dividend(d, %{amount: 2000.0})
-      assert updated.amount == 2000.0
+      assert d(updated.amount) == 2000.0
 
       {:ok, _} = Finance.delete_dividend(updated)
     end
@@ -125,7 +130,7 @@ defmodule Holdco.FinanceTest do
       assert Finance.get_tax_payment!(tp.id).id == tp.id
 
       {:ok, updated} = Finance.update_tax_payment(tp, %{amount: 6000.0})
-      assert updated.amount == 6000.0
+      assert d(updated.amount) == 6000.0
 
       {:ok, _} = Finance.delete_tax_payment(updated)
     end
@@ -183,15 +188,15 @@ defmodule Holdco.FinanceTest do
 
   describe "aggregations" do
     test "total_revenue/0" do
-      assert is_number(Finance.total_revenue())
+      assert Finance.total_revenue() != nil
     end
 
     test "total_expenses/0" do
-      assert is_number(Finance.total_expenses())
+      assert Finance.total_expenses() != nil
     end
 
     test "total_liabilities/0" do
-      assert is_number(Finance.total_liabilities())
+      assert Finance.total_liabilities() != nil
     end
   end
 
@@ -307,6 +312,597 @@ defmodule Holdco.FinanceTest do
   describe "subscribe/0" do
     test "subscribes to finance PubSub topic" do
       assert :ok = Finance.subscribe()
+    end
+  end
+
+  # ── create_journal_entry_with_lines/2 ────────────────────────
+
+  describe "create_journal_entry_with_lines/2" do
+    setup do
+      company = company_fixture()
+
+      {:ok, cash_acct} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, revenue_acct} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Revenue",
+          account_type: "revenue",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, expense_acct} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Rent Expense",
+          account_type: "expense",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      %{
+        company: company,
+        cash_acct: cash_acct,
+        revenue_acct: revenue_acct,
+        expense_acct: expense_acct
+      }
+    end
+
+    test "successfully creates a balanced journal entry with two lines", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-03-15",
+        "description" => "Revenue received"
+      }
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 1000.0, "credit" => 0.0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0.0, "credit" => 1000.0}
+      ]
+
+      assert {:ok, entry} = Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+      assert entry.description == "Revenue received"
+      assert entry.date == "2024-03-15"
+      assert length(entry.lines) == 2
+    end
+
+    test "returns the created entry with its lines preloaded", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-04-01",
+        "description" => "Atomic creation test"
+      }
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 500.0, "credit" => 0.0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0.0, "credit" => 500.0}
+      ]
+
+      {:ok, entry} = Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+
+      assert is_list(entry.lines)
+      debit_line = Enum.find(entry.lines, fn l -> d(l.debit) == 500.0 end)
+      credit_line = Enum.find(entry.lines, fn l -> d(l.credit) == 500.0 end)
+      assert debit_line != nil
+      assert credit_line != nil
+      assert debit_line.account_id == ctx.cash_acct.id
+      assert credit_line.account_id == ctx.revenue_acct.id
+    end
+
+    test "persists both entry and lines to the database", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-05-01",
+        "description" => "Persistence test"
+      }
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 250.0, "credit" => 0.0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0.0, "credit" => 250.0}
+      ]
+
+      {:ok, entry} = Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+
+      # Verify the entry is persisted and can be fetched
+      fetched = Finance.get_journal_entry!(entry.id)
+      assert fetched.id == entry.id
+      assert fetched.description == "Persistence test"
+
+      # Verify the lines are persisted
+      db_lines = Finance.list_journal_lines(entry.id)
+      assert length(db_lines) == 2
+    end
+
+    test "rejects fewer than 2 lines", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-01-01",
+        "description" => "Single line attempt"
+      }
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 100.0, "credit" => 0.0}
+      ]
+
+      assert {:error, :insufficient_lines} =
+               Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+    end
+
+    test "rejects an empty lines list", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-01-01",
+        "description" => "No lines"
+      }
+
+      assert {:error, :insufficient_lines} =
+               Finance.create_journal_entry_with_lines(entry_attrs, [])
+    end
+
+    test "rejects unbalanced debits and credits", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-01-01",
+        "description" => "Unbalanced entry"
+      }
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 1000.0, "credit" => 0.0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0.0, "credit" => 500.0}
+      ]
+
+      assert {:error, :unbalanced} =
+               Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+    end
+
+    test "rejects when credits exceed debits", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-01-01",
+        "description" => "Credits > Debits"
+      }
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 100.0, "credit" => 0.0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0.0, "credit" => 999.0}
+      ]
+
+      assert {:error, :unbalanced} =
+               Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+    end
+
+    test "allows small floating-point rounding within tolerance", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-06-01",
+        "description" => "Rounding tolerance test"
+      }
+
+      # Difference of 0.005 which is within the 0.01 tolerance
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 100.005, "credit" => 0.0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0.0, "credit" => 100.0}
+      ]
+
+      assert {:ok, _entry} =
+               Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+    end
+
+    test "rejects difference just outside tolerance", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-06-01",
+        "description" => "Outside tolerance test"
+      }
+
+      # Difference of 0.02 which exceeds the 0.01 tolerance
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 100.02, "credit" => 0.0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0.0, "credit" => 100.0}
+      ]
+
+      assert {:error, :unbalanced} =
+               Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+    end
+
+    test "handles more than two lines (compound entry)", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-07-01",
+        "description" => "Compound journal entry"
+      }
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 1000.0, "credit" => 0.0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0.0, "credit" => 700.0},
+        %{"account_id" => ctx.expense_acct.id, "debit" => 0.0, "credit" => 300.0}
+      ]
+
+      assert {:ok, entry} = Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+      assert length(entry.lines) == 3
+
+      total_debit = Enum.reduce(entry.lines, 0.0, &(d(&1.debit) + &2))
+      total_credit = Enum.reduce(entry.lines, 0.0, &(d(&1.credit) + &2))
+      assert abs(total_debit - total_credit) < 0.01
+    end
+
+    test "handles string amounts in line attributes", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-08-01",
+        "description" => "String amounts test"
+      }
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => "750.0", "credit" => "0.0"},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => "0.0", "credit" => "750.0"}
+      ]
+
+      assert {:ok, entry} = Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+      assert length(entry.lines) == 2
+    end
+
+    test "handles integer amounts", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-09-01",
+        "description" => "Integer amounts test"
+      }
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 300, "credit" => 0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0, "credit" => 300}
+      ]
+
+      assert {:ok, entry} = Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+      assert length(entry.lines) == 2
+    end
+
+    test "does not persist anything when entry validation fails", ctx do
+      entries_before = length(Finance.list_journal_entries(ctx.company.id))
+
+      # Missing required "date" and "description" fields
+      entry_attrs = %{"company_id" => ctx.company.id}
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 100.0, "credit" => 0.0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0.0, "credit" => 100.0}
+      ]
+
+      assert {:error, {:entry_error, _changeset}} =
+               Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+
+      entries_after = length(Finance.list_journal_entries(ctx.company.id))
+      assert entries_before == entries_after
+    end
+
+    test "does not persist entry when a line has invalid data", ctx do
+      entries_before = length(Finance.list_journal_entries(ctx.company.id))
+
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-10-01",
+        "description" => "Invalid line test"
+      }
+
+      # Second line is missing required account_id
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 200.0, "credit" => 0.0},
+        %{"debit" => 0.0, "credit" => 200.0}
+      ]
+
+      assert {:error, {:line_error, _changeset}} =
+               Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+
+      entries_after = length(Finance.list_journal_entries(ctx.company.id))
+      assert entries_before == entries_after
+    end
+
+    test "each line references the created entry's id", ctx do
+      entry_attrs = %{
+        "company_id" => ctx.company.id,
+        "date" => "2024-11-01",
+        "description" => "FK reference test"
+      }
+
+      lines_attrs = [
+        %{"account_id" => ctx.cash_acct.id, "debit" => 400.0, "credit" => 0.0},
+        %{"account_id" => ctx.revenue_acct.id, "debit" => 0.0, "credit" => 400.0}
+      ]
+
+      {:ok, entry} = Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+
+      Enum.each(entry.lines, fn line ->
+        assert line.entry_id == entry.id
+      end)
+    end
+  end
+
+  # ── Financial reports with data ──────────────────────────────
+
+  describe "trial_balance with journal data" do
+    test "reflects debits and credits per account" do
+      company = company_fixture()
+
+      {:ok, cash} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, rev} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Sales Revenue",
+          account_type: "revenue",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      entry_attrs = %{
+        "company_id" => company.id,
+        "date" => "2024-01-15",
+        "description" => "Sale"
+      }
+
+      lines_attrs = [
+        %{"account_id" => cash.id, "debit" => 5000.0, "credit" => 0.0},
+        %{"account_id" => rev.id, "debit" => 0.0, "credit" => 5000.0}
+      ]
+
+      {:ok, _entry} = Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+
+      tb = Finance.trial_balance(company.id)
+      assert is_list(tb)
+      assert length(tb) >= 2
+
+      cash_row = Enum.find(tb, &(&1.id == cash.id))
+      assert cash_row != nil
+      assert d(cash_row.total_debit) == 5000.0
+      assert d(cash_row.total_credit) == 0.0
+      assert d(cash_row.balance) == 5000.0
+
+      rev_row = Enum.find(tb, &(&1.id == rev.id))
+      assert rev_row != nil
+      assert d(rev_row.total_debit) == 0.0
+      assert d(rev_row.total_credit) == 5000.0
+      assert d(rev_row.balance) == -5000.0
+    end
+
+    test "total debits equal total credits across all accounts" do
+      company = company_fixture()
+
+      {:ok, cash} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, rev} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Revenue",
+          account_type: "revenue",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      entry_attrs = %{
+        "company_id" => company.id,
+        "date" => "2024-02-01",
+        "description" => "Balance check"
+      }
+
+      lines_attrs = [
+        %{"account_id" => cash.id, "debit" => 3000.0, "credit" => 0.0},
+        %{"account_id" => rev.id, "debit" => 0.0, "credit" => 3000.0}
+      ]
+
+      {:ok, _} = Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+
+      tb = Finance.trial_balance(company.id)
+      sum_debit = Enum.reduce(tb, 0.0, &(d(&1.total_debit) + &2))
+      sum_credit = Enum.reduce(tb, 0.0, &(d(&1.total_credit) + &2))
+      assert abs(sum_debit - sum_credit) < 0.01
+    end
+  end
+
+  describe "balance_sheet with journal data" do
+    test "classifies asset, liability, and equity accounts correctly" do
+      company = company_fixture()
+
+      {:ok, cash} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, equity} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Retained Earnings",
+          account_type: "equity",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      entry_attrs = %{
+        "company_id" => company.id,
+        "date" => "2024-01-01",
+        "description" => "Capital injection"
+      }
+
+      lines_attrs = [
+        %{"account_id" => cash.id, "debit" => 10_000.0, "credit" => 0.0},
+        %{"account_id" => equity.id, "debit" => 0.0, "credit" => 10_000.0}
+      ]
+
+      {:ok, _} = Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs)
+
+      bs = Finance.balance_sheet(company.id)
+
+      assert length(bs.assets) >= 1
+      assert length(bs.equity) >= 1
+
+      cash_entry = Enum.find(bs.assets, &(&1.id == cash.id))
+      assert cash_entry != nil
+      assert d(cash_entry.balance) == 10_000.0
+
+      equity_entry = Enum.find(bs.equity, &(&1.id == equity.id))
+      assert equity_entry != nil
+      assert d(equity_entry.balance) == 10_000.0
+
+      assert d(bs.total_assets) == d(bs.total_liabilities) + d(bs.total_equity)
+    end
+  end
+
+  describe "income_statement with journal data" do
+    test "computes revenue, expenses, and net income" do
+      company = company_fixture()
+
+      {:ok, cash} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, rev} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Service Revenue",
+          account_type: "revenue",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, exp} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Salaries Expense",
+          account_type: "expense",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      # Revenue entry: debit Cash, credit Revenue
+      {:ok, _} =
+        Finance.create_journal_entry_with_lines(
+          %{"company_id" => company.id, "date" => "2024-06-01", "description" => "Client payment"},
+          [
+            %{"account_id" => cash.id, "debit" => 8000.0, "credit" => 0.0},
+            %{"account_id" => rev.id, "debit" => 0.0, "credit" => 8000.0}
+          ]
+        )
+
+      # Expense entry: debit Expense, credit Cash
+      {:ok, _} =
+        Finance.create_journal_entry_with_lines(
+          %{"company_id" => company.id, "date" => "2024-06-15", "description" => "Salary payment"},
+          [
+            %{"account_id" => exp.id, "debit" => 3000.0, "credit" => 0.0},
+            %{"account_id" => cash.id, "debit" => 0.0, "credit" => 3000.0}
+          ]
+        )
+
+      is = Finance.income_statement(company.id, "2024-01-01", "2024-12-31")
+
+      assert d(is.total_revenue) == 8000.0
+      assert d(is.total_expenses) == 3000.0
+      assert d(is.net_income) == 5000.0
+
+      assert length(is.revenue) == 1
+      assert length(is.expenses) == 1
+    end
+
+    test "filters by date range" do
+      company = company_fixture()
+
+      {:ok, cash} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, rev} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Revenue",
+          account_type: "revenue",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      # Entry in Q1
+      {:ok, _} =
+        Finance.create_journal_entry_with_lines(
+          %{"company_id" => company.id, "date" => "2024-02-01", "description" => "Q1 sale"},
+          [
+            %{"account_id" => cash.id, "debit" => 2000.0, "credit" => 0.0},
+            %{"account_id" => rev.id, "debit" => 0.0, "credit" => 2000.0}
+          ]
+        )
+
+      # Entry in Q3
+      {:ok, _} =
+        Finance.create_journal_entry_with_lines(
+          %{"company_id" => company.id, "date" => "2024-08-01", "description" => "Q3 sale"},
+          [
+            %{"account_id" => cash.id, "debit" => 5000.0, "credit" => 0.0},
+            %{"account_id" => rev.id, "debit" => 0.0, "credit" => 5000.0}
+          ]
+        )
+
+      # Only Q1
+      q1_is = Finance.income_statement(company.id, "2024-01-01", "2024-03-31")
+      assert d(q1_is.total_revenue) == 2000.0
+
+      # Only Q3
+      q3_is = Finance.income_statement(company.id, "2024-07-01", "2024-09-30")
+      assert d(q3_is.total_revenue) == 5000.0
+
+      # Full year
+      full_is = Finance.income_statement(company.id, "2024-01-01", "2024-12-31")
+      assert d(full_is.total_revenue) == 7000.0
+    end
+  end
+
+  # ── Aggregation functions with data ──────────────────────────
+
+  describe "aggregations with data" do
+    test "total_revenue/0 sums all financial records' revenue" do
+      company = company_fixture()
+      {:ok, _} = Finance.create_financial(%{company_id: company.id, period: "2024-Q1", revenue: 10_000.0, expenses: 5_000.0})
+      {:ok, _} = Finance.create_financial(%{company_id: company.id, period: "2024-Q2", revenue: 20_000.0, expenses: 8_000.0})
+
+      total = Finance.total_revenue()
+      assert d(total) >= 30_000.0
+    end
+
+    test "total_expenses/0 sums all financial records' expenses" do
+      company = company_fixture()
+      {:ok, _} = Finance.create_financial(%{company_id: company.id, period: "2024-Q1", revenue: 10_000.0, expenses: 5_000.0})
+      {:ok, _} = Finance.create_financial(%{company_id: company.id, period: "2024-Q2", revenue: 20_000.0, expenses: 8_000.0})
+
+      total = Finance.total_expenses()
+      assert d(total) >= 13_000.0
+    end
+
+    test "total_liabilities/0 sums all liability principals" do
+      company = company_fixture()
+      {:ok, _} = Finance.create_liability(%{company_id: company.id, liability_type: "loan", creditor: "Bank A", principal: 50_000.0})
+      {:ok, _} = Finance.create_liability(%{company_id: company.id, liability_type: "bond", creditor: "Bank B", principal: 30_000.0})
+
+      total = Finance.total_liabilities()
+      assert d(total) >= 80_000.0
     end
   end
 end

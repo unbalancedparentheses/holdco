@@ -5,6 +5,11 @@ defmodule Holdco.AssetsTest do
 
   alias Holdco.Assets
 
+  # Helper: convert Decimal to float for test assertions
+  defp d(val) when is_struct(val, Decimal), do: Decimal.to_float(val)
+  defp d(val) when is_number(val), do: val / 1
+  defp d(nil), do: 0.0
+
   describe "holdings" do
     test "list_holdings/0 returns all" do
       h = holding_fixture()
@@ -66,7 +71,7 @@ defmodule Holdco.AssetsTest do
       assert Assets.get_cost_basis_lot!(cbl.id).id == cbl.id
 
       {:ok, updated} = Assets.update_cost_basis_lot(cbl, %{quantity: 75.0})
-      assert updated.quantity == 75.0
+      assert d(updated.quantity) == 75.0
 
       {:ok, _} = Assets.delete_cost_basis_lot(updated)
     end
@@ -134,7 +139,7 @@ defmodule Holdco.AssetsTest do
       assert Assets.get_portfolio_snapshot!(ps.id).id == ps.id
 
       {:ok, updated} = Assets.update_portfolio_snapshot(ps, %{nav: 600_000.0})
-      assert updated.nav == 600_000.0
+      assert d(updated.nav) == 600_000.0
 
       {:ok, _} = Assets.delete_portfolio_snapshot(updated)
     end

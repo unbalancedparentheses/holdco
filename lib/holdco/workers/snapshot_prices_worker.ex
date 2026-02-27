@@ -3,6 +3,8 @@ defmodule Holdco.Workers.SnapshotPricesWorker do
 
   alias Holdco.{Assets, Pricing}
 
+  require Logger
+
   @impl Oban.Worker
   def perform(_job) do
     tickers =
@@ -12,11 +14,23 @@ defmodule Holdco.Workers.SnapshotPricesWorker do
       |> Enum.reject(&(&1 == ""))
       |> Enum.uniq()
 
-    for ticker <- tickers do
-      case Holdco.Pricing.YahooClient.fetch_price(ticker) do
-        {:ok, price} -> Pricing.record_price(ticker, price)
-        {:error, _} -> :skip
+    results =
+      for ticker <- tickers do
+        case Holdco.Pricing.YahooClient.fetch_price(ticker) do
+          {:ok, price} ->
+            Pricing.record_price(ticker, price)
+            :ok
+
+          {:error, reason} ->
+            Logger.warning("SnapshotPricesWorker: failed to fetch price for #{ticker}: #{inspect(reason)}")
+            :error
+        end
       end
+
+    failures = Enum.count(results, &(&1 == :error))
+
+    if failures > 0 do
+      Logger.warning("SnapshotPricesWorker: #{failures}/#{length(tickers)} tickers failed")
     end
 
     :ok

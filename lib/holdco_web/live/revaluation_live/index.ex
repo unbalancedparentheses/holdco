@@ -2,6 +2,7 @@ defmodule HoldcoWeb.RevaluationLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Finance, Portfolio}
+  alias Holdco.Money
 
   @fx_gain_loss_account_code "9100"
   @fx_gain_loss_account_name "FX Gain/Loss"
@@ -38,7 +39,7 @@ defmodule HoldcoWeb.RevaluationLive.Index do
     non_usd = socket.assigns.non_usd_accounts
     net_impact = socket.assigns.net_fx_impact
 
-    if net_impact == 0.0 do
+    if Money.zero?(net_impact) do
       {:noreply, put_flash(socket, :info, "No FX gain/loss to record. Net impact is zero.")}
     else
       today = Date.utc_today() |> Date.to_iso8601()
@@ -73,7 +74,7 @@ defmodule HoldcoWeb.RevaluationLive.Index do
           <button
             phx-click="generate_reval_je"
             class="btn btn-primary"
-            disabled={@net_fx_impact == 0.0}
+            disabled={Money.zero?(@net_fx_impact)}
           >
             Generate Revaluation JE
           </button>
@@ -93,7 +94,7 @@ defmodule HoldcoWeb.RevaluationLive.Index do
       </div>
       <div class="metric-cell">
         <div class="metric-label">Net FX Impact</div>
-        <div class={"metric-value #{if @net_fx_impact >= 0, do: "num-positive", else: "num-negative"}"}>
+        <div class={"metric-value #{if Money.gte?(@net_fx_impact, 0), do: "num-positive", else: "num-negative"}"}>
           ${format_number(@net_fx_impact)}
         </div>
       </div>
@@ -170,9 +171,9 @@ defmodule HoldcoWeb.RevaluationLive.Index do
           <tfoot>
             <tr style="font-weight: 600; border-top: 2px solid var(--rule);">
               <td colspan="4" class="td-name">Totals</td>
-              <td class="td-num">{format_number(Enum.reduce(@non_usd_accounts, 0.0, fn a, acc -> acc + a.usd_historical end))}</td>
+              <td class="td-num">{format_number(Enum.reduce(@non_usd_accounts, Decimal.new(0), fn a, acc -> Money.add(acc, a.usd_historical) end))}</td>
               <td></td>
-              <td class="td-num">{format_number(Enum.reduce(@non_usd_accounts, 0.0, fn a, acc -> acc + a.usd_current end))}</td>
+              <td class="td-num">{format_number(Enum.reduce(@non_usd_accounts, Decimal.new(0), fn a, acc -> Money.add(acc, a.usd_current) end))}</td>
               <td class={"td-num #{gain_loss_class(@net_fx_impact)}"}>
                 {format_signed(@net_fx_impact)}
               </td>
@@ -217,9 +218,9 @@ defmodule HoldcoWeb.RevaluationLive.Index do
     |> Enum.filter(fn a -> a.currency != nil and a.currency != "" and a.currency != "USD" end)
     |> Enum.map(fn a ->
       trial = Map.get(trial_by_id, a.id)
-      local_balance = if trial, do: trial.balance, else: 0.0
+      local_balance = Money.to_decimal(if trial, do: trial.balance, else: 0)
 
-      current_rate = Portfolio.get_fx_rate(a.currency)
+      current_rate = Money.to_decimal(Portfolio.get_fx_rate(a.currency))
 
       # USD value at historical rate: the balance was recorded at some historical rate.
       # We approximate the historical rate as the inverse of the balance/USD relationship
@@ -228,9 +229,9 @@ defmodule HoldcoWeb.RevaluationLive.Index do
       usd_historical = local_balance
 
       # USD value at current rate: convert local balance at today's rate
-      usd_current = local_balance * current_rate
+      usd_current = Money.mult(local_balance, current_rate)
 
-      fx_gain_loss = usd_current - usd_historical
+      fx_gain_loss = Money.sub(usd_current, usd_historical)
 
       %{
         id: a.id,
@@ -244,38 +245,40 @@ defmodule HoldcoWeb.RevaluationLive.Index do
         fx_gain_loss: fx_gain_loss
       }
     end)
-    |> Enum.filter(fn a -> a.local_balance != 0.0 end)
-    |> Enum.sort_by(fn a -> abs(a.fx_gain_loss) end, :desc)
+    |> Enum.filter(fn a -> not Money.zero?(a.local_balance) end)
+    |> Enum.sort_by(fn a -> Money.to_float(Money.abs(a.fx_gain_loss)) end, :desc)
   end
 
   defp compute_metrics(non_usd_accounts) do
     gains =
       non_usd_accounts
-      |> Enum.filter(&(&1.fx_gain_loss > 0))
-      |> Enum.reduce(0.0, fn a, acc -> acc + a.fx_gain_loss end)
+      |> Enum.filter(&Money.positive?(&1.fx_gain_loss))
+      |> Enum.reduce(Decimal.new(0), fn a, acc -> Money.add(acc, a.fx_gain_loss) end)
 
     losses =
       non_usd_accounts
-      |> Enum.filter(&(&1.fx_gain_loss < 0))
-      |> Enum.reduce(0.0, fn a, acc -> acc + a.fx_gain_loss end)
+      |> Enum.filter(&Money.negative?(&1.fx_gain_loss))
+      |> Enum.reduce(Decimal.new(0), fn a, acc -> Money.add(acc, a.fx_gain_loss) end)
 
     %{
       total_gain: gains,
       total_loss: losses,
-      net_impact: gains + losses
+      net_impact: Money.add(gains, losses)
     }
   end
 
   # -- Journal Entry Creation --
 
   defp build_journal_lines(non_usd_accounts) do
+    zero = Decimal.new(0)
+
     non_usd_accounts
-    |> Enum.filter(fn a -> a.fx_gain_loss != 0.0 end)
+    |> Enum.filter(fn a -> not Money.zero?(a.fx_gain_loss) end)
     |> Enum.map(fn a ->
-      if a.fx_gain_loss > 0 do
-        %{account_id: a.id, debit: a.fx_gain_loss, credit: 0.0}
+      if Money.positive?(a.fx_gain_loss) do
+        %{account_id: a.id, debit: a.fx_gain_loss, credit: zero}
       else
-        %{account_id: a.id, debit: 0.0, credit: abs(a.fx_gain_loss)}
+        %{account_id: a.id, debit: zero, credit: Money.abs(a.fx_gain_loss)}
       end
     end)
   end
@@ -283,14 +286,15 @@ defmodule HoldcoWeb.RevaluationLive.Index do
   defp create_revaluation_entry(date, lines, net_impact) do
     # Find or reference the FX Gain/Loss account
     fx_account = find_fx_gain_loss_account()
+    zero = Decimal.new(0)
 
     offset_line =
-      if net_impact > 0 do
+      if Money.positive?(net_impact) do
         # Net gain: credit the FX Gain/Loss account
-        %{account_id: fx_account_id(fx_account), debit: 0.0, credit: net_impact}
+        %{account_id: fx_account_id(fx_account), debit: zero, credit: net_impact}
       else
         # Net loss: debit the FX Gain/Loss account
-        %{account_id: fx_account_id(fx_account), debit: abs(net_impact), credit: 0.0}
+        %{account_id: fx_account_id(fx_account), debit: Money.abs(net_impact), credit: zero}
       end
 
     all_lines = lines ++ [offset_line]
@@ -318,32 +322,32 @@ defmodule HoldcoWeb.RevaluationLive.Index do
       non_usd_accounts
       |> Enum.group_by(& &1.currency)
       |> Enum.map(fn {ccy, accounts} ->
-        historical = Enum.reduce(accounts, 0.0, fn a, acc -> acc + a.usd_historical end)
-        current = Enum.reduce(accounts, 0.0, fn a, acc -> acc + a.usd_current end)
-        gain_loss = current - historical
+        historical = Enum.reduce(accounts, Decimal.new(0), fn a, acc -> Money.add(acc, a.usd_historical) end)
+        current = Enum.reduce(accounts, Decimal.new(0), fn a, acc -> Money.add(acc, a.usd_current) end)
+        gain_loss = Money.sub(current, historical)
         %{currency: ccy, historical: historical, current: current, gain_loss: gain_loss}
       end)
-      |> Enum.sort_by(&abs(&1.gain_loss), :desc)
+      |> Enum.sort_by(&Money.to_float(Money.abs(&1.gain_loss)), :desc)
 
     %{
       labels: Enum.map(by_currency, & &1.currency),
       datasets: [
         %{
           label: "USD @ Historical",
-          data: Enum.map(by_currency, & &1.historical),
+          data: Enum.map(by_currency, &Money.to_float(&1.historical)),
           backgroundColor: "#6b87a0"
         },
         %{
           label: "USD @ Current",
-          data: Enum.map(by_currency, & &1.current),
+          data: Enum.map(by_currency, &Money.to_float(&1.current)),
           backgroundColor: "#4a8c87"
         },
         %{
           label: "FX Gain/Loss",
-          data: Enum.map(by_currency, & &1.gain_loss),
+          data: Enum.map(by_currency, &Money.to_float(&1.gain_loss)),
           backgroundColor:
             Enum.map(by_currency, fn e ->
-              if e.gain_loss >= 0, do: "#5f8f6e", else: "#b0605e"
+              if Money.gte?(e.gain_loss, 0), do: "#5f8f6e", else: "#b0605e"
             end)
         }
       ]
@@ -352,22 +356,34 @@ defmodule HoldcoWeb.RevaluationLive.Index do
 
   # -- Formatting --
 
-  defp gain_loss_class(value) when value > 0, do: "num-positive"
-  defp gain_loss_class(value) when value < 0, do: "num-negative"
-  defp gain_loss_class(_), do: ""
+  defp gain_loss_class(value) do
+    cond do
+      Money.positive?(value) -> "num-positive"
+      Money.negative?(value) -> "num-negative"
+      true -> ""
+    end
+  end
+
+  defp format_signed(%Decimal{} = n) do
+    if Money.gte?(n, 0), do: "+$#{format_number(n)}", else: "-$#{format_number(Money.abs(n))}"
+  end
 
   defp format_signed(n) when is_float(n) and n >= 0, do: "+$#{format_number(n)}"
-  defp format_signed(n) when is_float(n), do: "-$#{format_number(abs(n))}"
+  defp format_signed(n) when is_float(n), do: "-$#{format_number(Money.abs(n))}"
   defp format_signed(n) when is_integer(n) and n >= 0, do: "+$#{format_number(n)}"
-  defp format_signed(n) when is_integer(n), do: "-$#{format_number(abs(n))}"
+  defp format_signed(n) when is_integer(n), do: "-$#{format_number(Money.abs(n))}"
   defp format_signed(_), do: "$0"
 
-  defp format_rate(n) when is_float(n), do: :erlang.float_to_binary(n, decimals: 4)
+  defp format_rate(%Decimal{} = n), do: Money.format(n, 4)
+  defp format_rate(n) when is_float(n), do: Money.format(n, 4)
   defp format_rate(n) when is_integer(n), do: "#{n}.0000"
   defp format_rate(_), do: "---"
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(2) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 2) |> add_commas()
+    do: Money.to_float(Money.round(n, 2)) |> :erlang.float_to_binary(decimals: 2) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"

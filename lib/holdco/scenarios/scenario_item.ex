@@ -5,12 +5,12 @@ defmodule Holdco.Scenarios.ScenarioItem do
   schema "scenario_items" do
     field :name, :string
     field :item_type, :string, default: "revenue"
-    field :amount, :float, default: 0.0
+    field :amount, :decimal, default: 0
     field :currency, :string, default: "USD"
-    field :growth_rate, :float, default: 0.0
+    field :growth_rate, :decimal, default: 0
     field :growth_type, :string, default: "linear"
     field :recurrence, :string, default: "monthly"
-    field :probability, :float, default: 1.0
+    field :probability, :decimal, default: 1
     field :start_date, :string
     field :end_date, :string
     field :notes, :string

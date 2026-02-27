@@ -21,7 +21,12 @@ defmodule HoldcoWeb.ProjectLive.Index do
        companies: companies,
        filter_status: nil,
        show_form: nil,
-       edit_project: nil
+       edit_project: nil,
+       selected_project: nil,
+       milestones: nil,
+       show_milestones: false,
+       show_milestone_form: false,
+       edit_milestone: nil
      )}
   end
 
@@ -94,6 +99,124 @@ defmodule HoldcoWeb.ProjectLive.Index do
     {:noreply, reload(socket) |> put_flash(:info, "Project deleted")}
   end
 
+  # --- Milestone Events ---
+
+  def handle_event("view_milestones", %{"id" => id}, socket) do
+    project = Collaboration.get_project!(String.to_integer(id))
+    milestones = Collaboration.list_milestones(project.id)
+
+    {:noreply,
+     assign(socket,
+       selected_project: project,
+       milestones: milestones,
+       show_milestones: true,
+       show_milestone_form: false,
+       edit_milestone: nil
+     )}
+  end
+
+  def handle_event("close_milestones", _, socket) do
+    {:noreply,
+     assign(socket,
+       selected_project: nil,
+       milestones: nil,
+       show_milestones: false,
+       show_milestone_form: false,
+       edit_milestone: nil
+     )}
+  end
+
+  def handle_event("add_milestone", _, socket) do
+    {:noreply, assign(socket, show_milestone_form: true, edit_milestone: nil)}
+  end
+
+  def handle_event("close_milestone_form", _, socket) do
+    {:noreply, assign(socket, show_milestone_form: false, edit_milestone: nil)}
+  end
+
+  def handle_event("edit_milestone", %{"id" => id}, socket) do
+    milestone = Collaboration.get_milestone!(String.to_integer(id))
+    {:noreply, assign(socket, show_milestone_form: true, edit_milestone: milestone)}
+  end
+
+  def handle_event("save_milestone", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("update_milestone", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("delete_milestone", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("toggle_milestone_status", _params, %{assigns: %{can_write: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+
+  def handle_event("save_milestone", %{"milestone" => params}, socket) do
+    project = socket.assigns.selected_project
+    params = Map.put(params, "project_id", project.id)
+
+    case Collaboration.create_milestone(params) do
+      {:ok, _} ->
+        milestones = Collaboration.list_milestones(project.id)
+
+        {:noreply,
+         socket
+         |> assign(milestones: milestones, show_milestone_form: false, edit_milestone: nil)
+         |> put_flash(:info, "Milestone created")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to create milestone")}
+    end
+  end
+
+  def handle_event("update_milestone", %{"milestone" => params}, socket) do
+    milestone = socket.assigns.edit_milestone
+    project = socket.assigns.selected_project
+
+    case Collaboration.update_milestone(milestone, params) do
+      {:ok, _} ->
+        milestones = Collaboration.list_milestones(project.id)
+
+        {:noreply,
+         socket
+         |> assign(milestones: milestones, show_milestone_form: false, edit_milestone: nil)
+         |> put_flash(:info, "Milestone updated")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update milestone")}
+    end
+  end
+
+  def handle_event("toggle_milestone_status", %{"id" => id}, socket) do
+    milestone = Collaboration.get_milestone!(String.to_integer(id))
+    project = socket.assigns.selected_project
+
+    next_status =
+      case milestone.status do
+        "pending" -> "in_progress"
+        "in_progress" -> "completed"
+        "completed" -> "pending"
+        other -> other
+      end
+
+    case Collaboration.update_milestone(milestone, %{status: next_status}) do
+      {:ok, _} ->
+        milestones = Collaboration.list_milestones(project.id)
+        {:noreply, assign(socket, milestones: milestones)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update milestone status")}
+    end
+  end
+
+  def handle_event("delete_milestone", %{"id" => id}, socket) do
+    milestone = Collaboration.get_milestone!(String.to_integer(id))
+    project = socket.assigns.selected_project
+    Collaboration.delete_milestone(milestone)
+    milestones = Collaboration.list_milestones(project.id)
+    {:noreply, assign(socket, milestones: milestones) |> put_flash(:info, "Milestone deleted")}
+  end
+
   @impl true
   def handle_info(_, socket), do: {:noreply, reload(socket)}
 
@@ -124,6 +247,19 @@ defmodule HoldcoWeb.ProjectLive.Index do
 
   defp humanize(nil), do: ""
   defp humanize(str), do: str |> String.replace("_", " ") |> String.capitalize()
+
+  defp milestone_status_tag("completed"), do: "tag tag-jade"
+  defp milestone_status_tag("in_progress"), do: "tag tag-lemon"
+  defp milestone_status_tag("pending"), do: "tag tag-ink"
+  defp milestone_status_tag("cancelled"), do: "tag tag-crimson"
+  defp milestone_status_tag(_), do: "tag tag-ink"
+
+  defp milestone_progress(milestones) when is_list(milestones) do
+    total = length(milestones)
+    if total == 0, do: 0, else: round(Enum.count(milestones, &(&1.status == "completed")) / total * 100)
+  end
+
+  defp milestone_progress(_), do: 0
 
   defp format_budget(nil), do: "---"
 
@@ -250,8 +386,15 @@ defmodule HoldcoWeb.ProjectLive.Index do
                   <% end %>
                 </td>
                 <td>
-                  <%= if @can_write do %>
-                    <div style="display: flex; gap: 0.25rem;">
+                  <div style="display: flex; gap: 0.25rem;">
+                    <button
+                      phx-click="view_milestones"
+                      phx-value-id={project.id}
+                      class="btn btn-secondary btn-sm"
+                    >
+                      Milestones
+                    </button>
+                    <%= if @can_write do %>
                       <button
                         phx-click="edit"
                         phx-value-id={project.id}
@@ -267,8 +410,8 @@ defmodule HoldcoWeb.ProjectLive.Index do
                       >
                         Del
                       </button>
-                    </div>
-                  <% end %>
+                    <% end %>
+                  </div>
                 </td>
               </tr>
             <% end %>
@@ -410,6 +553,170 @@ defmodule HoldcoWeb.ProjectLive.Index do
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <%= if @show_milestones && @selected_project do %>
+      <div class="dialog-overlay" phx-click="close_milestones">
+        <div class="dialog-panel" style="max-width: 700px;" phx-click="noop">
+          <div class="dialog-header">
+            <h3>
+              {@selected_project.name} &mdash; Milestones
+              <span style="font-weight: normal; font-size: 0.9rem; color: var(--muted);">
+                ({length(@milestones || [])})
+              </span>
+            </h3>
+          </div>
+          <div class="dialog-body">
+            <%!-- Progress bar --%>
+            <div style="margin-bottom: 1rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.25rem;">
+                <span>Progress</span>
+                <span>{milestone_progress(@milestones)}%</span>
+              </div>
+              <div style="background: var(--border); border-radius: 4px; height: 8px; overflow: hidden;">
+                <div style={"background: var(--jade); height: 100%; width: #{milestone_progress(@milestones)}%; transition: width 0.3s;"}></div>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem;">
+                {Enum.count(@milestones || [], &(&1.status == "completed"))} of {length(@milestones || [])} completed
+              </div>
+            </div>
+
+            <%!-- Milestone list --%>
+            <%= if @milestones && @milestones != [] do %>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <%= for milestone <- @milestones do %>
+                  <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+                    <div style="flex: 1;">
+                      <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style={"font-weight: 500; #{if milestone.status == "completed", do: "text-decoration: line-through; color: var(--muted);", else: ""}"}>{milestone.name}</span>
+                        <span class={milestone_status_tag(milestone.status)}>{humanize(milestone.status)}</span>
+                      </div>
+                      <div style="font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem;">
+                        <%= if milestone.due_date && milestone.due_date != "" do %>
+                          Due: {milestone.due_date}
+                        <% end %>
+                        <%= if milestone.notes && milestone.notes != "" do %>
+                          <span style="margin-left: 0.5rem;">{milestone.notes}</span>
+                        <% end %>
+                      </div>
+                    </div>
+                    <%= if @can_write do %>
+                      <div style="display: flex; gap: 0.25rem; flex-shrink: 0;">
+                        <button
+                          phx-click="toggle_milestone_status"
+                          phx-value-id={milestone.id}
+                          class="btn btn-secondary btn-sm"
+                          title="Cycle status"
+                        >
+                          <%= case milestone.status do %>
+                            <% "pending" -> %>
+                              Start
+                            <% "in_progress" -> %>
+                              Done
+                            <% "completed" -> %>
+                              Reset
+                            <% _ -> %>
+                              Cycle
+                          <% end %>
+                        </button>
+                        <button
+                          phx-click="edit_milestone"
+                          phx-value-id={milestone.id}
+                          class="btn btn-secondary btn-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          phx-click="delete_milestone"
+                          phx-value-id={milestone.id}
+                          class="btn btn-danger btn-sm"
+                          data-confirm="Delete this milestone?"
+                        >
+                          Del
+                        </button>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="empty-state">
+                <p>No milestones yet.</p>
+                <p style="color: var(--muted); font-size: 0.9rem;">
+                  Add milestones to track key deliverables and deadlines for this project.
+                </p>
+              </div>
+            <% end %>
+
+            <%!-- Add/Edit milestone form --%>
+            <%= if @show_milestone_form && @can_write do %>
+              <div style="margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface);">
+                <h4 style="margin-bottom: 0.75rem;">{if @edit_milestone, do: "Edit Milestone", else: "Add Milestone"}</h4>
+                <form phx-submit={if @edit_milestone, do: "update_milestone", else: "save_milestone"}>
+                  <div class="form-group">
+                    <label class="form-label">Name *</label>
+                    <input
+                      type="text"
+                      name="milestone[name]"
+                      class="form-input"
+                      value={if @edit_milestone, do: @edit_milestone.name, else: ""}
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Due Date</label>
+                    <input
+                      type="date"
+                      name="milestone[due_date]"
+                      class="form-input"
+                      value={if @edit_milestone, do: @edit_milestone.due_date, else: ""}
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select name="milestone[status]" class="form-select">
+                      <%= for s <- ~w(pending in_progress completed cancelled) do %>
+                        <option
+                          value={s}
+                          selected={@edit_milestone && @edit_milestone.status == s}
+                        >
+                          {humanize(s)}
+                        </option>
+                      <% end %>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea
+                      name="milestone[notes]"
+                      class="form-input"
+                      rows="2"
+                    >{if @edit_milestone, do: @edit_milestone.notes, else: ""}</textarea>
+                  </div>
+                  <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                      {if @edit_milestone, do: "Update Milestone", else: "Add Milestone"}
+                    </button>
+                    <button type="button" phx-click="close_milestone_form" class="btn btn-secondary">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            <% end %>
+
+            <%= if @can_write && !@show_milestone_form do %>
+              <div style="margin-top: 1rem;">
+                <button class="btn btn-primary btn-sm" phx-click="add_milestone">Add Milestone</button>
+              </div>
+            <% end %>
+
+            <div style="margin-top: 1rem; text-align: right;">
+              <button class="btn btn-secondary" phx-click="close_milestones">Close</button>
+            </div>
           </div>
         </div>
       </div>

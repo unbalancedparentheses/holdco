@@ -88,8 +88,8 @@ JSON POST with HMAC-SHA256 signature to all active webhooks. Retry on failure.
 
 **QuickBooks Online integration.** OAuth2 connection with automatic token
 refresh. Sync chart of accounts and journal entries from QBO into a specific
-company entity. Company selector on the integrations page controls which entity
-receives synced data.
+company entity. Each subsidiary connects independently from its company detail
+page; the global integrations page shows a summary dashboard of all connections.
 
 **Automated backups.** Daily SQLite `.backup` to a configured path with
 retention-based cleanup. Backup logs visible in settings.
@@ -194,14 +194,14 @@ reminders, and approval requests.
 **CSV/data import.** Import data from CSV files with column mapping and
 validation.
 
-**AI assistant.** LLM-powered chat interface that can answer natural language
-questions about your portfolio, companies, and financial data. Configurable
-provider (Anthropic Claude, OpenAI) with API key and model selection in
-Settings. Conversations are persisted per user. The dashboard includes an
-inline AI Insights card that generates a brief portfolio health summary on
-page load. The system prompt is automatically populated with live portfolio
-data (NAV, holdings, companies, allocation, liabilities, transactions, and
-tax deadlines) so the LLM has full context to answer accurately.
+**AI assistant.** LLM-powered chat available as a persistent slide-out drawer
+from any page via a floating button. Configurable provider (Anthropic Claude,
+OpenAI) with API key and model selection in Settings. Conversations are
+persisted per user. The dashboard includes an inline AI Insights card that
+generates a brief portfolio health summary on page load. The system prompt is
+automatically populated with live portfolio data (NAV, holdings, companies,
+allocation, liabilities, transactions, and tax deadlines) so the LLM has full
+context to answer accurately.
 
 ## Quickstart
 
@@ -355,6 +355,14 @@ and user workflows alongside the ExUnit unit test suite.
 | Charts | Chart.js via LiveView hooks |
 | CSS | Tailwind CSS 4 + daisyUI v5 |
 
+### Single-Tenant Design
+
+Holdco is designed as a **single-tenant, self-hosted application**. There is no
+multi-tenancy layer. One instance serves one holding company. All users share
+the same data set, distinguished only by role (admin / editor / viewer). This is
+intentional: holding company data is sensitive and should not be co-located with
+other tenants. Deploy a separate instance per organization.
+
 ### Pages
 
 | Route | Description |
@@ -371,7 +379,7 @@ and user workflows alongside the ExUnit unit test suite.
 | `/accounts/chart` | Chart of accounts with company filter |
 | `/accounts/journal` | Journal entries with balanced lines, company filter |
 | `/accounts/reports` | Trial balance, balance sheet, income statement per company or consolidated |
-| `/accounts/integrations` | QuickBooks Online connection, sync controls with company selector |
+| `/accounts/integrations` | QuickBooks Online summary dashboard: connection status per company |
 | `/governance` | Board meetings, cap table, resolutions, equity plans, deals |
 | `/compliance` | Regulatory filings, licenses, insurance, sanctions, ESG |
 | `/scenarios` | Scenario list |
@@ -402,7 +410,7 @@ and user workflows alongside the ExUnit unit test suite.
 | `/aging` | AR/AP aging reports |
 | `/revaluation` | Currency revaluation |
 | `/audit-diffs` | Field-level audit diffs (old → new values) |
-| `/ai-chat` | AI chat: ask questions about portfolio data, persisted conversations |
+| — | AI chat: persistent slide-out drawer accessible from any page via floating button |
 | `/settings` | App settings, categories, webhooks, backups, AI config (admin only) |
 
 ### Project Layout
@@ -686,10 +694,11 @@ Scale from single-user to multi-stakeholder platform.
   email/password flow.
 - **Hardware security keys.** FIDO2 and WebAuthn support for high-security
   environments beyond TOTP-based two-factor authentication.
-- **AI assistant (chat and inline insights implemented).** LLM-powered copilot
-  that can answer natural language questions against the structured data.
+- **AI assistant (chat drawer and inline insights implemented).** LLM-powered
+  copilot that can answer natural language questions against the structured data.
   Configurable provider (Anthropic, OpenAI) with API key and model selection in
-  Settings. Chat interface with persisted conversations and dashboard inline
+  Settings. Persistent slide-out chat drawer accessible from any page via a
+  floating button, with persisted conversations per user. Dashboard inline
   insights are live. Planned extensions: analyze uploaded documents (contracts,
   term sheets, financial statements, tax filings), summarize board packs, flag
   risks in new agreements, draft compliance narratives, and suggest optimization

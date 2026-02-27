@@ -2,6 +2,7 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
   use HoldcoWeb, :live_view
 
   alias Holdco.{Portfolio, Assets}
+  alias Holdco.Money
 
   @concentration_threshold 25.0
 
@@ -81,7 +82,7 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
               <span class="tag tag-crimson">ALERT</span>
               <span>{alert.message}</span>
               <span class="td-num num-negative" style="margin-left: auto;">
-                {Float.round(alert.pct, 1)}% of NAV
+                {Money.to_float(Money.round(alert.pct, 1))}% of NAV
               </span>
             </div>
           <% end %>
@@ -152,15 +153,15 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
               </tr>
             </thead>
             <tbody>
-              <% alloc_total = Enum.reduce(@allocation, 0.0, fn a, acc -> acc + max(a.value, 0) end) %>
+              <% alloc_total = Enum.reduce(@allocation, Decimal.new(0), fn a, acc -> Money.add(acc, Money.max(a.value, 0)) end) %>
               <%= for a <- @allocation do %>
-                <% pct = if alloc_total > 0, do: a.value / alloc_total * 100, else: 0.0 %>
+                <% pct = if Money.gt?(alloc_total, 0), do: Money.mult(Money.div(a.value, alloc_total), 100), else: Decimal.new(0) %>
                 <tr>
                   <td class="td-name">{a.type || "Unknown"}</td>
                   <td class="td-num">${format_number(a.value)}</td>
                   <td class="td-num">{a.count}</td>
-                  <td class={"td-num #{if pct > 25, do: "num-negative", else: ""}"}>
-                    {Float.round(pct, 1)}%
+                  <td class={"td-num #{if Money.gt?(pct, 25), do: "num-negative", else: ""}"}>
+                    {Money.to_float(Money.round(pct, 1))}%
                   </td>
                 </tr>
               <% end %>
@@ -183,14 +184,14 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
               </tr>
             </thead>
             <tbody>
-              <% fx_total = Enum.reduce(@fx_exposure, 0.0, fn f, acc -> acc + max(f.usd_value, 0) end) %>
+              <% fx_total = Enum.reduce(@fx_exposure, Decimal.new(0), fn f, acc -> Money.add(acc, Money.max(f.usd_value, 0)) end) %>
               <%= for f <- @fx_exposure do %>
-                <% pct = if fx_total > 0, do: f.usd_value / fx_total * 100, else: 0.0 %>
+                <% pct = if Money.gt?(fx_total, 0), do: Money.mult(Money.div(f.usd_value, fx_total), 100), else: Decimal.new(0) %>
                 <tr>
                   <td class="td-name">{f.currency}</td>
                   <td class="td-num">${format_number(f.usd_value)}</td>
-                  <td class={"td-num #{if pct > 50, do: "num-negative", else: ""}"}>
-                    {Float.round(pct, 1)}%
+                  <td class={"td-num #{if Money.gt?(pct, 50), do: "num-negative", else: ""}"}>
+                    {Money.to_float(Money.round(pct, 1))}%
                   </td>
                 </tr>
               <% end %>
@@ -218,18 +219,18 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
           </thead>
           <tbody>
             <%= for hv <- Enum.take(@holdings_with_values, 20) do %>
-              <% pct = if @total_portfolio > 0, do: hv.value / @total_portfolio * 100, else: 0.0 %>
+              <% pct = if Money.gt?(@total_portfolio, 0), do: Money.mult(Money.div(hv.value, @total_portfolio), 100), else: Decimal.new(0) %>
               <tr>
                 <td class="td-name">{hv.holding.asset}</td>
                 <td class="td-mono">{hv.holding.ticker || "---"}</td>
                 <td><span class="tag tag-ink">{hv.holding.asset_type}</span></td>
                 <td class="td-num">${format_number(hv.value)}</td>
-                <td class={"td-num #{if pct > concentration_threshold(), do: "num-negative", else: ""}"}>{Float.round(pct, 1)}%</td>
+                <td class={"td-num #{if Money.gt?(pct, concentration_threshold()), do: "num-negative", else: ""}"}>{Money.to_float(Money.round(pct, 1))}%</td>
                 <td>
-                  <%= if pct > concentration_threshold() do %>
+                  <%= if Money.gt?(pct, concentration_threshold()) do %>
                     <span class="tag tag-crimson">HIGH</span>
                   <% else %>
-                    <%= if pct > 15 do %>
+                    <%= if Money.gt?(pct, 15) do %>
                       <span class="tag tag-lemon">MEDIUM</span>
                     <% else %>
                       <span class="tag tag-jade">LOW</span>
@@ -252,24 +253,26 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
 
   defp concentration_threshold, do: @concentration_threshold
 
-  defp build_alerts(holdings_with_values, total_portfolio) when total_portfolio > 0 do
-    holdings_with_values
-    |> Enum.filter(fn hv ->
-      pct = hv.value / total_portfolio * 100
-      pct > @concentration_threshold
-    end)
-    |> Enum.map(fn hv ->
-      pct = hv.value / total_portfolio * 100
+  defp build_alerts(holdings_with_values, total_portfolio) do
+    if Money.gt?(total_portfolio, 0) do
+      holdings_with_values
+      |> Enum.filter(fn hv ->
+        pct = Money.mult(Money.div(hv.value, total_portfolio), 100)
+        Money.gt?(pct, @concentration_threshold)
+      end)
+      |> Enum.map(fn hv ->
+        pct = Money.mult(Money.div(hv.value, total_portfolio), 100)
 
-      %{
-        message:
-          "#{hv.holding.asset} (#{hv.holding.ticker || "no ticker"}) exceeds #{@concentration_threshold}% threshold",
-        pct: pct
-      }
-    end)
+        %{
+          message:
+            "#{hv.holding.asset} (#{hv.holding.ticker || "no ticker"}) exceeds #{@concentration_threshold}% threshold",
+          pct: pct
+        }
+      end)
+    else
+      []
+    end
   end
-
-  defp build_alerts(_, _), do: []
 
   defp allocation_chart_data(allocation) do
     colors = ["#4a8c87", "#6b87a0", "#5f8f6e", "#8a5a6a", "#c08060", "#b89040", "#b0605e", "#7a6b8a"]
@@ -278,7 +281,7 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
       labels: Enum.map(allocation, fn a -> a.type || "Unknown" end),
       datasets: [
         %{
-          data: Enum.map(allocation, & &1.value),
+          data: Enum.map(allocation, &Money.to_float(&1.value)),
           backgroundColor: Enum.take(Stream.cycle(colors), length(allocation))
         }
       ]
@@ -291,15 +294,18 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
       datasets: [
         %{
           label: "USD Value",
-          data: Enum.map(fx_exposure, & &1.usd_value),
+          data: Enum.map(fx_exposure, &Money.to_float(&1.usd_value)),
           backgroundColor: "#4a8c87"
         }
       ]
     }
   end
 
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
+
   defp format_number(n) when is_float(n),
-    do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()
+    do: Money.to_float(Money.round(n, 0)) |> :erlang.float_to_binary(decimals: 0) |> add_commas()
 
   defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
   defp format_number(_), do: "0"

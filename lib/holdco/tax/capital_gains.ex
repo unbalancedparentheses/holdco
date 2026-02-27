@@ -4,6 +4,7 @@ defmodule Holdco.Tax.CapitalGains do
   """
 
   alias Holdco.{Assets, Portfolio}
+  alias Holdco.Money
 
   def compute(method \\ :fifo) do
     holdings = Assets.list_holdings()
@@ -15,6 +16,11 @@ defmodule Holdco.Tax.CapitalGains do
 
       {short_term, long_term} = classify_gains(lots, current_price, method)
 
+      total = Money.add(
+        Money.add(short_term.realized, long_term.realized),
+        Money.add(short_term.unrealized, long_term.unrealized)
+      )
+
       %{
         holding_id: holding.id,
         asset: holding.asset,
@@ -24,20 +30,20 @@ defmodule Holdco.Tax.CapitalGains do
         long_term_realized: long_term.realized,
         short_term_unrealized: short_term.unrealized,
         long_term_unrealized: long_term.unrealized,
-        total_gain: short_term.realized + long_term.realized + short_term.unrealized + long_term.unrealized
+        total_gain: total
       }
     end)
-    |> Enum.filter(fn r -> r.total_gain != 0.0 end)
+    |> Enum.filter(fn r -> not Money.zero?(r.total_gain) end)
   end
 
   defp current_price_for(holding) do
     value = Portfolio.holding_value(holding)
 
-    if value == 0.0 do
-      0.0
+    if Money.zero?(value) do
+      Decimal.new(0)
     else
-      qty = holding.quantity || 1.0
-      if qty > 0, do: value / qty, else: 0.0
+      qty = Money.to_decimal(holding.quantity)
+      if Money.gt?(qty, 0), do: Money.div(value, qty), else: Decimal.new(0)
     end
   end
 
@@ -45,37 +51,36 @@ defmodule Holdco.Tax.CapitalGains do
     sorted_lots = sort_lots(lots, method)
     today = Date.utc_today()
     one_year_ago = Date.add(today, -365)
+    zero = Decimal.new(0)
 
     {short_realized, long_realized, short_unrealized, long_unrealized} =
-      Enum.reduce(sorted_lots, {0.0, 0.0, 0.0, 0.0}, fn lot, {sr, lr, su, lu} ->
+      Enum.reduce(sorted_lots, {zero, zero, zero, zero}, fn lot, {sr, lr, su, lu} ->
         purchase_date = parse_date(lot.purchase_date)
         is_long_term = purchase_date != nil and Date.compare(purchase_date, one_year_ago) == :lt
-        cost_per_unit = lot.price_per_unit || 0.0
-        sold_qty = lot.sold_quantity || 0.0
-        remaining = (lot.quantity || 0.0) - sold_qty
+        cost_per_unit = Money.to_decimal(lot.price_per_unit)
+        sold_qty = Money.to_decimal(lot.sold_quantity)
+        remaining = Money.sub(Money.to_decimal(lot.quantity), sold_qty)
 
-        # Realized gains from sold portions
         realized =
-          if sold_qty > 0 do
-            proceeds = sold_qty * (lot.sold_price || 0.0)
-            cost = sold_qty * cost_per_unit
-            proceeds - cost
+          if Money.gt?(sold_qty, 0) do
+            proceeds = Money.mult(sold_qty, Money.to_decimal(lot.sold_price))
+            cost = Money.mult(sold_qty, cost_per_unit)
+            Money.sub(proceeds, cost)
           else
-            0.0
+            zero
           end
 
-        # Unrealized gains from remaining lots
         unrealized =
-          if remaining > 0 do
-            remaining * (current_price - cost_per_unit)
+          if Money.gt?(remaining, 0) do
+            Money.mult(remaining, Money.sub(current_price, cost_per_unit))
           else
-            0.0
+            zero
           end
 
         if is_long_term do
-          {sr, lr + realized, su, lu + unrealized}
+          {sr, Money.add(lr, realized), su, Money.add(lu, unrealized)}
         else
-          {sr + realized, lr, su + unrealized, lu}
+          {Money.add(sr, realized), lr, Money.add(su, unrealized), lu}
         end
       end)
 

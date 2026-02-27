@@ -7,9 +7,9 @@ defmodule Holdco.Assets.RealEstateProperty do
     field :address, :string
     field :property_type, :string, default: "commercial"
     field :purchase_date, :string
-    field :purchase_price, :float
-    field :current_valuation, :float
-    field :rental_income_annual, :float
+    field :purchase_price, :decimal
+    field :current_valuation, :decimal
+    field :rental_income_annual, :decimal
     field :currency, :string, default: "USD"
     field :notes, :string
 

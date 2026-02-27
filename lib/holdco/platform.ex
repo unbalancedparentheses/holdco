@@ -8,6 +8,7 @@ defmodule Holdco.Platform do
     AuditLog,
     Webhook,
     ApprovalRequest,
+    ApprovalVote,
     CustomField,
     CustomFieldValue,
     BackupConfig,
@@ -137,14 +138,30 @@ defmodule Holdco.Platform do
 
   def deliver_webhooks(action, table_name, record_id) do
     webhooks = list_webhooks()
+    action_str = to_string(action)
 
-    for webhook <- webhooks, webhook.is_active do
+    for webhook <- webhooks, webhook.is_active, webhook_matches_event?(webhook, action_str) do
       deliver_webhook(webhook, %{
-        event: action,
+        event: action_str,
         table: table_name,
         record_id: record_id,
         timestamp: DateTime.utc_now() |> DateTime.to_iso8601()
       })
+    end
+  end
+
+  defp webhook_matches_event?(webhook, action) do
+    case webhook.events do
+      nil -> true
+      "" -> true
+      "[]" -> true
+      events_json when is_binary(events_json) ->
+        case Jason.decode(events_json) do
+          {:ok, []} -> true
+          {:ok, events} when is_list(events) -> action in events
+          _ -> true
+        end
+      _ -> true
     end
   end
 
@@ -271,10 +288,16 @@ defmodule Holdco.Platform do
     do: Repo.delete(w) |> audit_and_broadcast("webhooks", "delete")
 
   # Approval Requests
-  def list_approval_requests,
-    do: Repo.all(from a in ApprovalRequest, order_by: [desc: a.inserted_at])
+  def list_approval_requests do
+    from(a in ApprovalRequest, order_by: [desc: a.inserted_at])
+    |> Repo.all()
+    |> Repo.preload(votes: [:user])
+  end
 
-  def get_approval_request!(id), do: Repo.get!(ApprovalRequest, id)
+  def get_approval_request!(id) do
+    Repo.get!(ApprovalRequest, id)
+    |> Repo.preload(votes: [:user])
+  end
 
   def create_approval_request(attrs),
     do:
@@ -295,6 +318,68 @@ defmodule Holdco.Platform do
 
   def pending_approval_count,
     do: Repo.aggregate(from(a in ApprovalRequest, where: a.status == "pending"), :count)
+
+  # Approval Votes
+
+  def cast_vote(request_id, user_id, decision, notes \\ nil) do
+    request = get_approval_request!(request_id)
+
+    if request.status != "pending" do
+      {:error, :already_decided}
+    else
+      case %ApprovalVote{}
+           |> ApprovalVote.changeset(%{
+             approval_request_id: request_id,
+             user_id: user_id,
+             decision: decision,
+             notes: notes
+           })
+           |> Repo.insert() do
+        {:ok, vote} ->
+          check_approval_threshold(request)
+          {:ok, vote}
+
+        {:error, changeset} ->
+          {:error, changeset}
+      end
+    end
+  end
+
+  defp check_approval_threshold(request) do
+    request = Repo.preload(request, [votes: [:user]], force: true)
+    required = request.required_approvals || 1
+
+    approve_count = Enum.count(request.votes, &(&1.decision == "approved"))
+    reject_count = Enum.count(request.votes, &(&1.decision == "rejected"))
+
+    cond do
+      approve_count >= required ->
+        update_approval_request(request, %{
+          status: "approved",
+          reviewed_by: "N-of-M threshold met (#{approve_count}/#{required})",
+          reviewed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+
+      reject_count >= required ->
+        update_approval_request(request, %{
+          status: "rejected",
+          reviewed_by: "N-of-M rejection threshold met (#{reject_count}/#{required})",
+          reviewed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+
+      true ->
+        :pending
+    end
+  end
+
+  def list_votes(request_id) do
+    from(v in ApprovalVote,
+      where: v.approval_request_id == ^request_id,
+      order_by: [desc: v.inserted_at],
+      preload: [:user]
+    )
+    |> Repo.all()
+  end
 
   # Custom Fields
   def list_custom_fields, do: Repo.all(CustomField)

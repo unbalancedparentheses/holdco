@@ -9,7 +9,7 @@ defmodule Holdco.Banking.BankAccount do
     field :swift, :string
     field :currency, :string, default: "USD"
     field :account_type, :string, default: "operating"
-    field :balance, :float, default: 0.0
+    field :balance, :decimal, default: 0
     field :authorized_signers, :string, default: "[]"
     field :notes, :string
 

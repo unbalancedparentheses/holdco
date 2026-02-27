@@ -1,6 +1,7 @@
 defmodule Holdco.Analytics do
   import Ecto.Query
   alias Holdco.Repo
+  alias Holdco.Money
 
   alias Holdco.Analytics.{Kpi, KpiSnapshot, ReportTemplate}
 
@@ -76,6 +77,63 @@ defmodule Holdco.Analytics do
   def delete_report_template(%ReportTemplate{} = rt) do
     Repo.delete(rt)
     |> audit_and_broadcast("report_templates", "delete")
+  end
+
+  # KPI Auto-Population
+  def compute_kpi_value(kpi) do
+    case kpi.data_source do
+      nil -> nil
+      "" -> nil
+      "revenue" ->
+        financials = Holdco.Finance.list_financials(kpi.company_id)
+        case financials do
+          [latest | _] -> latest.revenue
+          _ -> nil
+        end
+      "expenses" ->
+        financials = Holdco.Finance.list_financials(kpi.company_id)
+        case financials do
+          [latest | _] -> latest.expenses
+          _ -> nil
+        end
+      "net_income" ->
+        financials = Holdco.Finance.list_financials(kpi.company_id)
+        case financials do
+          [latest | _] -> Money.sub(Money.to_decimal(latest.revenue), Money.to_decimal(latest.expenses))
+          _ -> nil
+        end
+      "cash_balance" ->
+        accounts = Holdco.Banking.list_bank_accounts()
+        accounts
+        |> Enum.filter(fn ba -> kpi.company_id == nil or ba.company_id == kpi.company_id end)
+        |> Enum.reduce(Decimal.new(0), fn ba, acc -> Money.add(acc, Money.to_decimal(ba.balance)) end)
+      "nav" ->
+        nav = Holdco.Portfolio.calculate_nav()
+        nav.nav
+      "liability_total" ->
+        liabilities = Holdco.Finance.list_liabilities(kpi.company_id)
+        Enum.reduce(liabilities, Decimal.new(0), fn l, acc ->
+          if l.status == "active", do: Money.add(acc, Money.to_decimal(l.principal)), else: acc
+        end)
+      _ -> nil
+    end
+  end
+
+  def auto_snapshot_kpis do
+    list_kpis()
+    |> Enum.filter(& &1.data_source)
+    |> Enum.filter(& &1.data_source != "")
+    |> Enum.each(fn kpi ->
+      case compute_kpi_value(kpi) do
+        nil -> :skip
+        value ->
+          create_kpi_snapshot(%{
+            "kpi_id" => kpi.id,
+            "value" => value,
+            "date" => Date.to_iso8601(Date.utc_today())
+          })
+      end
+    end)
   end
 
   # PubSub

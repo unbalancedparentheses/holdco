@@ -5,9 +5,10 @@ defmodule Holdco.Analytics.Kpi do
   schema "kpis" do
     field :name, :string
     field :metric_type, :string, default: "currency"
-    field :target_value, :float
-    field :threshold_value, :float
+    field :target_value, :decimal
+    field :threshold_value, :decimal
     field :unit, :string
+    field :data_source, :string
 
     belongs_to :company, Holdco.Corporate.Company
     has_many :snapshots, Holdco.Analytics.KpiSnapshot
@@ -17,7 +18,7 @@ defmodule Holdco.Analytics.Kpi do
 
   def changeset(kpi, attrs) do
     kpi
-    |> cast(attrs, [:name, :metric_type, :target_value, :threshold_value, :unit, :company_id])
+    |> cast(attrs, [:name, :metric_type, :target_value, :threshold_value, :unit, :company_id, :data_source])
     |> validate_required([:name])
     |> validate_inclusion(:metric_type, ~w(currency percentage count ratio))
   end

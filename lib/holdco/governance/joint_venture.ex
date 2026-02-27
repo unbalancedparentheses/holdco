@@ -5,10 +5,10 @@ defmodule Holdco.Governance.JointVenture do
   schema "joint_ventures" do
     field :partner, :string
     field :name, :string
-    field :ownership_pct, :float, default: 50.0
+    field :ownership_pct, :decimal, default: 50
     field :formation_date, :string
     field :status, :string, default: "active"
-    field :total_value, :float
+    field :total_value, :decimal
     field :currency, :string, default: "USD"
     field :notes, :string
 

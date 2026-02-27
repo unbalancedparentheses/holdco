@@ -6,7 +6,7 @@ defmodule Holdco.Governance.EquityGrant do
     field :recipient, :string
     field :grant_type, :string, default: "options"
     field :quantity, :integer, default: 0
-    field :strike_price, :float
+    field :strike_price, :decimal
     field :grant_date, :string
     field :vesting_start, :string
     field :cliff_months, :integer, default: 12

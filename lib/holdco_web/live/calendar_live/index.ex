@@ -4,6 +4,7 @@ defmodule HoldcoWeb.CalendarLive.Index do
   import Ecto.Query
 
   alias Holdco.Repo
+  alias Holdco.Money
 
   @event_types ~w(all tax meeting liability insurance filing)
 
@@ -350,7 +351,9 @@ defmodule HoldcoWeb.CalendarLive.Index do
 
   defp format_amount(amount, currency) do
     formatted =
-      :erlang.float_to_binary(abs(amount * 1.0), decimals: 0)
+      Money.abs(amount)
+      |> Money.round(0)
+      |> Decimal.to_string()
       |> String.reverse()
       |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
       |> String.reverse()

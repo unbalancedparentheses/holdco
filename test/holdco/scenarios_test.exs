@@ -5,6 +5,11 @@ defmodule Holdco.ScenariosTest do
 
   alias Holdco.Scenarios
 
+  # Helper: convert Decimal to float for test assertions
+  defp d(val) when is_struct(val, Decimal), do: Decimal.to_float(val)
+  defp d(val) when is_number(val), do: val / 1
+  defp d(nil), do: 0.0
+
   describe "scenarios" do
     test "CRUD operations" do
       {:ok, s} = Scenarios.create_scenario(%{name: "Bull Case"})
@@ -33,7 +38,7 @@ defmodule Holdco.ScenariosTest do
       assert Scenarios.get_scenario_item!(si.id).id == si.id
 
       {:ok, updated} = Scenarios.update_scenario_item(si, %{amount: 60_000.0})
-      assert updated.amount == 60_000.0
+      assert d(updated.amount) == 60_000.0
 
       {:ok, _} = Scenarios.delete_scenario_item(updated)
     end

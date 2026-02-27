@@ -1,11 +1,12 @@
 defmodule Holdco.Banking.Transaction do
   use Ecto.Schema
   import Ecto.Changeset
+  import Holdco.Validators
 
   schema "transactions" do
     field :transaction_type, :string
     field :description, :string
-    field :amount, :float
+    field :amount, :decimal
     field :currency, :string, default: "USD"
     field :counterparty, :string
     field :date, :string
@@ -31,5 +32,7 @@ defmodule Holdco.Banking.Transaction do
       :notes
     ])
     |> validate_required([:company_id, :transaction_type, :description, :amount, :date])
+    |> validate_number(:amount, greater_than: 0)
+    |> validate_date_format(:date)
   end
 end

@@ -5,7 +5,7 @@ defmodule Holdco.Workers.EmailDigestWorker do
   """
   use Oban.Worker, queue: :default, max_attempts: 3
 
-  alias Holdco.{Integrations, Platform, Portfolio, Compliance, Banking, Accounts}
+  alias Holdco.{Integrations, Platform, Portfolio, Compliance, Banking, Repo}
   alias Holdco.Mailer
   import Swoosh.Email
 
@@ -21,7 +21,21 @@ defmodule Holdco.Workers.EmailDigestWorker do
   end
 
   defp send_digest(config) do
-    user = Accounts.get_user!(config.user_id)
+    case Repo.get(Holdco.Accounts.User, config.user_id) do
+      nil ->
+        Platform.log_action(
+          "email_digest_skipped",
+          "email_digest_configs",
+          config.id,
+          "User #{config.user_id} not found, skipping digest"
+        )
+
+      user ->
+        do_send_digest(config, user)
+    end
+  end
+
+  defp do_send_digest(config, user) do
     since = config.last_sent_at || DateTime.add(DateTime.utc_now(), -7 * 86400, :second)
     sections = build_sections(config, since)
 

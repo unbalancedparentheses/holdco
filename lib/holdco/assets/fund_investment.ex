@@ -5,10 +5,10 @@ defmodule Holdco.Assets.FundInvestment do
   schema "fund_investments" do
     field :fund_name, :string
     field :fund_type, :string, default: "private_equity"
-    field :commitment, :float, default: 0.0
-    field :called, :float, default: 0.0
-    field :distributed, :float, default: 0.0
-    field :nav, :float, default: 0.0
+    field :commitment, :decimal, default: 0
+    field :called, :decimal, default: 0
+    field :distributed, :decimal, default: 0
+    field :nav, :decimal, default: 0
     field :currency, :string, default: "USD"
     field :vintage_year, :integer
     field :notes, :string

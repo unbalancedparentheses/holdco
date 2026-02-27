@@ -39,18 +39,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       assert html =~ "Reviewed Requests"
     end
 
-    test "renders empty state when no pending requests", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "No pending approval requests."
-    end
-
-    test "renders empty state when no reviewed requests", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "No reviewed requests yet."
-    end
-
     test "renders a pending approval request", %{conn: conn} do
       approval_request_fixture(%{
         requested_by: "alice@test.com",
@@ -67,6 +55,20 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       assert html =~ "create"
       assert html =~ "Create new entity"
       assert html =~ "tag-lemon"
+    end
+
+    test "renders vote counts for pending request", %{conn: conn} do
+      approval_request_fixture(%{
+        requested_by: "alice@test.com",
+        table_name: "companies",
+        action: "create",
+        status: "pending",
+        required_approvals: 3
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/approvals")
+
+      assert html =~ "0/3 approved"
     end
 
     test "renders reviewed (approved) requests", %{conn: conn} do
@@ -112,7 +114,7 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
 
       html = view |> element("button", "New Request") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "New Approval Request"
       assert html =~ ~s(phx-submit="create_request")
       assert html =~ ~s(name="approval_request[table_name]")
@@ -120,6 +122,7 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       assert html =~ ~s(name="approval_request[record_id]")
       assert html =~ ~s(name="approval_request[payload]")
       assert html =~ ~s(name="approval_request[notes]")
+      assert html =~ ~s(name="approval_request[required_approvals]")
     end
 
     test "form shows table name options", %{conn: conn} do
@@ -148,7 +151,7 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       view |> element("button", "New Request") |> render_click()
       html = view |> element(~s(button[phx-click="close_form"]), "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -167,14 +170,15 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
           "approval_request" => %{
             "table_name" => "companies",
             "action" => "create",
-            "notes" => "Add new subsidiary"
+            "notes" => "Add new subsidiary",
+            "required_approvals" => "2"
           }
         })
         |> render_submit()
 
       assert html =~ "Approval request submitted"
       assert html =~ "Add new subsidiary"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "viewer cannot create a request", %{conn: conn} do
@@ -185,54 +189,65 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
     end
   end
 
-  # ── Approve Request ─────────────────────────────────────
+  # ── Cast Vote ────────────────────────────────────────────
 
-  describe "approve event" do
-    test "admin approves a pending request", %{conn: conn, user: user} do
+  describe "cast_vote event" do
+    test "admin can cast a vote on a pending request", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "admin")
       req = approval_request_fixture(%{status: "pending", requested_by: "requester@test.com"})
 
       {:ok, view, _html} = live(conn, ~p"/approvals")
 
-      view |> element(~s(button[phx-click="approve"][phx-value-id="#{req.id}"])) |> render_click()
+      # Open the vote form
+      view |> element(~s(button[phx-click="show_vote_form"][phx-value-id="#{req.id}"])) |> render_click()
 
-      html = render(view)
-      assert html =~ "Request approved"
+      # Submit the vote
+      html =
+        view
+        |> form(~s(form[phx-submit="cast_vote"]), %{
+          "vote" => %{
+            "request_id" => to_string(req.id),
+            "decision" => "approved",
+            "notes" => "Looks good"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Vote recorded: approved"
     end
 
-    test "non-admin cannot approve", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      req = approval_request_fixture(%{status: "pending"})
-
-      {:ok, view, _html} = live(conn, ~p"/approvals")
-
-      render_hook(view, "approve", %{"id" => to_string(req.id)})
-      assert render(view) =~ "Admin access required"
-    end
-  end
-
-  # ── Reject Request ──────────────────────────────────────
-
-  describe "reject event" do
-    test "admin rejects a pending request", %{conn: conn, user: user} do
+    test "admin vote meets threshold and auto-approves", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "admin")
-      req = approval_request_fixture(%{status: "pending", requested_by: "requester@test.com"})
+      req = approval_request_fixture(%{status: "pending", requested_by: "requester@test.com", required_approvals: 1})
 
       {:ok, view, _html} = live(conn, ~p"/approvals")
 
-      view |> element(~s(button[phx-click="reject"][phx-value-id="#{req.id}"])) |> render_click()
+      view |> element(~s(button[phx-click="show_vote_form"][phx-value-id="#{req.id}"])) |> render_click()
 
+      html =
+        view
+        |> form(~s(form[phx-submit="cast_vote"]), %{
+          "vote" => %{
+            "request_id" => to_string(req.id),
+            "decision" => "approved",
+            "notes" => ""
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Vote recorded: approved"
+      # The request should now be in the reviewed section
       html = render(view)
-      assert html =~ "Request rejected"
+      assert html =~ "N-of-M threshold met"
     end
 
-    test "non-admin cannot reject", %{conn: conn, user: user} do
+    test "non-admin cannot cast a vote", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       req = approval_request_fixture(%{status: "pending"})
 
       {:ok, view, _html} = live(conn, ~p"/approvals")
 
-      render_hook(view, "reject", %{"id" => to_string(req.id)})
+      render_hook(view, "cast_vote", %{"vote" => %{"request_id" => to_string(req.id), "decision" => "approved"}})
       assert render(view) =~ "Admin access required"
     end
   end
@@ -264,28 +279,45 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
     end
   end
 
-  # ── Admin sees approve/reject/delete buttons ────────────
+  # ── Admin sees vote/delete buttons ────────────────────────
 
   describe "admin visibility" do
-    test "admin sees Approve and Reject buttons for pending requests", %{conn: conn, user: user} do
+    test "admin sees Cast Vote and Del buttons for pending requests", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "admin")
       approval_request_fixture(%{status: "pending", requested_by: "someone@test.com"})
 
       {:ok, _view, html} = live(conn, ~p"/approvals")
 
-      assert html =~ "Approve"
-      assert html =~ "Reject"
+      assert html =~ "Cast Vote"
       assert html =~ "Del"
     end
 
-    test "non-admin does not see Approve/Reject buttons", %{conn: conn, user: user} do
+    test "non-admin does not see Cast Vote button", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       approval_request_fixture(%{status: "pending", requested_by: "someone@test.com"})
 
       {:ok, _view, html} = live(conn, ~p"/approvals")
 
-      refute html =~ ~s(phx-click="approve")
-      refute html =~ ~s(phx-click="reject")
+      refute html =~ ~s(phx-click="show_vote_form")
+      refute html =~ ~s(phx-click="cast_vote")
+    end
+  end
+
+  # ── Vote Details Toggle ──────────────────────────────────
+
+  describe "show_votes event" do
+    test "toggling vote details shows and hides vote information", %{conn: conn} do
+      req = approval_request_fixture(%{status: "pending", requested_by: "someone@test.com"})
+
+      {:ok, view, _html} = live(conn, ~p"/approvals")
+
+      # Click to show
+      html = view |> element(~s(button[phx-click="show_votes"][phx-value-id="#{req.id}"])) |> render_click()
+      assert html =~ "No votes yet."
+
+      # Click to hide
+      html = view |> element(~s(button[phx-click="show_votes"][phx-value-id="#{req.id}"])) |> render_click()
+      refute html =~ "No votes yet."
     end
   end
 

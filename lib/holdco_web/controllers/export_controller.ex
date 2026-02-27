@@ -118,8 +118,8 @@ defmodule HoldcoWeb.ExportController do
       |> Enum.concat(
         Enum.map(entries, fn e ->
           lines = e.lines || []
-          total_debit = Enum.reduce(lines, 0.0, &((&1.debit || 0.0) + &2))
-          total_credit = Enum.reduce(lines, 0.0, &((&1.credit || 0.0) + &2))
+          total_debit = Enum.reduce(lines, Decimal.new(0), fn l, acc -> Decimal.add(acc, l.debit || Decimal.new(0)) end)
+          total_credit = Enum.reduce(lines, Decimal.new(0), fn l, acc -> Decimal.add(acc, l.credit || Decimal.new(0)) end)
 
           [
             e.date,

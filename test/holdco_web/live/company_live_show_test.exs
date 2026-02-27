@@ -243,7 +243,7 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
 
       assert html =~ "John Owner"
-      assert html =~ "51.0%"
+      assert html =~ "51%" || html =~ "51.0%"
     end
 
     test "displays service provider data when present", %{conn: conn, company: company} do

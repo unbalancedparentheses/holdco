@@ -21,6 +21,7 @@ defmodule Holdco.Integrations.Quickbooks do
 
   def authorize_url do
     config = config()
+    state = generate_state()
 
     params =
       URI.encode_query(%{
@@ -28,10 +29,10 @@ defmodule Holdco.Integrations.Quickbooks do
         redirect_uri: config[:redirect_uri],
         response_type: "code",
         scope: "com.intuit.quickbooks.accounting",
-        state: generate_state()
+        state: state
       })
 
-    "#{@auth_base}?#{params}"
+    {"#{@auth_base}?#{params}", state}
   end
 
   def exchange_code(code, realm_id, company_id) do

@@ -6,7 +6,7 @@ defmodule Holdco.Governance.Deal do
     field :deal_type, :string, default: "acquisition"
     field :counterparty, :string
     field :status, :string, default: "pipeline"
-    field :value, :float
+    field :value, :decimal
     field :currency, :string, default: "USD"
     field :target_close_date, :string
     field :closed_date, :string
