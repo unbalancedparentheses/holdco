@@ -109,12 +109,12 @@ test.describe('KPI Tracking', () => {
     await page.locator('[phx-click="select_kpi"]').first().click();
 
     // The detail panel should now show the KPI name with "Snapshots"
-    await expect(page.locator('h2')).toContainText('Snapshots');
+    await expect(page.locator('h2').filter({ hasText: 'Snapshots' })).toBeVisible();
 
     // Detail metrics should appear
     await expect(page.locator('.metric-label').filter({ hasText: 'Current Value' })).toBeVisible();
-    await expect(page.locator('.metric-label').filter({ hasText: 'Target' })).toBeVisible();
-    await expect(page.locator('.metric-label').filter({ hasText: 'Threshold' })).toBeVisible();
+    await expect(page.locator('.metric-label', { hasText: /^Target$/ })).toBeVisible();
+    await expect(page.locator('.metric-label', { hasText: /^Threshold$/ })).toBeVisible();
 
     // "Close Detail" button should be visible
     await expect(page.locator('[phx-click="deselect_kpi"]')).toBeVisible();
@@ -138,9 +138,9 @@ test.describe('KPI Tracking', () => {
     await expect(page.locator('body')).toContainText('KPI created');
 
     // Select the KPI we just created
-    const kpiLink = page.locator('[phx-click="select_kpi"]', { hasText: 'E2E Snapshot KPI' });
+    const kpiLink = page.locator('[phx-click="select_kpi"]', { hasText: 'E2E Snapshot KPI' }).first();
     await kpiLink.click();
-    await expect(page.locator('h2')).toContainText('E2E Snapshot KPI');
+    await expect(page.locator('h2').filter({ hasText: 'E2E Snapshot KPI' })).toBeVisible();
 
     // Click "Record Snapshot"
     await page.locator('[phx-click="show_snapshot_form"]').click();
@@ -220,7 +220,7 @@ test.describe('KPI Tracking', () => {
 
     // Select a KPI
     await page.locator('[phx-click="select_kpi"]').first().click();
-    await expect(page.locator('h2')).toContainText('Snapshots');
+    await expect(page.locator('h2').filter({ hasText: 'Snapshots' })).toBeVisible();
 
     // Deselect
     await page.locator('[phx-click="deselect_kpi"]').click();

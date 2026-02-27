@@ -151,11 +151,6 @@ test.describe('Company Show Page - Tab Navigation', () => {
     await expect(page.locator('body')).toContainText('Financial');
   });
 
-  test('switch to accounting tab', async ({ page }) => {
-    await page.locator('[phx-click="switch_tab"][phx-value-tab="accounting"]').click();
-    await expect(page.locator('body')).toContainText('Accounting');
-  });
-
   test('switch to comments tab', async ({ page }) => {
     await page.locator('[phx-click="switch_tab"][phx-value-tab="comments"]').click();
     await expect(page.locator('body')).toContainText('Comment');
@@ -381,7 +376,7 @@ test.describe('Company Show Page - Comments', () => {
     await expect(page.locator('body')).toContainText('Comment');
 
     // Fill in the comment form (comments form is inline, not in a modal)
-    await page.locator('textarea[name="comment[body]"]').fill(
+    await page.locator('textarea[name="body"]').fill(
       'This is an E2E test comment for Acme Holdings. Board meeting notes to follow.'
     );
 

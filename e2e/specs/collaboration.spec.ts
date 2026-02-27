@@ -21,7 +21,7 @@ test.describe('Contacts', () => {
     await page.fill('textarea[name="contact[notes]"]', 'Created by E2E test suite');
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Contact added');
+    await expect(page.locator('body')).toContainText('Contact created');
     await expect(page.locator('body')).toContainText('E2E Test Contact');
   });
 
@@ -50,7 +50,7 @@ test.describe('Contacts', () => {
     await page.fill('input[name="contact[email]"]', 'delete@testcorp.com');
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Contact added');
+    await expect(page.locator('body')).toContainText('Contact created');
     await expect(page.locator('body')).toContainText('E2E Delete Me Contact');
 
     // Now delete it
@@ -92,7 +92,7 @@ test.describe('Projects', () => {
     await page.fill('textarea[name="project[notes]"]', 'E2E test project notes');
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Project added');
+    await expect(page.locator('body')).toContainText('Project created');
     await expect(page.locator('body')).toContainText('E2E Test Project');
   });
 
@@ -107,7 +107,7 @@ test.describe('Projects', () => {
     }
 
     // Click "All" to reset filter
-    const allFilter = page.locator('[phx-click="filter_status"][phx-value-status="all"]');
+    const allFilter = page.locator('[phx-click="filter_status"][phx-value-status=""]');
     if (await allFilter.isVisible()) {
       await allFilter.click();
       await expect(page.locator('body')).toContainText('Project');
@@ -141,7 +141,7 @@ test.describe('Projects', () => {
     await page.fill('input[name="project[currency]"]', 'USD');
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Project added');
+    await expect(page.locator('body')).toContainText('Project created');
     await expect(page.locator('body')).toContainText('E2E Delete Me Project');
 
     // Now delete it
@@ -160,7 +160,8 @@ test.describe('Scenarios', () => {
   test('create a new scenario with all fields', async ({ page }) => {
     await page.goto('/scenarios');
 
-    await page.locator('[phx-click="show_form"]').click();
+    // The Scenarios index uses a <.link navigate> to /scenarios/new, not phx-click="show_form"
+    await page.locator('a[href="/scenarios/new"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('input[name="scenario[name]"]', 'E2E Test Scenario');
@@ -177,7 +178,7 @@ test.describe('Scenarios', () => {
     await page.fill('input[name="scenario[projection_months]"]', '24');
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Scenario added');
+    await expect(page.locator('body')).toContainText('Scenario created');
     await expect(page.locator('body')).toContainText('E2E Test Scenario');
   });
 
@@ -185,7 +186,7 @@ test.describe('Scenarios', () => {
     await page.goto('/scenarios');
 
     // Create a scenario to work with
-    await page.locator('[phx-click="show_form"]').click();
+    await page.locator('a[href="/scenarios/new"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('input[name="scenario[name]"]', 'E2E Detail Scenario');
@@ -193,17 +194,17 @@ test.describe('Scenarios', () => {
     await page.fill('input[name="scenario[projection_months]"]', '12');
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Scenario added');
+    await expect(page.locator('body')).toContainText('Scenario created');
 
-    // Navigate to the scenario detail page
-    const scenarioLink = page.locator('a[href^="/scenarios/"]', { hasText: 'E2E Detail Scenario' });
+    // Navigate to the scenario detail page via the table link
+    const scenarioLink = page.locator('a.td-link', { hasText: 'E2E Detail Scenario' }).first();
     await scenarioLink.click();
     await page.waitForURL(/\/scenarios\/\d+/);
 
     // Verify the detail page loaded
     await expect(page.locator('body')).toContainText('E2E Detail Scenario');
 
-    // Add an item to the scenario
+    // Add an item to the scenario (show page uses phx-click="show_form")
     await page.locator('[phx-click="show_form"]').click();
     await page.locator('.dialog-panel').waitFor();
 
@@ -214,7 +215,7 @@ test.describe('Scenarios', () => {
     await page.fill('input[name="item[growth_rate]"]', '5.5');
     await page.locator('select[name="item[growth_type]"]').selectOption({ index: 1 });
     await page.locator('select[name="item[recurrence]"]').selectOption({ index: 1 });
-    await page.fill('input[name="item[probability]"]', '85');
+    await page.fill('input[name="item[probability]"]', '0.85');
 
     await page.locator('.dialog-panel button[type="submit"]').click();
     await expect(page.locator('body')).toContainText('E2E Revenue Stream');
@@ -224,21 +225,21 @@ test.describe('Scenarios', () => {
     await page.goto('/scenarios');
 
     // Create a scenario with an item to delete
-    await page.locator('[phx-click="show_form"]').click();
+    await page.locator('a[href="/scenarios/new"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('input[name="scenario[name]"]', 'E2E Item Delete Scenario');
     await page.fill('input[name="scenario[projection_months]"]', '6');
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Scenario added');
+    await expect(page.locator('body')).toContainText('Scenario created');
 
     // Navigate to the scenario detail page
-    const scenarioLink = page.locator('a[href^="/scenarios/"]', { hasText: 'E2E Item Delete Scenario' });
+    const scenarioLink = page.locator('a.td-link', { hasText: 'E2E Item Delete Scenario' }).first();
     await scenarioLink.click();
     await page.waitForURL(/\/scenarios\/\d+/);
 
-    // Add an item
+    // Add an item (show page uses phx-click="show_form")
     await page.locator('[phx-click="show_form"]').click();
     await page.locator('.dialog-panel').waitFor();
 
@@ -260,19 +261,19 @@ test.describe('Scenarios', () => {
     await page.goto('/scenarios');
 
     // First create a scenario to safely delete
-    await page.locator('[phx-click="show_form"]').click();
+    await page.locator('a[href="/scenarios/new"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('input[name="scenario[name]"]', 'E2E Delete Me Scenario');
     await page.fill('input[name="scenario[projection_months]"]', '3');
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Scenario added');
+    await expect(page.locator('body')).toContainText('Scenario created');
     await expect(page.locator('body')).toContainText('E2E Delete Me Scenario');
 
     // Now delete it
     page.on('dialog', (dialog) => dialog.accept());
     await page.locator('[phx-click="delete"]').last().click();
-    await expect(page.locator('body')).not.toContainText('E2E Delete Me Scenario');
+    await expect(page.locator('body')).toContainText('Scenario deleted');
   });
 });

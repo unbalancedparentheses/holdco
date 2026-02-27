@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
 
+// Helper: wait for Phoenix LiveView to be connected before interacting
+async function waitForLiveView(page: import('@playwright/test').Page) {
+  await page.locator('[data-phx-main]').waitFor();
+  // Wait for the phx-connected class which indicates the LV socket is active
+  await page.locator('[data-phx-main].phx-connected').waitFor({ timeout: 10_000 });
+}
+
 // ---------------------------------------------------------------------------
 // 1. Financials  (/financials)
 // ---------------------------------------------------------------------------
@@ -12,6 +19,7 @@ test.describe('Financials', () => {
 
   test('create a new financial record with all fields', async ({ page }) => {
     await page.goto('/financials');
+    await waitForLiveView(page);
 
     await page.locator('[phx-click="show_form"]').click();
     await page.locator('.dialog-panel').waitFor();
@@ -28,6 +36,7 @@ test.describe('Financials', () => {
 
   test('edit a financial record', async ({ page }) => {
     await page.goto('/financials');
+    await waitForLiveView(page);
 
     await page.locator('[phx-click="edit"]').first().click();
     await page.locator('.dialog-panel').waitFor();
@@ -41,6 +50,7 @@ test.describe('Financials', () => {
 
   test('delete a financial record', async ({ page }) => {
     await page.goto('/financials');
+    await waitForLiveView(page);
 
     // Create one to safely delete
     await page.locator('[phx-click="show_form"]').click();
@@ -85,6 +95,7 @@ test.describe('Financials', () => {
 
   test('create an intercompany transfer with all fields', async ({ page }) => {
     await page.goto('/financials');
+    await waitForLiveView(page);
 
     await page.locator('[phx-click="show_transfer_form"]').click();
     await page.locator('.dialog-panel').waitFor();
@@ -93,9 +104,10 @@ test.describe('Financials', () => {
     await page.locator('.dialog-panel select[name="transfer[to_company_id]"]').selectOption({ index: 2 });
     await page.fill('.dialog-panel input[name="transfer[amount]"]', '500000');
     await page.fill('.dialog-panel input[name="transfer[currency]"]', 'USD');
+    await page.fill('.dialog-panel input[name="transfer[date]"]', '2026-01-15');
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Transfer added');
+    await expect(page.locator('body')).toContainText('Transfer created');
   });
 });
 
@@ -202,8 +214,9 @@ test.describe('Fixed Asset Depreciation', () => {
 
   test('create a new fixed asset with all fields', async ({ page }) => {
     await page.goto('/depreciation');
+    await waitForLiveView(page);
 
-    await page.locator('[phx-click="show_form"]').click();
+    await page.locator('[phx-click="show_form"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('.dialog-panel input[name="fixed_asset[name]"]', 'E2E Office Equipment');
@@ -222,6 +235,7 @@ test.describe('Fixed Asset Depreciation', () => {
 
   test('edit a fixed asset', async ({ page }) => {
     await page.goto('/depreciation');
+    await waitForLiveView(page);
 
     await page.locator('[phx-click="edit"]').first().click();
     await page.locator('.dialog-panel').waitFor();
@@ -237,9 +251,10 @@ test.describe('Fixed Asset Depreciation', () => {
 
   test('delete a fixed asset', async ({ page }) => {
     await page.goto('/depreciation');
+    await waitForLiveView(page);
 
     // Create one to safely delete
-    await page.locator('[phx-click="show_form"]').click();
+    await page.locator('[phx-click="show_form"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('.dialog-panel input[name="fixed_asset[name]"]', 'E2E Delete Me Asset');
@@ -301,8 +316,9 @@ test.describe('Lease Accounting', () => {
 
   test('create a new lease with all fields', async ({ page }) => {
     await page.goto('/leases');
+    await waitForLiveView(page);
 
-    await page.locator('[phx-click="show_form"]').click();
+    await page.locator('[phx-click="show_form"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('.dialog-panel input[name="lease[lessor]"]', 'E2E Realty Partners');
@@ -323,6 +339,7 @@ test.describe('Lease Accounting', () => {
 
   test('edit a lease', async ({ page }) => {
     await page.goto('/leases');
+    await waitForLiveView(page);
 
     await page.locator('[phx-click="edit"]').first().click();
     await page.locator('.dialog-panel').waitFor();
@@ -338,9 +355,10 @@ test.describe('Lease Accounting', () => {
 
   test('delete a lease', async ({ page }) => {
     await page.goto('/leases');
+    await waitForLiveView(page);
 
     // Create one to safely delete
-    await page.locator('[phx-click="show_form"]').click();
+    await page.locator('[phx-click="show_form"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('.dialog-panel input[name="lease[lessor]"]', 'E2E Delete Me Lessor');
@@ -397,8 +415,9 @@ test.describe('Segment Reporting', () => {
 
   test('create a new segment with all fields', async ({ page }) => {
     await page.goto('/segments');
+    await waitForLiveView(page);
 
-    await page.locator('[phx-click="show_form"]').click();
+    await page.locator('[phx-click="show_form"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('.dialog-panel input[name="segment[name]"]', 'E2E Technology Division');
@@ -407,12 +426,13 @@ test.describe('Segment Reporting', () => {
     await page.locator('.dialog-panel select[name="segment[company_id]"]').selectOption({ index: 1 });
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Segment added');
+    await expect(page.locator('body')).toContainText('Segment created');
     await expect(page.locator('body')).toContainText('E2E Technology Division');
   });
 
   test('edit a segment', async ({ page }) => {
     await page.goto('/segments');
+    await waitForLiveView(page);
 
     await page.locator('[phx-click="edit"]').first().click();
     await page.locator('.dialog-panel').waitFor();
@@ -427,9 +447,10 @@ test.describe('Segment Reporting', () => {
 
   test('delete a segment', async ({ page }) => {
     await page.goto('/segments');
+    await waitForLiveView(page);
 
     // Create one to safely delete
-    await page.locator('[phx-click="show_form"]').click();
+    await page.locator('[phx-click="show_form"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('.dialog-panel input[name="segment[name]"]', 'E2E Delete Me Segment');
@@ -438,7 +459,7 @@ test.describe('Segment Reporting', () => {
     await page.locator('.dialog-panel select[name="segment[company_id]"]').selectOption({ index: 1 });
 
     await page.locator('.dialog-panel button[type="submit"]').click();
-    await expect(page.locator('body')).toContainText('Segment added');
+    await expect(page.locator('body')).toContainText('Segment created');
     await expect(page.locator('body')).toContainText('E2E Delete Me Segment');
 
     // Now delete it

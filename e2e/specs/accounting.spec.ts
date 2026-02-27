@@ -129,7 +129,7 @@ test.describe('Journal Entries', () => {
 
     const body = page.locator('body');
     await expect(body).toContainText('Initial capital contribution');
-    await expect(body).toContainText('Dividend income received');
+    await expect(body).toContainText('Q4 2024 dividend received from Acme Tech');
   });
 
   test('filter by company', async ({ page }) => {

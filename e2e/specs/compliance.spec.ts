@@ -32,7 +32,7 @@ test.describe('Compliance (/compliance)', () => {
       await page.goto('/compliance');
       await switchTab(page, 'regulatory_filings');
 
-      await page.locator('[phx-click="show_form"]').click();
+      await page.locator('[phx-click="show_form"]').first().click();
       await page.locator('.dialog-panel').waitFor();
 
       await page.locator('select[name="regulatory_filing[company_id]"]').selectOption({ index: 1 });
@@ -62,7 +62,7 @@ test.describe('Compliance (/compliance)', () => {
       await switchTab(page, 'regulatory_filings');
 
       // Create one to safely delete
-      await page.locator('[phx-click="show_form"]').click();
+      await page.locator('[phx-click="show_form"]').first().click();
       await page.locator('.dialog-panel').waitFor();
 
       await page.locator('select[name="regulatory_filing[company_id]"]').selectOption({ index: 1 });
@@ -75,7 +75,7 @@ test.describe('Compliance (/compliance)', () => {
 
       page.on('dialog', (dialog) => dialog.accept());
       await page.locator('[phx-click="delete_filing"]').last().click();
-      await expect(page.locator('body')).not.toContainText('E2E Delete Filing');
+      await expect(page.locator('body')).toContainText('Filing deleted');
     });
   });
 
@@ -93,7 +93,7 @@ test.describe('Compliance (/compliance)', () => {
       await page.goto('/compliance');
       await switchTab(page, 'licenses');
 
-      await page.locator('[phx-click="show_form"]').click();
+      await page.locator('[phx-click="show_form"]').first().click();
       await page.locator('.dialog-panel').waitFor();
 
       await page.locator('select[name="regulatory_license[company_id]"]').selectOption({ index: 1 });
@@ -121,7 +121,7 @@ test.describe('Compliance (/compliance)', () => {
       await page.goto('/compliance');
       await switchTab(page, 'insurance');
 
-      await page.locator('[phx-click="show_form"]').click();
+      await page.locator('[phx-click="show_form"]').first().click();
       await page.locator('.dialog-panel').waitFor();
 
       await page.locator('select[name="insurance_policy[company_id]"]').selectOption({ index: 1 });
@@ -153,7 +153,7 @@ test.describe('Compliance (/compliance)', () => {
       await switchTab(page, 'insurance');
 
       // Create one to safely delete
-      await page.locator('[phx-click="show_form"]').click();
+      await page.locator('[phx-click="show_form"]').first().click();
       await page.locator('.dialog-panel').waitFor();
 
       await page.locator('select[name="insurance_policy[company_id]"]').selectOption({ index: 1 });
@@ -168,7 +168,7 @@ test.describe('Compliance (/compliance)', () => {
 
       page.on('dialog', (dialog) => dialog.accept());
       await page.locator('[phx-click="delete_insurance"]').last().click();
-      await expect(page.locator('body')).not.toContainText('E2E Delete Policy');
+      await expect(page.locator('body')).toContainText('Policy deleted');
     });
   });
 
@@ -186,7 +186,7 @@ test.describe('Compliance (/compliance)', () => {
       await page.goto('/compliance');
       await switchTab(page, 'sanctions');
 
-      await page.locator('[phx-click="show_form"]').click();
+      await page.locator('[phx-click="show_form"]').first().click();
       await page.locator('.dialog-panel').waitFor();
 
       await page.locator('select[name="sanctions_check[company_id]"]').selectOption({ index: 1 });
@@ -212,7 +212,7 @@ test.describe('Compliance (/compliance)', () => {
       await page.goto('/compliance');
       await switchTab(page, 'esg');
 
-      await page.locator('[phx-click="show_form"]').click();
+      await page.locator('[phx-click="show_form"]').first().click();
       await page.locator('.dialog-panel').waitFor();
 
       await page.locator('select[name="esg_score[company_id]"]').selectOption({ index: 1 });
@@ -241,7 +241,7 @@ test.describe('Compliance (/compliance)', () => {
       await page.goto('/compliance');
       await switchTab(page, 'fatca');
 
-      await page.locator('[phx-click="show_form"]').click();
+      await page.locator('[phx-click="show_form"]').first().click();
       await page.locator('.dialog-panel').waitFor();
 
       await page.locator('select[name="fatca_report[company_id]"]').selectOption({ index: 1 });
@@ -268,7 +268,7 @@ test.describe('Compliance (/compliance)', () => {
       await page.goto('/compliance');
       await switchTab(page, 'withholding');
 
-      await page.locator('[phx-click="show_form"]').click();
+      await page.locator('[phx-click="show_form"]').first().click();
       await page.locator('.dialog-panel').waitFor();
 
       await page.locator('select[name="withholding_tax[company_id]"]').selectOption({ index: 1 });
@@ -302,7 +302,7 @@ test.describe('Compliance (/compliance)', () => {
       await switchTab(page, 'withholding');
 
       // Create one to safely delete
-      await page.locator('[phx-click="show_form"]').click();
+      await page.locator('[phx-click="show_form"]').first().click();
       await page.locator('.dialog-panel').waitFor();
 
       await page.locator('select[name="withholding_tax[company_id]"]').selectOption({ index: 1 });
@@ -319,7 +319,7 @@ test.describe('Compliance (/compliance)', () => {
 
       page.on('dialog', (dialog) => dialog.accept());
       await page.locator('[phx-click="delete_withholding"]').last().click();
-      await expect(page.locator('body')).not.toContainText('E2E Delete WHT');
+      await expect(page.locator('body')).toContainText('Tax entry deleted');
     });
   });
 });

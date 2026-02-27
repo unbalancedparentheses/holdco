@@ -128,14 +128,11 @@ test.describe('Import Page', () => {
 // ---------------------------------------------------------------------------
 test.describe('Search Page', () => {
   test('search for Acme and verify results', async ({ page }) => {
-    await page.goto('/search');
-    await expect(page.locator('body')).toContainText('Search');
+    // Navigate directly with query param — the mount/1 handles %{"q" => query}
+    await page.goto('/search?q=Acme');
 
-    // Fill in the search form and submit
-    await page.fill('input[name="q"]', 'Acme');
-    await page.locator('form[phx-submit="search"] button[type="submit"]').click();
-
-    // Verify results contain seeded Acme companies
+    // Verify results section appears with seeded Acme companies
+    await expect(page.locator('body')).toContainText('results for', { timeout: 10000 });
     await expect(page.locator('body')).toContainText('Acme');
   });
 });
@@ -165,14 +162,20 @@ test.describe('Settings Page', () => {
     // Ensure we are on the settings tab
     await page.locator('[phx-click="switch_tab"][phx-value-tab="settings"]').click();
 
-    // Fill in the setting form
-    await page.fill('input[name="setting[key]"]', 'e2e_test_key');
-    await page.fill('input[name="setting[value]"]', 'e2e_test_value');
+    // Click the "Add Setting" button to open the modal form
+    await page.locator('button[phx-click="show_form"]').click();
+
+    // Wait for the dialog modal to appear
+    await expect(page.locator('.dialog-panel')).toBeVisible();
+
+    // Fill in the setting form inside the dialog
+    await page.locator('.dialog-panel input[name="setting[key]"]').fill('e2e_test_key');
+    await page.locator('.dialog-panel input[name="setting[value]"]').fill('e2e_test_value');
 
     // Submit the form
-    await page.locator('form[phx-submit="save_setting"] button[type="submit"]').click();
+    await page.locator('.dialog-panel form[phx-submit="save_setting"] button[type="submit"]').click();
 
-    // Verify the setting was saved
+    // Verify the setting was saved (dialog closes, setting appears in table)
     await expect(page.locator('body')).toContainText('e2e_test_key');
     await expect(page.locator('body')).toContainText('e2e_test_value');
   });
@@ -183,14 +186,20 @@ test.describe('Settings Page', () => {
     // Switch to categories tab
     await page.locator('[phx-click="switch_tab"][phx-value-tab="categories"]').click();
 
-    // Fill in the category form
-    await page.fill('input[name="category[name]"]', 'E2E Test Category');
-    await page.locator('input[name="category[color]"]').fill('#ff5733');
+    // Click the "Add Category" button to open the modal form
+    await page.locator('button[phx-click="show_form"]').click();
+
+    // Wait for the dialog modal to appear
+    await expect(page.locator('.dialog-panel')).toBeVisible();
+
+    // Fill in the category form inside the dialog
+    await page.locator('.dialog-panel input[name="category[name]"]').fill('E2E Test Category');
+    await page.locator('.dialog-panel input[name="category[color]"]').fill('#ff5733');
 
     // Submit the form
-    await page.locator('form[phx-submit="save_category"] button[type="submit"]').click();
+    await page.locator('.dialog-panel form[phx-submit="save_category"] button[type="submit"]').click();
 
-    // Verify the category was saved
+    // Verify the category was saved (dialog closes, category appears in table)
     await expect(page.locator('body')).toContainText('E2E Test Category');
   });
 
@@ -200,16 +209,22 @@ test.describe('Settings Page', () => {
     // Switch to webhooks tab
     await page.locator('[phx-click="switch_tab"][phx-value-tab="webhooks"]').click();
 
-    // Fill in the webhook form
-    await page.fill('input[name="webhook[url]"]', 'https://hooks.example.com/e2e-test');
-    await page.fill('input[name="webhook[events]"]', 'company.created,transaction.created');
-    await page.fill('input[name="webhook[secret]"]', 'e2e_webhook_secret_123');
-    await page.fill('textarea[name="webhook[notes]"]', 'Created by E2E test suite');
+    // Click the "Add Webhook" button to open the modal form
+    await page.locator('button[phx-click="show_form"]').click();
+
+    // Wait for the dialog modal to appear
+    await expect(page.locator('.dialog-panel')).toBeVisible();
+
+    // Fill in the webhook form inside the dialog
+    await page.locator('.dialog-panel input[name="webhook[url]"]').fill('https://hooks.example.com/e2e-test');
+    await page.locator('.dialog-panel input[name="webhook[events]"]').fill('company.created,transaction.created');
+    await page.locator('.dialog-panel input[name="webhook[secret]"]').fill('e2e_webhook_secret_123');
+    await page.locator('.dialog-panel textarea[name="webhook[notes]"]').fill('Created by E2E test suite');
 
     // Submit the form
-    await page.locator('form[phx-submit="save_webhook"] button[type="submit"]').click();
+    await page.locator('.dialog-panel form[phx-submit="save_webhook"] button[type="submit"]').click();
 
-    // Verify the webhook was saved
+    // Verify the webhook was saved (dialog closes, webhook appears in table)
     await expect(page.locator('body')).toContainText('https://hooks.example.com/e2e-test');
   });
 
@@ -219,23 +234,29 @@ test.describe('Settings Page', () => {
     // Switch to backups tab
     await page.locator('[phx-click="switch_tab"][phx-value-tab="backups"]').click();
 
-    // Fill in the backup config form
-    await page.fill('input[name="backup_config[name]"]', 'E2E Nightly Backup');
+    // Click the "Add Config" button to open the modal form
+    await page.locator('button[phx-click="show_form"]').click();
 
-    const destinationTypeSelect = page.locator('select[name="backup_config[destination_type]"]');
+    // Wait for the dialog modal to appear
+    await expect(page.locator('.dialog-panel')).toBeVisible();
+
+    // Fill in the backup config form inside the dialog
+    await page.locator('.dialog-panel input[name="backup_config[name]"]').fill('E2E Nightly Backup');
+
+    const destinationTypeSelect = page.locator('.dialog-panel select[name="backup_config[destination_type]"]');
     await destinationTypeSelect.selectOption({ index: 1 });
 
-    await page.fill('input[name="backup_config[destination_path]"]', '/backups/e2e-test');
+    await page.locator('.dialog-panel input[name="backup_config[destination_path]"]').fill('/backups/e2e-test');
 
-    const scheduleSelect = page.locator('select[name="backup_config[schedule]"]');
+    const scheduleSelect = page.locator('.dialog-panel select[name="backup_config[schedule]"]');
     await scheduleSelect.selectOption({ index: 1 });
 
-    await page.fill('input[name="backup_config[retention_days]"]', '30');
+    await page.locator('.dialog-panel input[name="backup_config[retention_days]"]').fill('30');
 
     // Submit the form
-    await page.locator('form[phx-submit="save_backup"] button[type="submit"]').click();
+    await page.locator('.dialog-panel form[phx-submit="save_backup"] button[type="submit"]').click();
 
-    // Verify the backup config was saved
+    // Verify the backup config was saved (dialog closes, config appears in table)
     await expect(page.locator('body')).toContainText('E2E Nightly Backup');
   });
 

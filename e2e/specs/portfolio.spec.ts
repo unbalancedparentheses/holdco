@@ -245,7 +245,7 @@ test.describe('Holding Detail (/holdings/:id)', () => {
     await expect(page.locator('.metric-label').filter({ hasText: 'Current Value' })).toBeVisible();
     await expect(page.locator('.metric-label').filter({ hasText: 'Quantity' })).toBeVisible();
     await expect(page.locator('.metric-label').filter({ hasText: 'Unrealized G/L' })).toBeVisible();
-    await expect(page.locator('.metric-label').filter({ hasText: 'Realized G/L' })).toBeVisible();
+    await expect(page.locator('.metric-label', { hasText: /^Realized G\/L$/ })).toBeVisible();
   });
 
   test('holding detail shows details section with asset information', async ({ page }) => {

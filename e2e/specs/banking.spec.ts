@@ -68,7 +68,7 @@ test.describe('Bank Accounts', () => {
   test('create a cash pool', async ({ page }) => {
     await page.goto('/bank-accounts');
 
-    await page.locator('[phx-click="show_pool_form"]').click();
+    await page.locator('[phx-click="show_pool_form"]').first().click();
     await page.locator('.dialog-panel').waitFor();
 
     await page.fill('input[name="pool[name]"]', 'E2E Test Pool');
@@ -81,20 +81,17 @@ test.describe('Bank Accounts', () => {
     await expect(page.locator('body')).toContainText('E2E Test Pool');
   });
 
-  test('navigate to bank account detail page', async ({ page }) => {
+  test('bank account list displays expected columns', async ({ page }) => {
     await page.goto('/bank-accounts');
 
-    // Click on the first bank account link to go to the show page
-    const firstLink = page.locator('a[href^="/bank-accounts/"]').first();
-    await expect(firstLink).toBeVisible();
-    const href = await firstLink.getAttribute('href');
-    await firstLink.click();
-    await page.waitForURL(href!);
-
-    // Verify the detail page shows relevant information
+    // No detail pages exist — verify the list table shows the expected column data
     await expect(page.locator('body')).toContainText('Balance');
     await expect(page.locator('body')).toContainText('Currency');
-    await expect(page.locator('body')).toContainText('Account Type');
+
+    // Verify the table is present with bank account data
+    const table = page.locator('table').nth(1);
+    await expect(table).toBeVisible();
+    await expect(table.locator('th').first()).toContainText('Bank');
   });
 });
 
@@ -124,17 +121,16 @@ test.describe('Transactions', () => {
     await expect(page.locator('body')).toContainText('E2E test wire transfer');
   });
 
-  test('navigate to transaction detail page', async ({ page }) => {
+  test('transaction list displays expected columns', async ({ page }) => {
     await page.goto('/transactions');
 
-    const firstLink = page.locator('a[href^="/transactions/"]').first();
-    await expect(firstLink).toBeVisible();
-    const href = await firstLink.getAttribute('href');
-    await firstLink.click();
-    await page.waitForURL(href!);
-
-    // Verify the detail page renders
+    // No detail pages exist — verify the list table shows the expected column data
     await expect(page.locator('body')).toContainText('Transaction');
+
+    // Verify the table headers are present
+    const table = page.locator('table').first();
+    await expect(table).toBeVisible();
+    await expect(table.locator('th')).toContainText(['Date', 'Type', 'Description', 'Counterparty', 'Amount', 'Currency']);
   });
 
   test('edit a transaction', async ({ page }) => {
