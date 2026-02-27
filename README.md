@@ -194,6 +194,15 @@ reminders, and approval requests.
 **CSV/data import.** Import data from CSV files with column mapping and
 validation.
 
+**AI assistant.** LLM-powered chat interface that can answer natural language
+questions about your portfolio, companies, and financial data. Configurable
+provider (Anthropic Claude, OpenAI) with API key and model selection in
+Settings. Conversations are persisted per user. The dashboard includes an
+inline AI Insights card that generates a brief portfolio health summary on
+page load. The system prompt is automatically populated with live portfolio
+data (NAV, holdings, companies, allocation, liabilities, transactions, and
+tax deadlines) so the LLM has full context to answer accurately.
+
 ## Quickstart
 
 ### Prerequisites
@@ -393,12 +402,13 @@ and user workflows alongside the ExUnit unit test suite.
 | `/aging` | AR/AP aging reports |
 | `/revaluation` | Currency revaluation |
 | `/audit-diffs` | Field-level audit diffs (old → new values) |
-| `/settings` | App settings, categories, webhooks, backups (admin only) |
+| `/ai-chat` | AI chat: ask questions about portfolio data, persisted conversations |
+| `/settings` | App settings, categories, webhooks, backups, AI config (admin only) |
 
 ### Project Layout
 
 ```
-lib/holdco/              18 bounded contexts, 87 Ecto schemas
+lib/holdco/              19 bounded contexts, 89 Ecto schemas
   accounts/              User, UserRole, ApiKey
   corporate/             Company tree, beneficial owners, key personnel
   governance/            Board meetings, cap table, resolutions, equity plans, deals
@@ -411,6 +421,7 @@ lib/holdco/              18 bounded contexts, 87 Ecto schemas
   pricing/               Price history, Yahoo Finance client (ETS cache)
   platform/              Settings, categories, audit log, webhooks (with delivery), backups, approvals
   integrations/          QuickBooks Online sync, bank feeds, e-signatures, email digests
+  ai/                    LLM client, data context, conversations, messages
   scenarios/             Scenario modeling with projection engine
   analytics/             KPIs, snapshots, report templates
   collaboration/         Contacts, projects, comments
@@ -432,7 +443,7 @@ docker-compose.yml       Single-service deployment with SQLite volume
 .github/workflows/ci.yml GitHub Actions CI (test + docker build)
 flake.nix                Nix devShell + package build + Docker image
 assets/css/app.css       Tailwind CSS 4 + daisyUI v5
-priv/repo/migrations/    9 migration files
+priv/repo/migrations/    10 migration files
 priv/repo/seeds.exs      Example data
 ```
 
@@ -675,14 +686,14 @@ Scale from single-user to multi-stakeholder platform.
   email/password flow.
 - **Hardware security keys.** FIDO2 and WebAuthn support for high-security
   environments beyond TOTP-based two-factor authentication.
-- **AI assistant.** LLM-powered copilot that can analyze uploaded documents
-  (contracts, term sheets, financial statements, tax filings), answer natural
-  language questions against the structured data ("What is our total EUR
-  exposure?", "Which entities have tax deadlines this quarter?"), summarize board
-  packs, flag risks in new agreements, draft compliance narratives, and suggest
-  optimization opportunities across the portfolio. Provider-agnostic via
-  OpenRouter, or connect directly to the Anthropic, OpenAI, or any other API.
-  Configurable per-deployment so users choose their own provider and API key.
+- **AI assistant (chat and inline insights implemented).** LLM-powered copilot
+  that can answer natural language questions against the structured data.
+  Configurable provider (Anthropic, OpenAI) with API key and model selection in
+  Settings. Chat interface with persisted conversations and dashboard inline
+  insights are live. Planned extensions: analyze uploaded documents (contracts,
+  term sheets, financial statements, tax filings), summarize board packs, flag
+  risks in new agreements, draft compliance narratives, and suggest optimization
+  opportunities across the portfolio.
 - **Document intelligence.** Automatic extraction of key terms, dates, amounts,
   and obligations from uploaded contracts and agreements using LLM parsing.
   Populate structured fields from unstructured documents and flag missing or

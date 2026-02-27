@@ -166,6 +166,9 @@ defmodule HoldcoWeb.CompanyLive.Index do
               Tree
             </button>
           </div>
+          <.link navigate={~p"/org-chart"} class="btn btn-secondary">
+            Org Chart
+          </.link>
           <a href={~p"/export/companies.csv"} class="btn btn-secondary">
             Export CSV
           </a>

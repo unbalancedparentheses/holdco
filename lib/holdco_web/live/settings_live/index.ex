@@ -1,9 +1,9 @@
 defmodule HoldcoWeb.SettingsLive.Index do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Platform, Accounts}
+  alias Holdco.{Platform, Accounts, AI}
 
-  @tabs ~w(settings categories webhooks backups users)
+  @tabs ~w(settings categories webhooks backups users ai)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -19,7 +19,11 @@ defmodule HoldcoWeb.SettingsLive.Index do
        backups: Platform.list_backup_configs(),
        users: Accounts.list_users(),
        active_tab: "settings",
-       show_form: false
+       show_form: false,
+       ai_provider: Platform.get_setting_value("llm_provider", ""),
+       ai_api_key: Platform.get_setting_value("llm_api_key", ""),
+       ai_model: Platform.get_setting_value("llm_model", ""),
+       ai_test_result: nil
      )}
   end
 
@@ -132,6 +136,50 @@ defmodule HoldcoWeb.SettingsLive.Index do
     {:noreply, reload(socket) |> put_flash(:info, "Backup config deleted")}
   end
 
+  # --- AI Settings ---
+  def handle_event("save_ai", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("save_ai", %{"ai" => params}, socket) do
+    results =
+      for {key, setting_key} <- [
+            {"provider", "llm_provider"},
+            {"api_key", "llm_api_key"},
+            {"model", "llm_model"}
+          ],
+          value = Map.get(params, key, ""),
+          value != "" do
+        Platform.upsert_setting(setting_key, value)
+      end
+
+    if Enum.all?(results, &match?({:ok, _}, &1)) do
+      {:noreply,
+       socket
+       |> assign(
+         ai_provider: Map.get(params, "provider", ""),
+         ai_api_key: Map.get(params, "api_key", ""),
+         ai_model: Map.get(params, "model", ""),
+         ai_test_result: nil
+       )
+       |> put_flash(:info, "AI settings saved")}
+    else
+      {:noreply, put_flash(socket, :error, "Failed to save AI settings")}
+    end
+  end
+
+  def handle_event("test_ai", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("test_ai", _params, socket) do
+    case AI.test_connection() do
+      {:ok, _response} ->
+        {:noreply, assign(socket, ai_test_result: :ok)}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, ai_test_result: {:error, reason})}
+    end
+  end
+
   # --- User Role Update ---
   def handle_event("update_role", %{"user_id" => user_id, "role" => role}, socket) do
     user = Accounts.get_user!(String.to_integer(user_id))
@@ -193,6 +241,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
   defp tab_label("webhooks"), do: "Webhooks"
   defp tab_label("backups"), do: "Backups"
   defp tab_label("users"), do: "Users"
+  defp tab_label("ai"), do: "AI"
 
   defp render_tab(%{active_tab: "settings"} = assigns) do
     ~H"""
@@ -579,6 +628,72 @@ defmodule HoldcoWeb.SettingsLive.Index do
         </table>
         <%= if @users == [] do %>
           <div class="empty-state">No users yet.</div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_tab(%{active_tab: "ai"} = assigns) do
+    ~H"""
+    <div class="section">
+      <div class="section-head">
+        <h2>AI / LLM Configuration</h2>
+      </div>
+      <div class="panel" style="padding: 1.5rem;">
+        <form phx-submit="save_ai">
+          <div class="form-group">
+            <label class="form-label">Provider *</label>
+            <select name="ai[provider]" class="form-select">
+              <option value="">Select provider...</option>
+              <option value="anthropic" selected={@ai_provider == "anthropic"}>Anthropic (Claude)</option>
+              <option value="openai" selected={@ai_provider == "openai"}>OpenAI (GPT)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">API Key *</label>
+            <input
+              type="password"
+              name="ai[api_key]"
+              class="form-input"
+              value={@ai_api_key}
+              placeholder="sk-..."
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Model</label>
+            <input
+              type="text"
+              name="ai[model]"
+              class="form-input"
+              value={@ai_model}
+              placeholder="claude-sonnet-4-20250514 or gpt-4o"
+            />
+            <p style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
+              Leave blank for default. Anthropic: claude-sonnet-4-20250514, OpenAI: gpt-4o
+            </p>
+          </div>
+          <div class="form-actions" style="gap: 0.5rem;">
+            <%= if @can_admin do %>
+              <button type="submit" class="btn btn-primary">Save</button>
+              <button type="button" class="btn btn-secondary" phx-click="test_ai">
+                Test Connection
+              </button>
+            <% end %>
+          </div>
+        </form>
+
+        <%= case @ai_test_result do %>
+          <% :ok -> %>
+            <div style="margin-top: 1rem; padding: 0.75rem; background: #e8f5e9; border-radius: 4px; color: #2e7d32;">
+              Connection successful! The AI provider is responding correctly.
+            </div>
+          <% {:error, reason} -> %>
+            <div style="margin-top: 1rem; padding: 0.75rem; background: #ffebee; border-radius: 4px; color: #c62828;">
+              Connection failed: {reason}
+            </div>
+          <% _ -> %>
         <% end %>
       </div>
     </div>

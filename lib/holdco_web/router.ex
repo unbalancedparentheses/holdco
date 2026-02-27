@@ -178,6 +178,9 @@ defmodule HoldcoWeb.Router do
       live "/aging", AgingReportLive.Index, :index
       live "/management-reports", ManagementReportsLive.Index, :index
       live "/audit-diffs", AuditDiffLive.Index, :index
+
+      # AI
+      live "/ai-chat", AiChatLive, :index
     end
   end
 

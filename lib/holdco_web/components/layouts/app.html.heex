@@ -23,9 +23,9 @@
       <% cur = assigns[:current_path] || "" %>
       <% accounting_paths = ~w(/accounts/chart /accounts/journal /accounts/reports /accounts/integrations /depreciation /segments /revaluation /budgets/variance /waterfall /consolidated /leases) %>
       <% accounting_active = Enum.any?(accounting_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
-      <% portfolio_paths = ~w(/holdings /transactions /bank-accounts /financials /risk/concentration /debt-maturity /cash-forecast) %>
+      <% portfolio_paths = ~w(/holdings /transactions /bank-accounts /financials /risk/concentration /debt-maturity /cash-forecast /scenarios) %>
       <% portfolio_active = Enum.any?(portfolio_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
-      <% corp_paths = ~w(/governance /compliance /documents /org-chart /tax-calendar /audit-log) %>
+      <% corp_paths = ~w(/governance /compliance /documents /tax-calendar /audit-log /calendar /contacts /projects) %>
       <% corp_active = Enum.any?(corp_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
       <% reports_paths = ~w(/reports /tax/capital-gains /kpis /aging /management-reports) %>
       <% reports_active = Enum.any?(reports_paths, &(cur == &1 or String.starts_with?(cur, &1 <> "/"))) %>
@@ -63,6 +63,9 @@
             <.link navigate={~p"/cash-forecast"} class={if cur == "/cash-forecast", do: "active"}>
               Cash Forecast
             </.link>
+            <.link navigate={~p"/scenarios"} class={if String.starts_with?(cur, "/scenarios"), do: "active"}>
+              Scenarios
+            </.link>
           </div>
         </div>
         <div class="nav-dropdown">
@@ -80,8 +83,14 @@
             <.link navigate={~p"/documents"} class={if cur == "/documents", do: "active"}>
               Documents
             </.link>
-            <.link navigate={~p"/org-chart"} class={if cur == "/org-chart", do: "active"}>
-              Org Chart
+            <.link navigate={~p"/calendar"} class={if cur == "/calendar", do: "active"}>
+              Calendar
+            </.link>
+            <.link navigate={~p"/contacts"} class={if String.starts_with?(cur, "/contacts"), do: "active"}>
+              Contacts
+            </.link>
+            <.link navigate={~p"/projects"} class={if String.starts_with?(cur, "/projects"), do: "active"}>
+              Projects
             </.link>
             <.link navigate={~p"/audit-log"} class={if cur == "/audit-log", do: "active"}>
               Audit Log
@@ -126,18 +135,6 @@
             </.link>
           </div>
         </div>
-        <.link navigate={~p"/calendar"} class={if cur == "/calendar", do: "active"}>
-          Calendar
-        </.link>
-        <.link navigate={~p"/scenarios"} class={if String.starts_with?(cur, "/scenarios"), do: "active"}>
-          Scenarios
-        </.link>
-        <.link navigate={~p"/contacts"} class={if String.starts_with?(cur, "/contacts"), do: "active"}>
-          Contacts
-        </.link>
-        <.link navigate={~p"/projects"} class={if String.starts_with?(cur, "/projects"), do: "active"}>
-          Projects
-        </.link>
         <div class="nav-dropdown">
           <button class={"nav-dropdown-toggle #{if reports_active, do: "more-active"}"}>Reports &#9662;</button>
           <div class="nav-dropdown-menu">

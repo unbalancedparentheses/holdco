@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.DashboardLive do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Corporate, Banking, Assets, Platform, Portfolio, Compliance}
+  alias Holdco.{Corporate, Banking, Assets, Platform, Portfolio, Compliance, AI}
 
   @currencies ~w(USD EUR GBP ARS BRL CHF JPY CAD AUD)
 
@@ -28,6 +28,12 @@ defmodule HoldcoWeb.DashboardLive do
       |> Enum.sort_by(& &1.due_date)
       |> Enum.take(5)
 
+    ai_configured = AI.configured?()
+
+    if connected?(socket) and ai_configured do
+      send(self(), :load_ai_insight)
+    end
+
     {:ok,
      assign(socket,
        page_title: "Dashboard",
@@ -40,7 +46,9 @@ defmodule HoldcoWeb.DashboardLive do
        display_currency: "USD",
        fx_rate: 1.0,
        pending_approvals: pending_approvals,
-       upcoming_deadlines: upcoming_deadlines
+       upcoming_deadlines: upcoming_deadlines,
+       ai_insight: nil,
+       ai_insight_loading: ai_configured
      )}
   end
 
@@ -63,6 +71,18 @@ defmodule HoldcoWeb.DashboardLive do
   def handle_info({:audit_log_created, log}, socket) do
     recent = [log | Enum.take(socket.assigns.recent_audit, 19)]
     {:noreply, assign(socket, recent_audit: recent)}
+  end
+
+  def handle_info(:load_ai_insight, socket) do
+    data_context = AI.DataContext.build_summary()
+
+    case AI.generate_insights(data_context) do
+      {:ok, insight} ->
+        {:noreply, assign(socket, ai_insight: insight, ai_insight_loading: false)}
+
+      {:error, _} ->
+        {:noreply, assign(socket, ai_insight: nil, ai_insight_loading: false)}
+    end
   end
 
   def handle_info(_, socket), do: {:noreply, socket}
@@ -308,6 +328,22 @@ defmodule HoldcoWeb.DashboardLive do
         </div>
       </div>
     </div>
+
+    <%= if @ai_insight_loading or @ai_insight do %>
+      <div class="section">
+        <div class="section-head">
+          <h2>AI Insights</h2>
+          <.link navigate={~p"/ai-chat"} class="count" style="text-decoration: none;">Chat &rarr;</.link>
+        </div>
+        <div class="panel" style="padding: 1.25rem;">
+          <%= if @ai_insight_loading do %>
+            <div style="color: #999; font-style: italic;">Generating insights...</div>
+          <% else %>
+            <div style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.5;">{@ai_insight}</div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
 
     <div class="section">
       <div class="section-head">

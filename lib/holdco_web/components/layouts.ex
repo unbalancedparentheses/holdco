@@ -87,43 +87,143 @@ defmodule HoldcoWeb.Layouts do
     <nav class="nav-bar">
       <div class="nav-inner">
         <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
+        <% cur = @current_path || "" %>
         <% accounting_paths = ~w(/accounts/chart /accounts/journal /accounts/reports /accounts/integrations /depreciation /segments /revaluation /budgets/variance /waterfall /consolidated /leases) %>
-        <% accounting_active = Enum.any?(accounting_paths, fn p -> String.starts_with?(@current_path || "", p) end) %>
+        <% accounting_active = Enum.any?(accounting_paths, fn p -> cur == p or String.starts_with?(cur, p <> "/") end) %>
+        <% portfolio_paths = ~w(/holdings /transactions /bank-accounts /financials /risk/concentration /debt-maturity /cash-forecast /scenarios) %>
+        <% portfolio_active = Enum.any?(portfolio_paths, fn p -> cur == p or String.starts_with?(cur, p <> "/") end) %>
+        <% corp_paths = ~w(/governance /compliance /documents /tax-calendar /audit-log /calendar /contacts /projects) %>
+        <% corp_active = Enum.any?(corp_paths, fn p -> cur == p or String.starts_with?(cur, p <> "/") end) %>
+        <% reports_paths = ~w(/reports /tax/capital-gains /kpis /aging /management-reports /compare) %>
+        <% reports_active = Enum.any?(reports_paths, fn p -> cur == p or String.starts_with?(cur, p <> "/") end) %>
         <div class="nav-links">
-          <.link navigate={~p"/"} class={if @current_path == "/", do: "active"}>Overview</.link>
+          <.link navigate={~p"/"} class={if cur == "/", do: "active"}>Overview</.link>
           <.link
             navigate={~p"/companies"}
-            class={if String.starts_with?(@current_path || "", "/companies"), do: "active"}
+            class={if String.starts_with?(cur, "/companies") or cur == "/org-chart", do: "active"}
           >
             Companies
           </.link>
-          <.link
-            navigate={~p"/calendar"}
-            class={if @current_path == "/calendar", do: "active"}
-          >
-            Calendar
-          </.link>
           <div class="nav-dropdown">
-            <button class={"nav-dropdown-toggle #{if accounting_active, do: "more-active"}"}>Accounting &#9662;</button>
+            <button class={"nav-dropdown-toggle #{if portfolio_active, do: "more-active"}"}>Portfolio &#9662;</button>
             <div class="nav-dropdown-menu">
-              <.link navigate={~p"/accounts/chart"} class={if @current_path == "/accounts/chart", do: "active"}>
-                Chart of Accounts
+              <.link navigate={~p"/holdings"} class={if String.starts_with?(cur, "/holdings"), do: "active"}>
+                Holdings
               </.link>
-              <.link navigate={~p"/accounts/journal"} class={if @current_path == "/accounts/journal", do: "active"}>
-                Journal Entries
+              <.link navigate={~p"/transactions"} class={if String.starts_with?(cur, "/transactions"), do: "active"}>
+                Transactions
               </.link>
-              <.link navigate={~p"/accounts/reports"} class={if @current_path == "/accounts/reports", do: "active"}>
-                Accounting Reports
+              <.link navigate={~p"/bank-accounts"} class={if String.starts_with?(cur, "/bank-accounts"), do: "active"}>
+                Bank Accounts
               </.link>
-              <.link navigate={~p"/accounts/integrations"} class={if @current_path == "/accounts/integrations", do: "active"}>
-                Integrations
+              <.link navigate={~p"/financials"} class={if cur == "/financials", do: "active"}>
+                Financials
+              </.link>
+              <.link navigate={~p"/scenarios"} class={if String.starts_with?(cur, "/scenarios"), do: "active"}>
+                Scenarios
+              </.link>
+              <.link navigate={~p"/risk/concentration"} class={if cur == "/risk/concentration", do: "active"}>
+                Concentration Risk
+              </.link>
+              <.link navigate={~p"/debt-maturity"} class={if cur == "/debt-maturity", do: "active"}>
+                Debt Maturity
+              </.link>
+              <.link navigate={~p"/cash-forecast"} class={if cur == "/cash-forecast", do: "active"}>
+                Cash Forecast
               </.link>
             </div>
           </div>
-          <.link navigate={~p"/reports"} class={if @current_path == "/reports", do: "active"}>
-            Reports
-          </.link>
-          <.link navigate={~p"/settings"} class={if @current_path == "/settings", do: "active"}>
+          <div class="nav-dropdown">
+            <button class={"nav-dropdown-toggle #{if corp_active, do: "more-active"}"}>Corporate &#9662;</button>
+            <div class="nav-dropdown-menu">
+              <.link navigate={~p"/governance"} class={if cur == "/governance", do: "active"}>
+                Governance
+              </.link>
+              <.link navigate={~p"/compliance"} class={if cur == "/compliance", do: "active"}>
+                Compliance
+              </.link>
+              <.link navigate={~p"/tax-calendar"} class={if cur == "/tax-calendar", do: "active"}>
+                Tax Calendar
+              </.link>
+              <.link navigate={~p"/documents"} class={if cur == "/documents", do: "active"}>
+                Documents
+              </.link>
+              <.link navigate={~p"/calendar"} class={if cur == "/calendar", do: "active"}>
+                Calendar
+              </.link>
+              <.link navigate={~p"/contacts"} class={if String.starts_with?(cur, "/contacts"), do: "active"}>
+                Contacts
+              </.link>
+              <.link navigate={~p"/projects"} class={if String.starts_with?(cur, "/projects"), do: "active"}>
+                Projects
+              </.link>
+              <.link navigate={~p"/audit-log"} class={if cur == "/audit-log", do: "active"}>
+                Audit Log
+              </.link>
+            </div>
+          </div>
+          <div class="nav-dropdown">
+            <button class={"nav-dropdown-toggle #{if accounting_active, do: "more-active"}"}>Accounting &#9662;</button>
+            <div class="nav-dropdown-menu">
+              <.link navigate={~p"/accounts/chart"} class={if cur == "/accounts/chart", do: "active"}>
+                Chart of Accounts
+              </.link>
+              <.link navigate={~p"/accounts/journal"} class={if cur == "/accounts/journal", do: "active"}>
+                Journal Entries
+              </.link>
+              <.link navigate={~p"/accounts/reports"} class={if cur == "/accounts/reports", do: "active"}>
+                Accounting Reports
+              </.link>
+              <.link navigate={~p"/accounts/integrations"} class={if cur == "/accounts/integrations", do: "active"}>
+                Integrations
+              </.link>
+              <.link navigate={~p"/depreciation"} class={if cur == "/depreciation", do: "active"}>
+                Depreciation
+              </.link>
+              <.link navigate={~p"/segments"} class={if cur == "/segments", do: "active"}>
+                Segments
+              </.link>
+              <.link navigate={~p"/revaluation"} class={if cur == "/revaluation", do: "active"}>
+                Revaluation
+              </.link>
+              <.link navigate={~p"/budgets/variance"} class={if cur == "/budgets/variance", do: "active"}>
+                Budget Variance
+              </.link>
+              <.link navigate={~p"/waterfall"} class={if cur == "/waterfall", do: "active"}>
+                Waterfall
+              </.link>
+              <.link navigate={~p"/consolidated"} class={if cur == "/consolidated", do: "active"}>
+                Consolidated
+              </.link>
+              <.link navigate={~p"/leases"} class={if cur == "/leases", do: "active"}>
+                Leases
+              </.link>
+            </div>
+          </div>
+          <div class="nav-dropdown">
+            <button class={"nav-dropdown-toggle #{if reports_active, do: "more-active"}"}>Reports &#9662;</button>
+            <div class="nav-dropdown-menu">
+              <.link navigate={~p"/reports"} class={if cur == "/reports", do: "active"}>
+                Overview
+              </.link>
+              <.link navigate={~p"/tax/capital-gains"} class={if cur == "/tax/capital-gains", do: "active"}>
+                Capital Gains
+              </.link>
+              <.link navigate={~p"/kpis"} class={if cur == "/kpis", do: "active"}>
+                KPIs
+              </.link>
+              <.link navigate={~p"/aging"} class={if cur == "/aging", do: "active"}>
+                Aging
+              </.link>
+              <.link navigate={~p"/management-reports"} class={if cur == "/management-reports", do: "active"}>
+                Management Reports
+              </.link>
+              <.link navigate={~p"/compare"} class={if cur == "/compare", do: "active"}>
+                Entity Comparison
+              </.link>
+            </div>
+          </div>
+          <.link navigate={~p"/settings"} class={if cur == "/settings", do: "active"}>
             Settings
           </.link>
         </div>
@@ -131,15 +231,27 @@ defmodule HoldcoWeb.Layouts do
           <% pending_count = Holdco.Platform.pending_approval_count() %>
           <.link
             navigate={~p"/approvals"}
-            class={"nav-util-link #{if @current_path == "/approvals", do: "active"}"}
+            class={"nav-util-link #{if cur == "/approvals", do: "active"}"}
           >
             Approvals<%= if pending_count > 0, do: " (#{pending_count})" %>
           </.link>
           <.link
             navigate={~p"/notifications"}
-            class={"nav-util-link #{if @current_path == "/notifications", do: "active"}"}
+            class={"nav-util-link #{if cur == "/notifications", do: "active"}"}
           >
             Notifications
+          </.link>
+          <.link
+            navigate={~p"/import"}
+            class={"nav-util-link #{if cur == "/import", do: "active"}"}
+          >
+            Import
+          </.link>
+          <.link
+            navigate={~p"/ai-chat"}
+            class={"nav-util-link #{if cur == "/ai-chat", do: "active"}"}
+          >
+            AI Chat
           </.link>
           <form class="nav-search" action={~p"/search"} method="get">
             <input type="text" name="q" placeholder="Search..." />
@@ -167,6 +279,7 @@ defmodule HoldcoWeb.Layouts do
           <span class="footer-text">Holdco — Open source holding company management</span>
           <div class="footer-links">
             <.link navigate={~p"/audit-log"}>Audit Log</.link>
+            <.link navigate={~p"/audit-diffs"}>Audit Diffs</.link>
             <.link navigate={~p"/settings"}>Settings</.link>
           </div>
         </div>
