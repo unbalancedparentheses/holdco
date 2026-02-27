@@ -130,10 +130,18 @@ defmodule HoldcoWeb.AuditLive.Index do
   def render(assigns) do
     ~H"""
     <div class="page-title">
-      <h1>Audit Log</h1>
-      <p class="deck">
-        Real-time activity stream across all entities. Auto-updates as actions occur.
-      </p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h1>Audit Log</h1>
+          <p class="deck">
+            Real-time activity stream across all entities. Auto-updates as actions occur.
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <a href={~p"/export/audit-log.csv"} class="btn btn-secondary">Export CSV</a>
+          <a href={~p"/export/audit-package.zip"} class="btn btn-secondary">Export ZIP</a>
+        </div>
+      </div>
       <hr class="page-title-rule" />
     </div>
 

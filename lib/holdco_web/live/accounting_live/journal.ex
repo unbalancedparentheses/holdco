@@ -229,7 +229,8 @@ defmodule HoldcoWeb.AccountingLive.Journal do
           <h1>Journal Entries</h1>
           <p class="deck">Double-entry bookkeeping records</p>
         </div>
-        <div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <a href={~p"/export/journal-entries.csv"} class="btn btn-secondary">Export CSV</a>
           <%= if @can_write do %>
             <button class="btn btn-primary" phx-click="show_form">New Journal Entry</button>
           <% end %>
@@ -335,12 +336,12 @@ defmodule HoldcoWeb.AccountingLive.Journal do
     </div>
 
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop" style="max-width: 700px;">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop" style="max-width: 700px;">
+          <div class="dialog-header">
             <h3>New Journal Entry</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <%= if @form_error do %>
               <div class="alert alert-error" style="margin-bottom: 1rem; padding: 0.75rem; background: #fee; border: 1px solid #c00; border-radius: 4px; color: #c00;">
                 {@form_error}

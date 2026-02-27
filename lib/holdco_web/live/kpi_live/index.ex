@@ -439,12 +439,12 @@ defmodule HoldcoWeb.KpiLive.Index do
 
     <%!-- Add/Edit KPI Modal --%>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>{if @show_form == :edit, do: "Edit KPI", else: "Add KPI"}</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit={if @show_form == :edit, do: "update", else: "save"}>
               <div class="form-group">
                 <label class="form-label">Name *</label>
@@ -519,12 +519,12 @@ defmodule HoldcoWeb.KpiLive.Index do
 
     <%!-- Record Snapshot Modal --%>
     <%= if @show_snapshot_form and @selected_kpi do %>
-      <div class="modal-overlay" phx-click="close_snapshot_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_snapshot_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Record Snapshot for {@selected_kpi.name}</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_snapshot">
               <div class="form-group">
                 <label class="form-label">Date *</label>

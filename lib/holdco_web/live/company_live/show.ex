@@ -2643,12 +2643,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "holding"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Holding</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_holding">
             <div class="form-group">
               <label class="form-label">Asset *</label>
@@ -2697,12 +2697,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "bank_account"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Bank Account</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_bank_account">
             <div class="form-group">
               <label class="form-label">Bank Name *</label>
@@ -2756,12 +2756,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "transaction"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Transaction</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_transaction">
             <div class="form-group">
               <label class="form-label">Date *</label>
@@ -2806,12 +2806,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "document"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Document</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_document" phx-change="validate_upload">
             <div class="form-group">
               <label class="form-label">Name *</label>
@@ -2863,12 +2863,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "board_meeting"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Board Meeting</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_board_meeting">
             <div class="form-group">
               <label class="form-label">Scheduled Date *</label>
@@ -2907,12 +2907,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "key_personnel"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Key Personnel</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_key_personnel">
             <div class="form-group">
               <label class="form-label">Name *</label>
@@ -2947,12 +2947,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "beneficial_owner"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Beneficial Owner</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_beneficial_owner">
             <div class="form-group">
               <label class="form-label">Name *</label>
@@ -2993,12 +2993,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "service_provider"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Service Provider</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_service_provider">
             <div class="form-group">
               <label class="form-label">Role *</label>
@@ -3033,12 +3033,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "tax_deadline"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Tax Deadline</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_tax_deadline">
             <div class="form-group">
               <label class="form-label">Jurisdiction *</label>
@@ -3077,12 +3077,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "financial"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Financial Period</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_financial">
             <div class="form-group">
               <label class="form-label">Period *</label>
@@ -3125,12 +3125,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "insurance_policy"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Insurance Policy</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_insurance_policy">
             <div class="form-group">
               <label class="form-label">Policy Type *</label>
@@ -3186,12 +3186,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
     assigns = assign(assigns, acct_list: accounts, account_types: ~w(asset liability equity revenue expense))
 
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Account</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_account">
             <div class="form-group">
               <label class="form-label">Code *</label>
@@ -3239,12 +3239,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
     assigns = assign(assigns, acct_list: accounts)
 
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop" style="max-width: 700px;">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop" style="max-width: 700px;">
+        <div class="dialog-header">
           <h3>New Journal Entry</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_journal_entry">
             <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 0.75rem;">
               <div class="form-group">
@@ -3312,12 +3312,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "cap_table"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Cap Table Entry</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_cap_table">
             <div class="form-group">
               <label class="form-label">Investor *</label>
@@ -3352,12 +3352,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "resolution"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Resolution</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_resolution">
             <div class="form-group">
               <label class="form-label">Title *</label>
@@ -3387,12 +3387,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "deal"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Deal</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_deal">
             <div class="form-group">
               <label class="form-label">Counterparty *</label>
@@ -3424,12 +3424,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "jv"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Joint Venture</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_jv">
             <div class="form-group">
               <label class="form-label">Name *</label>
@@ -3456,12 +3456,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "poa"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Power of Attorney</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_poa">
             <div class="form-group">
               <label class="form-label">Grantor *</label>
@@ -3496,12 +3496,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "equity_plan"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Equity Plan</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_equity_plan">
             <div class="form-group">
               <label class="form-label">Plan Name *</label>
@@ -3528,12 +3528,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "filing"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Regulatory Filing</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_filing">
             <div class="form-group">
               <label class="form-label">Jurisdiction *</label>
@@ -3560,12 +3560,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "license"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Regulatory License</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_license">
             <div class="form-group">
               <label class="form-label">License Type *</label>
@@ -3596,12 +3596,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "esg"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add ESG Score</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_esg">
             <div class="form-group">
               <label class="form-label">Period *</label>
@@ -3636,12 +3636,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "sanctions"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Sanctions Check</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_sanctions">
             <div class="form-group">
               <label class="form-label">Name to Check *</label>
@@ -3666,12 +3666,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "fatca"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add FATCA Report</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_fatca">
             <div class="form-group">
               <label class="form-label">Reporting Year *</label>
@@ -3701,12 +3701,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "withholding"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Withholding Tax</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_withholding">
             <div class="form-group">
               <label class="form-label">Payment Type *</label>
@@ -3749,12 +3749,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "liability"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Liability</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_liability">
             <div class="form-group">
               <label class="form-label">Liability Type *</label>
@@ -3801,12 +3801,12 @@ defmodule HoldcoWeb.CompanyLive.Show do
 
   defp render_inline_form(%{show_form: "dividend"} = assigns) do
     ~H"""
-    <div class="modal-overlay" phx-click="close_form">
-      <div class="modal" phx-click="noop">
-        <div class="modal-header">
+    <div class="dialog-overlay" phx-click="close_form">
+      <div class="dialog-panel" phx-click="noop">
+        <div class="dialog-header">
           <h3>Add Dividend</h3>
         </div>
-        <div class="modal-body">
+        <div class="dialog-body">
           <form phx-submit="save_dividend">
             <div class="form-group">
               <label class="form-label">Date *</label>

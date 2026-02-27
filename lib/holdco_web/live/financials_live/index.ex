@@ -450,12 +450,12 @@ defmodule HoldcoWeb.FinancialsLive.Index do
     </div>
 
     <%= if @show_transfer_form == :add do %>
-      <div class="modal-overlay" phx-click="close_transfer_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_transfer_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Intercompany Transfer</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_transfer">
               <div class="form-group">
                 <label class="form-label">From Company *</label>
@@ -506,12 +506,12 @@ defmodule HoldcoWeb.FinancialsLive.Index do
     <% end %>
 
     <%= if @show_transfer_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_transfer_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_transfer_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Intercompany Transfer</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_transfer">
               <div class="form-group">
                 <label class="form-label">From Company *</label>
@@ -562,12 +562,12 @@ defmodule HoldcoWeb.FinancialsLive.Index do
     <% end %>
 
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Financial Period</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save">
               <div class="form-group">
                 <label class="form-label">Company *</label>
@@ -629,12 +629,12 @@ defmodule HoldcoWeb.FinancialsLive.Index do
     <% end %>
 
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Financial Period</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update">
               <div class="form-group">
                 <label class="form-label">Company *</label>

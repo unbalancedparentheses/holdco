@@ -268,12 +268,12 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
     </div>
 
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>{if @show_form == :edit, do: "Edit Tax Deadline", else: "Add Tax Deadline"}</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit={if @show_form == :edit, do: "update", else: "save"}>
               <div class="form-group">
                 <label class="form-label">Company *</label>

@@ -287,12 +287,12 @@ defmodule HoldcoWeb.ApprovalsLive.Index do
     </div>
 
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>New Approval Request</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="create_request">
               <div class="form-group">
                 <label class="form-label">Table *</label>

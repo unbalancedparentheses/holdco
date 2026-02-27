@@ -259,12 +259,12 @@ defmodule HoldcoWeb.CompanyLive.Index do
     </div>
 
     <%= if @live_action == :new do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>New Company</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <.form for={@changeset} phx-submit="save">
               <div class="form-group">
                 <label class="form-label">Name *</label>

@@ -363,12 +363,12 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
     </div>
 
     <%= if @show_pool_form do %>
-      <div class="modal-overlay" phx-click="close_pool_form">
-        <div class="modal" phx-click-away="close_pool_form">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_pool_form">
+        <div class="dialog-panel" phx-click-away="close_pool_form">
+          <div class="dialog-header">
             <h3>Add Cash Pool</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_pool">
               <div class="form-group">
                 <label class="form-label">Name *</label>
@@ -408,12 +408,12 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
     <% end %>
 
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>{if @show_form == :edit, do: "Edit Bank Account", else: "Add Bank Account"}</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit={if @show_form == :edit, do: "update", else: "save"}>
               <div class="form-group">
                 <label class="form-label">Company *</label>

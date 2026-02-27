@@ -280,12 +280,12 @@ defmodule HoldcoWeb.DocumentsLive.Index do
     </div>
 
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Document</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save" phx-change="validate">
               <div class="form-group">
                 <label class="form-label">Company *</label>
@@ -349,12 +349,12 @@ defmodule HoldcoWeb.DocumentsLive.Index do
     <% end %>
 
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Document</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update">
               <div class="form-group">
                 <label class="form-label">Company *</label>

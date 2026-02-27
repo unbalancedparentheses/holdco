@@ -122,7 +122,8 @@ defmodule HoldcoWeb.AccountingLive.ChartOfAccounts do
           <h1>Chart of Accounts</h1>
           <p class="deck">All accounts organized by type and hierarchy</p>
         </div>
-        <div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <a href={~p"/export/chart-of-accounts.csv"} class="btn btn-secondary">Export CSV</a>
           <%= if @can_write do %>
             <button class="btn btn-primary" phx-click="show_form">Add Account</button>
           <% end %>
@@ -218,12 +219,12 @@ defmodule HoldcoWeb.AccountingLive.ChartOfAccounts do
     </div>
 
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Account</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save">
               <div class="form-group">
                 <label class="form-label">Company</label>

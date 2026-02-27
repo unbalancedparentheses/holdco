@@ -481,23 +481,23 @@ tbody tr.tr-summary td {
 
 /* === Modal/Dialog === */
 
-.modal-overlay {
+.dialog-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.35);
   display: flex; align-items: center; justify-content: center;
   z-index: 100; backdrop-filter: blur(1px);
 }
-.modal {
+.dialog-panel {
   background: var(--white); border: 1px solid var(--rule);
   max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;
   box-shadow: 0 4px 24px rgba(0,0,0,0.08);
 }
-.modal-header { padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--rule); }
-.modal-header h3 {
+.dialog-header { padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--rule); }
+.dialog-header h3 {
   font-family: var(--display); font-size: 1.125rem; font-weight: 600;
   color: var(--ink); line-height: 1.3;
 }
-.modal-body { padding: var(--sp-5); }
-.modal-footer {
+.dialog-body { padding: var(--sp-5); }
+.dialog-footer {
   padding: var(--sp-3) var(--sp-5); border-top: 1px solid var(--rule);
   display: flex; justify-content: flex-end; gap: var(--sp-3);
 }

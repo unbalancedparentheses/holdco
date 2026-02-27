@@ -475,12 +475,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Regulatory Filing</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_filing">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -520,12 +520,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Regulatory Filing</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_filing">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -630,12 +630,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Regulatory License</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_license">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -688,12 +688,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Regulatory License</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_license">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -815,12 +815,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Insurance Policy</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_insurance">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -872,12 +872,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Insurance Policy</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_insurance">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -999,12 +999,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Run Sanctions Check</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_sanctions">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1036,12 +1036,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Sanctions Check</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_sanctions">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1141,12 +1141,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add ESG Score</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_esg">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1199,12 +1199,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit ESG Score</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_esg">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1323,12 +1323,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add FATCA Report</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_fatca">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1364,12 +1364,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit FATCA Report</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_fatca">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1475,12 +1475,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Withholding Tax</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_withholding">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1554,12 +1554,12 @@ defmodule HoldcoWeb.ComplianceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Withholding Tax</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_withholding">
               <div class="form-group">
                 <label class="form-label">Company *</label><select

@@ -239,12 +239,12 @@ defmodule HoldcoWeb.SettingsLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add/Update Setting</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_setting">
               <div class="form-group">
                 <label class="form-label">Key *</label>
@@ -317,12 +317,12 @@ defmodule HoldcoWeb.SettingsLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Category</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_category">
               <div class="form-group">
                 <label class="form-label">Name *</label>
@@ -394,12 +394,12 @@ defmodule HoldcoWeb.SettingsLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Webhook</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_webhook">
               <div class="form-group">
                 <label class="form-label">URL *</label>
@@ -485,12 +485,12 @@ defmodule HoldcoWeb.SettingsLive.Index do
       </div>
     </div>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Backup Config</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_backup">
               <div class="form-group">
                 <label class="form-label">Name *</label>

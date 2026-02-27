@@ -129,7 +129,8 @@ defmodule Holdco.MixProject do
         "esbuild holdco --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],
+      e2e: ["cmd E2E=true MIX_ENV=test mix ecto.reset", "cmd E2E=true MIX_ENV=test mix run e2e/seed.exs", "cmd npm run e2e"]
     ]
   end
 end

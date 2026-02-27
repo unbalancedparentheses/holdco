@@ -8,19 +8,32 @@ config :bcrypt_elixir, :log_rounds, 1
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
-config :holdco, Holdco.Repo,
-  database: Path.expand("../holdco_test.db", __DIR__),
-  pool_size: 1,
-  pool: Ecto.Adapters.SQL.Sandbox,
-  busy_timeout: 15000,
-  journal_mode: :wal
+# E2E mode: real pool + server enabled for Playwright browser tests.
+# Unit tests: sandbox pool + no server.
+if System.get_env("E2E") do
+  config :holdco, Holdco.Repo,
+    database: Path.expand("../holdco_test.db", __DIR__),
+    pool_size: 5,
+    busy_timeout: 15000,
+    journal_mode: :wal
 
-# We don't run a server during test. If one is required,
-# you can enable the server option below.
-config :holdco, HoldcoWeb.Endpoint,
-  http: [ip: {127, 0, 0, 1}, port: 4002],
-  secret_key_base: "nLxXq4onP+KaQ8D4VsO66lj584U3Nmgkrgtx3kpu1780DEgNZvjIuBwVYEA4JXMI",
-  server: false
+  config :holdco, HoldcoWeb.Endpoint,
+    http: [ip: {127, 0, 0, 1}, port: 4002],
+    secret_key_base: "nLxXq4onP+KaQ8D4VsO66lj584U3Nmgkrgtx3kpu1780DEgNZvjIuBwVYEA4JXMI",
+    server: true
+else
+  config :holdco, Holdco.Repo,
+    database: Path.expand("../holdco_test.db", __DIR__),
+    pool_size: 1,
+    pool: Ecto.Adapters.SQL.Sandbox,
+    busy_timeout: 15000,
+    journal_mode: :wal
+
+  config :holdco, HoldcoWeb.Endpoint,
+    http: [ip: {127, 0, 0, 1}, port: 4002],
+    secret_key_base: "nLxXq4onP+KaQ8D4VsO66lj584U3Nmgkrgtx3kpu1780DEgNZvjIuBwVYEA4JXMI",
+    server: false
+end
 
 # In test we don't send emails
 config :holdco, Holdco.Mailer, adapter: Swoosh.Adapters.Test

@@ -529,12 +529,12 @@ defmodule HoldcoWeb.ManagementReportsLive.Index do
 
     <%!-- Template Form Modal --%>
     <%= if @show_form do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop" style="max-width: 640px;">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop" style="max-width: 640px;">
+          <div class="dialog-header">
             <h3>{if @show_form == :edit, do: "Edit Template", else: "New Report Template"}</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form
               phx-change="update_form"
               phx-submit={if @show_form == :edit, do: "update_template", else: "save_template"}

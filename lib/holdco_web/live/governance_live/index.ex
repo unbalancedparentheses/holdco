@@ -481,12 +481,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       <% end %>
     </div>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Board Meeting</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_meeting">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -530,12 +530,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Board Meeting</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_meeting">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -653,12 +653,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       <% end %>
     </div>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Cap Table Entry</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_cap_table">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -710,12 +710,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Cap Table Entry</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_cap_table">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -840,12 +840,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       <% end %>
     </div>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Resolution</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_resolution">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -887,12 +887,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Resolution</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_resolution">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1006,12 +1006,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       <% end %>
     </div>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Deal</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_deal">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1047,12 +1047,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Deal</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_deal">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1159,12 +1159,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       <% end %>
     </div>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Equity Plan</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_equity_plan">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1198,12 +1198,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Equity Plan</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_equity_plan">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1308,12 +1308,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       <% end %>
     </div>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Joint Venture</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_jv">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1353,12 +1353,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Joint Venture</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_jv">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1473,12 +1473,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       <% end %>
     </div>
     <%= if @show_form == :add do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Add Power of Attorney</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="save_poa">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
@@ -1530,12 +1530,12 @@ defmodule HoldcoWeb.GovernanceLive.Index do
       </div>
     <% end %>
     <%= if @show_form == :edit and @editing_item do %>
-      <div class="modal-overlay" phx-click="close_form">
-        <div class="modal" phx-click="noop">
-          <div class="modal-header">
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
             <h3>Edit Power of Attorney</h3>
           </div>
-          <div class="modal-body">
+          <div class="dialog-body">
             <form phx-submit="update_poa">
               <div class="form-group">
                 <label class="form-label">Company *</label><select
