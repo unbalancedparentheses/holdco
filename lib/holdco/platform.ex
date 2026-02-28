@@ -24,7 +24,10 @@ defmodule Holdco.Platform do
     WhiteLabelConfig,
     WebhookEndpoint,
     WebhookDelivery,
-    CollaborationSession
+    CollaborationSession,
+    ActivityEvent,
+    QuickAction,
+    DataLineage
   }
 
   # Audit Log
@@ -1003,5 +1006,158 @@ defmodule Holdco.Platform do
     )
     |> Repo.all()
     |> Enum.map(& &1.user)
+  end
+
+  # ── Activity Events ──────────────────────────────────────
+
+  def list_recent_activity(opts \\ %{}) do
+    query =
+      from(ae in ActivityEvent,
+        order_by: [desc: ae.inserted_at],
+        limit: ^Map.get(opts, :limit, 50)
+      )
+
+    query = if opts[:company_id], do: where(query, [ae], ae.company_id == ^opts[:company_id]), else: query
+    query = if opts[:actor_id], do: where(query, [ae], ae.actor_id == ^opts[:actor_id]), else: query
+    query = if opts[:action], do: where(query, [ae], ae.action == ^opts[:action]), else: query
+    query = if opts[:entity_type], do: where(query, [ae], ae.entity_type == ^opts[:entity_type]), else: query
+
+    Repo.all(query)
+  end
+
+  def create_activity_event(attrs) do
+    %ActivityEvent{}
+    |> ActivityEvent.changeset(attrs)
+    |> Repo.insert()
+    |> tap(fn
+      {:ok, event} -> broadcast("platform", {:activity_event_created, event})
+      _ -> :ok
+    end)
+  end
+
+  def activity_summary(opts \\ %{}) do
+    days = Map.get(opts, :days, 30)
+    since = DateTime.utc_now() |> DateTime.add(-days * 86400, :second) |> DateTime.truncate(:second)
+
+    from(ae in ActivityEvent,
+      where: ae.inserted_at >= ^since,
+      group_by: ae.action,
+      select: {ae.action, count(ae.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  def clear_old_activity(retention_days \\ 90) do
+    cutoff = DateTime.utc_now() |> DateTime.add(-retention_days * 86400, :second) |> DateTime.truncate(:second)
+
+    from(ae in ActivityEvent, where: ae.inserted_at < ^cutoff)
+    |> Repo.delete_all()
+  end
+
+  # ── Quick Actions ──────────────────────────────────────
+
+  def list_quick_actions do
+    from(qa in QuickAction, where: qa.is_enabled == true, order_by: [asc: qa.sort_order, asc: qa.name])
+    |> Repo.all()
+  end
+
+  def search_quick_actions(query_str) when is_binary(query_str) do
+    pattern = "%#{String.downcase(query_str)}%"
+
+    from(qa in QuickAction,
+      where: qa.is_enabled == true and
+        (ilike(qa.name, ^pattern) or
+         ilike(qa.description, ^pattern) or
+         fragment("EXISTS (SELECT 1 FROM unnest(?) kw WHERE kw ILIKE ?)", qa.search_keywords, ^pattern)),
+      order_by: [asc: qa.sort_order, asc: qa.name]
+    )
+    |> Repo.all()
+  end
+
+  def get_quick_action!(id), do: Repo.get!(QuickAction, id)
+
+  def create_quick_action(attrs) do
+    %QuickAction{}
+    |> QuickAction.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("quick_actions", "create")
+  end
+
+  def update_quick_action(%QuickAction{} = qa, attrs) do
+    qa
+    |> QuickAction.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("quick_actions", "update")
+  end
+
+  def delete_quick_action(%QuickAction{} = qa) do
+    Repo.delete(qa)
+    |> audit_and_broadcast("quick_actions", "delete")
+  end
+
+  def seed_default_actions do
+    defaults = [
+      %{name: "Dashboard", description: "Main dashboard", action_type: "navigate", target_path: "/", icon: "home", category: "portfolio", search_keywords: ["home", "overview"], sort_order: 1},
+      %{name: "Companies", description: "Manage companies", action_type: "navigate", target_path: "/companies", icon: "building", category: "corporate", search_keywords: ["entities", "corporations"], sort_order: 2},
+      %{name: "Holdings", description: "View holdings", action_type: "navigate", target_path: "/holdings", icon: "briefcase", category: "portfolio", search_keywords: ["investments", "positions"], sort_order: 3},
+      %{name: "Transactions", description: "View transactions", action_type: "navigate", target_path: "/transactions", icon: "arrow-right-left", category: "accounting", search_keywords: ["trades", "entries"], sort_order: 4},
+      %{name: "Chart of Accounts", description: "Accounting chart of accounts", action_type: "navigate", target_path: "/accounts/chart", icon: "list-tree", category: "accounting", search_keywords: ["coa", "ledger", "gl"], sort_order: 5},
+      %{name: "Tax Provisions", description: "Tax provision management", action_type: "navigate", target_path: "/tax-provisions", icon: "receipt", category: "tax", search_keywords: ["provision", "tax liability"], sort_order: 6},
+      %{name: "Risk Dashboard", description: "Concentration risk analysis", action_type: "navigate", target_path: "/risk/concentration", icon: "shield-alert", category: "risk", search_keywords: ["exposure", "concentration"], sort_order: 7},
+      %{name: "Reports", description: "Generate reports", action_type: "navigate", target_path: "/reports", icon: "file-text", category: "reports", search_keywords: ["export", "generate", "pdf"], sort_order: 8},
+      %{name: "Settings", description: "Platform settings", action_type: "navigate", target_path: "/settings", icon: "settings", category: "settings", search_keywords: ["config", "preferences"], sort_order: 9},
+      %{name: "Fund NAV", description: "Fund net asset value", action_type: "navigate", target_path: "/fund-nav", icon: "trending-up", category: "fund", search_keywords: ["nav", "valuation", "fund"], sort_order: 10}
+    ]
+
+    Enum.map(defaults, fn attrs ->
+      case Repo.get_by(QuickAction, name: attrs.name) do
+        nil -> create_quick_action(attrs)
+        existing -> {:ok, existing}
+      end
+    end)
+  end
+
+  # ── Data Lineage ──────────────────────────────────────
+
+  def list_data_lineage(opts \\ %{}) do
+    query = from(dl in DataLineage, order_by: [desc: dl.inserted_at])
+    query = if opts[:entity_type], do: where(query, [dl], dl.target_entity_type == ^opts[:entity_type]), else: query
+    query = if opts[:entity_id], do: where(query, [dl], dl.target_entity_id == ^opts[:entity_id]), else: query
+    Repo.all(query)
+  end
+
+  def create_data_lineage(attrs) do
+    %DataLineage{}
+    |> DataLineage.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("data_lineage", "create")
+  end
+
+  def update_data_lineage(%DataLineage{} = dl, attrs) do
+    dl
+    |> DataLineage.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("data_lineage", "update")
+  end
+
+  def get_data_lineage!(id), do: Repo.get!(DataLineage, id)
+
+  def lineage_for_entity(entity_type, entity_id) do
+    from(dl in DataLineage,
+      where: dl.target_entity_type == ^entity_type and dl.target_entity_id == ^entity_id,
+      order_by: [desc: dl.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def unverified_lineage do
+    from(dl in DataLineage, where: dl.verified == false, order_by: [desc: dl.inserted_at])
+    |> Repo.all()
+  end
+
+  def delete_data_lineage(%DataLineage{} = dl) do
+    Repo.delete(dl)
+    |> audit_and_broadcast("data_lineage", "delete")
   end
 end

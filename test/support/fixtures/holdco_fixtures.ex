@@ -2745,4 +2745,89 @@ defmodule Holdco.HoldcoFixtures do
 
     sp
   end
+
+  # ── Activity Events ──────────────────────────────────
+
+  def activity_event_fixture(attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, event} =
+      Holdco.Platform.create_activity_event(
+        Enum.into(attrs, %{
+          action: "created",
+          entity_type: "company",
+          entity_id: n,
+          entity_name: "Entity #{n}",
+          actor_email: "user#{n}@example.com",
+          context_module: "Holdco.Corporate"
+        })
+      )
+
+    event
+  end
+
+  # ── Quick Actions ──────────────────────────────────
+
+  def quick_action_fixture(attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, action} =
+      Holdco.Platform.create_quick_action(
+        Enum.into(attrs, %{
+          name: "Action #{n}",
+          description: "Test action #{n}",
+          action_type: "navigate",
+          target_path: "/test-#{n}",
+          category: "portfolio",
+          search_keywords: ["test", "action"],
+          sort_order: n
+        })
+      )
+
+    action
+  end
+
+  # ── Health Scores ──────────────────────────────────
+
+  def health_score_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, score} =
+      Holdco.Analytics.create_health_score(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          score_date: Date.utc_today(),
+          overall_score: 75.0,
+          liquidity_score: 80.0,
+          profitability_score: 70.0,
+          compliance_score: 85.0,
+          governance_score: 78.0,
+          risk_score: 72.0,
+          operational_score: 76.0,
+          trend: "stable"
+        })
+      )
+
+    score
+  end
+
+  # ── Data Lineage ──────────────────────────────────
+
+  def data_lineage_fixture(attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, lineage} =
+      Holdco.Platform.create_data_lineage(
+        Enum.into(attrs, %{
+          source_type: "manual_entry",
+          source_identifier: "source-#{n}",
+          target_entity_type: "transaction",
+          target_entity_id: n,
+          transformation: "Direct entry",
+          confidence: "high"
+        })
+      )
+
+    lineage
+  end
 end

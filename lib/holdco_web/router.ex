@@ -335,6 +335,12 @@ defmodule HoldcoWeb.Router do
       live "/white-label", WhiteLabelLive.Index, :index
       live "/webhooks", WebhookEndpointLive.Index, :index
 
+      # Creative Features — Activity, Quick Actions, Health Score, Data Lineage
+      live "/activity", ActivityLive.Index, :index
+      live "/quick-actions", QuickActionsLive.Index, :index
+      live "/health-score", HealthScoreLive.Index, :index
+      live "/data-lineage", DataLineageLive.Index, :index
+
     end
   end
 
