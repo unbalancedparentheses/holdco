@@ -224,6 +224,10 @@ defmodule HoldcoWeb.Router do
       live "/stress-test", StressTestLive.Index, :index
       live "/liquidity", LiquidityLive.Index, :index
 
+      # Phase 2 — Anomaly Detection & Benchmarks
+      live "/anomalies", AnomalyLive.Index, :index
+      live "/benchmarks", BenchmarkLive.Index, :index
+
     end
   end
 
