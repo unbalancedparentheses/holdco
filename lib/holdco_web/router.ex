@@ -172,6 +172,10 @@ defmodule HoldcoWeb.Router do
       live "/leases", LeaseLive.Index, :index
       live "/compare", EntityComparisonLive.Index, :index
 
+      # Phase 1 — Risk & Covenants
+      live "/counterparty-risk", CounterpartyRiskLive.Index, :index
+      live "/covenants", CovenantLive.Index, :index
+
       # Phase 1 — Reports & Analytics
       live "/tax/capital-gains", CapitalGainsLive.Index, :index
       live "/kpis", KpiLive.Index, :index
