@@ -9,11 +9,10 @@ group, you need to track which companies you own, how they relate to each
 other, what assets they hold, where those assets are custodied, what tax
 deadlines are coming up, and what the financials look like across the whole
 structure. Holdco does all of that in a single self-hosted application backed
-by SQLite.
+by PostgreSQL.
 
 No SaaS, no vendor lock-in, no subscription. You own your data. Everything
-runs locally or on your own server. The database is a single `.db` file you
-can back up, copy, or move anywhere.
+runs locally or on your own server.
 
 ## Features
 
@@ -91,8 +90,8 @@ refresh. Sync chart of accounts and journal entries from QBO into a specific
 company entity. Each subsidiary connects independently from its company detail
 page; the global integrations page shows a summary dashboard of all connections.
 
-**Automated backups.** Daily SQLite `.backup` to a configured path with
-retention-based cleanup. Backup logs visible in settings.
+**Automated backups.** Daily PostgreSQL `pg_dump` backups to a configured path
+with retention-based cleanup. Backup logs visible in settings.
 
 **Sanctions screening.** Weekly automated screening of all companies and
 beneficial owners against configured sanctions lists using fuzzy name matching.
@@ -208,12 +207,12 @@ context to answer accurately.
 ### Prerequisites
 
 [Nix](https://nixos.org/) is the recommended way to get all dependencies.
-`nix develop` gives you Elixir 1.18, Erlang/OTP 27, Node.js, and SQLite.
+`nix develop` gives you Elixir 1.18, Erlang/OTP 27, Node.js, and PostgreSQL.
 
 Without Nix, you need:
 
 - **Elixir** >= 1.15 and **Erlang/OTP** >= 26
-- **SQLite** >= 3.35 (ships with most systems)
+- **PostgreSQL** >= 14
 - **Node.js** (for asset pipeline)
 
 ### Setup
@@ -257,7 +256,7 @@ All local dev targets run through `nix develop --command`.
 | Variable | Default | Description |
 |---|---|---|
 | `SECRET_KEY_BASE` | dev key | Production secret (min 64 bytes). Generate with `mix phx.gen.secret` |
-| `DATABASE_PATH` | `holdco_dev.db` | Path to SQLite database file |
+| `DATABASE_URL` | `ecto://...` | PostgreSQL connection URL |
 | `PHX_HOST` | `localhost` | Production hostname |
 | `PORT` | `4000` | HTTP port |
 | `PHX_SERVER` | unset | Set to `true` to start the server in releases |
@@ -276,16 +275,16 @@ make docker-build
 make docker-up
 ```
 
-The `docker-compose.yml` persists the SQLite database in a named volume
-(`holdco_data:/data`). The container runs as a non-root user and includes a
-healthcheck on `/health`.
+The `docker-compose.yml` includes a PostgreSQL service and persists data in a
+named volume. The container runs as a non-root user and includes a healthcheck
+on `/health`.
 
 ### Manual release
 
 ```bash
 make release
 SECRET_KEY_BASE=$(mix phx.gen.secret) \
-DATABASE_PATH=/var/lib/holdco/holdco.db \
+DATABASE_URL=ecto://postgres:postgres@localhost/holdco \
 PHX_HOST=holdco.example.com \
 PHX_SERVER=true \
 _build/prod/rel/holdco/bin/holdco start
@@ -298,8 +297,7 @@ nix build              # OTP release in ./result
 nix build .#docker     # Docker image via dockerTools
 ```
 
-The SQLite database is a single file. Back it up with `cp` or `sqlite3 .backup`.
-The BackupWorker also runs automated daily backups if configured in Settings.
+The BackupWorker runs automated daily `pg_dump` backups if configured in Settings.
 
 ## API
 
@@ -347,9 +345,9 @@ and user workflows alongside the ExUnit unit test suite.
 |---|---|
 | Web framework | Phoenix 1.8 |
 | UI | Phoenix LiveView 1.1 |
-| Database | SQLite via ecto_sqlite3 |
+| Database | PostgreSQL via postgrex |
 | Authentication | phx.gen.auth |
-| Background jobs | Oban (Lite engine for SQLite) |
+| Background jobs | Oban |
 | Price data | Yahoo Finance via Req |
 | Live updates | Phoenix PubSub |
 | Charts | Chart.js via LiveView hooks |
@@ -447,7 +445,7 @@ lib/holdco_web/
   router.ex              All routes
 Makefile                 Nix-wrapped dev commands
 Dockerfile               Multi-stage production build
-docker-compose.yml       Single-service deployment with SQLite volume
+docker-compose.yml       Multi-service deployment with PostgreSQL
 .github/workflows/ci.yml GitHub Actions CI (test + docker build)
 flake.nix                Nix devShell + package build + Docker image
 assets/css/app.css       Tailwind CSS 4 + daisyUI v5
@@ -721,9 +719,9 @@ Scale from single-user to multi-stakeholder platform.
 
 Open the system up for custom workflows and external tools.
 
-- **Write API.** Full read-write REST API authenticated via API keys, enabling
-  programmatic data entry, external system integrations, and automation scripts.
-- **GraphQL API.** Alongside the REST API for more flexible queries.
+- **Write API (deferred).** Full read-write REST API authenticated via API keys,
+  enabling programmatic data entry, external system integrations, and automation
+  scripts.
 - **Slack integration.** Push alerts to channels, query portfolio data with slash
   commands, and receive approval requests directly in Slack.
 - **Telegram bot.** Push notifications, quick queries, and approval responses
@@ -745,7 +743,7 @@ Open the system up for custom workflows and external tools.
   companies.
 - **Dark mode.**
 - **Offline and local-first sync.** Full offline operation with sync when
-  reconnected, leveraging the SQLite single-file architecture.
+  reconnected.
 
 ### Phase 9 — Family office and philanthropy
 

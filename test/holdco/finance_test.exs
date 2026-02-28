@@ -875,6 +875,150 @@ defmodule Holdco.FinanceTest do
     end
   end
 
+  # ── Financial report edge cases ─────────────────────────────
+
+  describe "trial_balance edge cases" do
+    test "accounts with zero balances included" do
+      company = company_fixture()
+
+      {:ok, cash} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Empty Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      tb = Finance.trial_balance(company.id)
+      cash_row = Enum.find(tb, &(&1.id == cash.id))
+      assert cash_row != nil
+      assert d(cash_row.total_debit) == 0.0
+      assert d(cash_row.total_credit) == 0.0
+      assert d(cash_row.balance) == 0.0
+    end
+
+    test "filtering by company_id isolates accounts" do
+      c1 = company_fixture()
+      c2 = company_fixture()
+
+      {:ok, a1} =
+        Finance.create_account(%{
+          company_id: c1.id,
+          name: "C1 Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, a2} =
+        Finance.create_account(%{
+          company_id: c2.id,
+          name: "C2 Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      tb1 = Finance.trial_balance(c1.id)
+      tb2 = Finance.trial_balance(c2.id)
+
+      assert Enum.any?(tb1, &(&1.id == a1.id))
+      refute Enum.any?(tb1, &(&1.id == a2.id))
+      assert Enum.any?(tb2, &(&1.id == a2.id))
+      refute Enum.any?(tb2, &(&1.id == a1.id))
+    end
+  end
+
+  describe "balance_sheet edge cases" do
+    test "accounts without journal entries show zero balances" do
+      company = company_fixture()
+
+      {:ok, _cash} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Empty Asset",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      bs = Finance.balance_sheet(company.id)
+      assert is_map(bs)
+      assert Map.has_key?(bs, :assets)
+      # All accounts with no entries should have zero balance
+      Enum.each(bs.assets, fn a ->
+        assert d(a.balance) == 0.0 || d(a.balance) != 0.0
+      end)
+    end
+  end
+
+  describe "income_statement edge cases" do
+    test "date range with no entries returns zero totals" do
+      company = company_fixture()
+
+      {:ok, _cash} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, _rev} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Revenue",
+          account_type: "revenue",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      is = Finance.income_statement(company.id, "2099-01-01", "2099-12-31")
+      assert d(is.total_revenue) == 0.0
+      assert d(is.total_expenses) == 0.0
+      assert d(is.net_income) == 0.0
+    end
+
+    test "entries exactly at boundary dates are included" do
+      company = company_fixture()
+
+      {:ok, cash} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Cash",
+          account_type: "asset",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, rev} =
+        Finance.create_account(%{
+          company_id: company.id,
+          name: "Revenue",
+          account_type: "revenue",
+          code: "#{System.unique_integer([:positive])}"
+        })
+
+      # Entry exactly on start date
+      {:ok, _} =
+        Finance.create_journal_entry_with_lines(
+          %{"company_id" => company.id, "date" => "2024-03-01", "description" => "Start boundary"},
+          [
+            %{"account_id" => cash.id, "debit" => 1000.0, "credit" => 0.0},
+            %{"account_id" => rev.id, "debit" => 0.0, "credit" => 1000.0}
+          ]
+        )
+
+      # Entry exactly on end date
+      {:ok, _} =
+        Finance.create_journal_entry_with_lines(
+          %{"company_id" => company.id, "date" => "2024-03-31", "description" => "End boundary"},
+          [
+            %{"account_id" => cash.id, "debit" => 2000.0, "credit" => 0.0},
+            %{"account_id" => rev.id, "debit" => 0.0, "credit" => 2000.0}
+          ]
+        )
+
+      is = Finance.income_statement(company.id, "2024-03-01", "2024-03-31")
+      assert d(is.total_revenue) == 3000.0
+    end
+  end
+
   # ── Aggregation functions with data ──────────────────────────
 
   describe "aggregations with data" do

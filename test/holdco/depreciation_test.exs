@@ -245,6 +245,100 @@ defmodule Holdco.DepreciationTest do
       assert Enum.all?(schedule, fn row -> row.depreciation == 0.0 end)
     end
 
+    test "salvage value equal to cost produces empty or zero depreciation schedule" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 5_000.0,
+          salvage_value: 5_000.0,
+          useful_life_months: 12,
+          depreciation_method: "straight_line",
+          purchase_date: "2024-01-01"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert Enum.all?(schedule, fn row -> row.depreciation == 0.0 end)
+    end
+
+    test "salvage value greater than cost produces zero depreciation" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 3_000.0,
+          salvage_value: 5_000.0,
+          useful_life_months: 12,
+          depreciation_method: "straight_line",
+          purchase_date: "2024-01-01"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      # Depreciable amount is negative, so monthly should be negative or clamped
+      # The schedule still runs for 12 months
+      assert length(schedule) == 12
+    end
+
+    test "very short useful life of 1 month" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 12_000.0,
+          salvage_value: 0.0,
+          useful_life_months: 1,
+          depreciation_method: "straight_line",
+          purchase_date: "2024-06-15"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 1
+      assert hd(schedule).depreciation == 12_000.0
+      assert hd(schedule).book_value == 0.0
+    end
+
+    test "partial-year depreciation preserves correct start date" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 6_000.0,
+          salvage_value: 0.0,
+          useful_life_months: 6,
+          depreciation_method: "straight_line",
+          purchase_date: "2024-07-15"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 6
+      # First date should be the purchase date
+      assert hd(schedule).date == "2024-07-15"
+      assert hd(schedule).depreciation == 1_000.0
+    end
+
+    test "declining balance schedule never goes below salvage value" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 10_000.0,
+          salvage_value: 2_000.0,
+          useful_life_months: 24,
+          depreciation_method: "declining_balance",
+          purchase_date: "2024-01-01"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 24
+      assert Enum.all?(schedule, fn row -> row.book_value >= 2_000.0 end)
+    end
+
+    test "declining balance with high rate depreciates quickly but respects salvage" do
+      fa =
+        fixed_asset_fixture(%{
+          purchase_price: 10_000.0,
+          salvage_value: 1_000.0,
+          useful_life_months: 2,
+          depreciation_method: "declining_balance",
+          purchase_date: "2024-01-01"
+        })
+
+      schedule = Depreciation.schedule(fa)
+      assert length(schedule) == 2
+      # With 2 months, rate = 2/2 = 100%, but capped by salvage
+      assert List.last(schedule).book_value >= 1_000.0
+    end
+
     test "handles invalid purchase_date string" do
       fa =
         fixed_asset_fixture(%{

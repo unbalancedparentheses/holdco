@@ -148,6 +148,66 @@ defmodule Holdco.PortfolioTest do
     end
   end
 
+  describe "calculate_nav edge cases" do
+    test "NAV formula is liquid + marketable + illiquid - liabilities" do
+      nav = Portfolio.calculate_nav()
+      expected = Money.sub(
+        Money.add(Money.add(nav.liquid, nav.marketable), nav.illiquid),
+        nav.liabilities
+      )
+      assert Decimal.equal?(nav.nav, expected)
+    end
+  end
+
+  describe "asset_allocation edge cases" do
+    test "single asset type yields 100% of that type's value" do
+      company = company_fixture()
+
+      holding_fixture(%{
+        company: company,
+        asset: "SOLE_ASSET",
+        ticker: "SOLE_T",
+        quantity: 50.0,
+        asset_type: "equity",
+        currency: "USD"
+      })
+
+      Holdco.Pricing.record_price("SOLE_T", 10.0, "USD")
+
+      alloc = Portfolio.asset_allocation()
+      equity = Enum.find(alloc, &(&1.type == "equity"))
+      assert equity != nil
+      assert equity.count >= 1
+    end
+  end
+
+  describe "fx_exposure edge cases" do
+    test "all USD bank accounts produce a single USD entry" do
+      company = company_fixture()
+      bank_account_fixture(%{company: company, balance: 5_000.0, currency: "USD"})
+      bank_account_fixture(%{company: company, balance: 3_000.0, currency: "USD"})
+
+      exposure = Portfolio.fx_exposure()
+      usd_entries = Enum.filter(exposure, &(&1.currency == "USD"))
+      # All USD accounts should be aggregated into one entry
+      assert length(usd_entries) == 1
+      assert f(hd(usd_entries).usd_value) >= 8_000.0
+    end
+
+    test "mixed currencies produce multiple entries" do
+      company = company_fixture()
+      bank_account_fixture(%{company: company, balance: 1_000.0, currency: "USD"})
+      bank_account_fixture(%{company: company, balance: 1_000.0, currency: "GBP"})
+      bank_account_fixture(%{company: company, balance: 1_000.0, currency: "EUR"})
+
+      exposure = Portfolio.fx_exposure()
+      currencies = Enum.map(exposure, & &1.currency)
+      assert "USD" in currencies
+      assert "GBP" in currencies
+      assert "EUR" in currencies
+    end
+  end
+
   describe "holding_value/1" do
     test "returns value for holding with a recorded price" do
       holding = holding_fixture(%{ticker: "HV_TEST_1", quantity: 10.0, currency: "USD"})
