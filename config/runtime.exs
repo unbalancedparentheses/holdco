@@ -96,6 +96,14 @@ if config_env() == :prod do
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
 
+  # S3/R2-compatible backup storage
+  config :holdco, Holdco.Workers.S3Upload,
+    bucket: System.get_env("S3_BUCKET"),
+    endpoint: System.get_env("S3_ENDPOINT") || "s3.amazonaws.com",
+    region: System.get_env("S3_REGION") || "us-east-1",
+    access_key_id: System.get_env("S3_ACCESS_KEY_ID"),
+    secret_access_key: System.get_env("S3_SECRET_ACCESS_KEY")
+
   # ## Configuring the mailer
   #
   # In production you need to configure the mailer to use a different adapter.

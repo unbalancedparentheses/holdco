@@ -89,7 +89,8 @@ config :holdco, Oban,
        {"0 5 * * 0", Holdco.Workers.SanctionsCheckWorker},
        {"0 7 * * 1", Holdco.Workers.EmailDigestWorker},
        {"0 1 * * *", Holdco.Workers.RecurringTransactionWorker},
-       {"0 */4 * * *", Holdco.Workers.BankFeedSyncWorker}
+       {"0 */4 * * *", Holdco.Workers.BankFeedSyncWorker},
+       {"0 6 * * *", Holdco.Workers.ScheduledReportWorker}
      ]}
   ]
 

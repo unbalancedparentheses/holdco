@@ -201,6 +201,9 @@ defmodule HoldcoWeb.Router do
       # Phase 2 — Bank Reconciliation
       live "/bank-reconciliation", BankReconciliationLive.Index, :index
 
+      # Phase 2 — Scheduled Reports
+      live "/scheduled-reports", ScheduledReportsLive.Index, :index
+
     end
   end
 

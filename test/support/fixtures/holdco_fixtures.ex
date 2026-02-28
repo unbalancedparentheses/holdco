@@ -930,6 +930,24 @@ defmodule Holdco.HoldcoFixtures do
     seg
   end
 
+  def scheduled_report_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, sr} =
+      Holdco.Analytics.create_scheduled_report(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          name: "Report #{System.unique_integer([:positive])}",
+          report_type: "portfolio_summary",
+          frequency: "weekly",
+          recipients: "test@example.com",
+          format: "html"
+        })
+      )
+
+    sr
+  end
+
   def report_template_fixture(attrs \\ %{}) do
     user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
 

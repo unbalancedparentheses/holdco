@@ -3,7 +3,7 @@ defmodule Holdco.Analytics do
   alias Holdco.Repo
   alias Holdco.Money
 
-  alias Holdco.Analytics.{Kpi, KpiSnapshot, ReportTemplate}
+  alias Holdco.Analytics.{Kpi, KpiSnapshot, ReportTemplate, ScheduledReport}
 
   # KPIs
   def list_kpis(company_id \\ nil) do
@@ -78,6 +78,76 @@ defmodule Holdco.Analytics do
     Repo.delete(rt)
     |> audit_and_broadcast("report_templates", "delete")
   end
+
+  # Scheduled Reports
+  def list_scheduled_reports(company_id \\ nil) do
+    query = from(sr in ScheduledReport, order_by: [desc: sr.updated_at], preload: [:company])
+    query = if company_id, do: where(query, [sr], sr.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_scheduled_report!(id), do: Repo.get!(ScheduledReport, id) |> Repo.preload([:company])
+
+  def create_scheduled_report(attrs) do
+    %ScheduledReport{}
+    |> ScheduledReport.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("scheduled_reports", "create")
+  end
+
+  def update_scheduled_report(%ScheduledReport{} = report, attrs) do
+    report
+    |> ScheduledReport.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("scheduled_reports", "update")
+  end
+
+  def delete_scheduled_report(%ScheduledReport{} = report) do
+    Repo.delete(report)
+    |> audit_and_broadcast("scheduled_reports", "delete")
+  end
+
+  def list_due_scheduled_reports do
+    today = Date.to_iso8601(Date.utc_today())
+
+    from(sr in ScheduledReport,
+      where: sr.is_active == true,
+      where: sr.next_run_date <= ^today or is_nil(sr.next_run_date),
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def advance_next_run_date(%ScheduledReport{} = report) do
+    next_date = compute_next_run_date(report.frequency, Date.utc_today())
+
+    update_scheduled_report(report, %{
+      next_run_date: Date.to_iso8601(next_date),
+      last_sent_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
+  end
+
+  defp compute_next_run_date("daily", from_date), do: Date.add(from_date, 1)
+  defp compute_next_run_date("weekly", from_date), do: Date.add(from_date, 7)
+
+  defp compute_next_run_date("monthly", from_date) do
+    {year, month, _day} = Date.to_erl(from_date)
+
+    {new_year, new_month} =
+      if month == 12, do: {year + 1, 1}, else: {year, month + 1}
+
+    day = min(Date.days_in_month(Date.new!(new_year, new_month, 1)), elem(Date.to_erl(from_date), 2))
+    Date.new!(new_year, new_month, day)
+  end
+
+  defp compute_next_run_date("quarterly", from_date) do
+    from_date
+    |> then(&compute_next_run_date("monthly", &1))
+    |> then(&compute_next_run_date("monthly", &1))
+    |> then(&compute_next_run_date("monthly", &1))
+  end
+
+  defp compute_next_run_date(_, from_date), do: Date.add(from_date, 1)
 
   # KPI Auto-Population
   def compute_kpi_value(kpi) do
