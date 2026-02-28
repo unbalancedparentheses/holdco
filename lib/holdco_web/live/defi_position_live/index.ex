@@ -10,11 +10,14 @@ defmodule HoldcoWeb.DefiPositionLive.Index do
     companies = Corporate.list_companies()
     positions = Analytics.list_defi_positions()
 
+    last_updated = positions |> Enum.map(& &1.updated_at) |> Enum.max(DateTime, fn -> nil end)
+
     {:ok,
      assign(socket,
        page_title: "DeFi Positions",
        companies: companies,
        positions: positions,
+       last_updated: last_updated,
        chain_filter: nil,
        protocol_filter: nil,
        show_form: false,
@@ -108,6 +111,16 @@ defmodule HoldcoWeb.DefiPositionLive.Index do
     end
   end
 
+  def handle_event("refresh_prices", _, socket) do
+    case Oban.insert(Holdco.Workers.DefiScanWorker.new(%{})) do
+      {:ok, _job} ->
+        {:noreply, put_flash(socket, :info, "Price refresh queued — values will update shortly")}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to queue price refresh")}
+    end
+  end
+
   @impl true
   def handle_info({event, _record}, socket)
       when event in [:defi_positions_created, :defi_positions_updated, :defi_positions_deleted] do
@@ -125,10 +138,18 @@ defmodule HoldcoWeb.DefiPositionLive.Index do
           <h1>DeFi Positions</h1>
           <p class="deck">Track DeFi protocol positions across chains</p>
         </div>
-        <%= if @can_write do %>
-          <button class="btn btn-primary" phx-click="show_form">Add Position</button>
-        <% end %>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="btn btn-secondary" phx-click="refresh_prices">Refresh Prices</button>
+          <%= if @can_write do %>
+            <button class="btn btn-primary" phx-click="show_form">Add Position</button>
+          <% end %>
+        </div>
       </div>
+      <%= if @last_updated do %>
+        <p class="deck" style="font-size: 0.85rem; color: #888; margin-top: 0.25rem;">
+          Last updated: {Calendar.strftime(@last_updated, "%Y-%m-%d %H:%M:%S UTC")}
+        </p>
+      <% end %>
       <hr class="page-title-rule" />
     </div>
 
@@ -305,7 +326,9 @@ defmodule HoldcoWeb.DefiPositionLive.Index do
   end
 
   defp reload(socket) do
-    assign(socket, positions: Analytics.list_defi_positions())
+    positions = Analytics.list_defi_positions()
+    last_updated = positions |> Enum.map(& &1.updated_at) |> Enum.max(DateTime, fn -> nil end)
+    assign(socket, positions: positions, last_updated: last_updated)
   end
 
   defp filtered_positions(positions, nil, nil), do: positions
