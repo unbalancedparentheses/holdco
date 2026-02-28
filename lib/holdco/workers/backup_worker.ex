@@ -2,10 +2,14 @@ defmodule Holdco.Workers.BackupWorker do
   @moduledoc """
   Oban worker that performs PostgreSQL database backups.
   Reads active BackupConfigs and runs pg_dump for each.
+  After a successful local backup, uploads to S3/R2 if configured.
   """
   use Oban.Worker, queue: :default, max_attempts: 3
 
+  require Logger
+
   alias Holdco.Platform
+  alias Holdco.Workers.S3Upload
 
   @impl Oban.Worker
   def perform(_job) do
@@ -51,6 +55,8 @@ defmodule Holdco.Workers.BackupWorker do
 
         cleanup_old_backups(config)
 
+        maybe_upload_to_s3(dest, timestamp, config)
+
         Platform.log_action(
           "backup_completed",
           "backup_configs",
@@ -87,6 +93,34 @@ defmodule Holdco.Workers.BackupWorker do
         error_message: Exception.message(e),
         completed_at: DateTime.utc_now() |> DateTime.truncate(:second)
       })
+  end
+
+  defp maybe_upload_to_s3(file_path, timestamp, config) do
+    if S3Upload.configured?() do
+      s3_key = "backups/holdco_backup_#{timestamp}.dump"
+
+      case S3Upload.upload(file_path, s3_key) do
+        {:ok, %{url: url}} ->
+          Logger.info("Backup uploaded to S3: #{url}")
+
+          Platform.log_action(
+            "backup_s3_uploaded",
+            "backup_configs",
+            config.id,
+            "Backup uploaded to S3: #{s3_key}"
+          )
+
+        {:error, reason} ->
+          Logger.warning("S3 upload failed: #{reason}")
+
+          Platform.log_action(
+            "backup_s3_failed",
+            "backup_configs",
+            config.id,
+            "S3 upload failed: #{reason}"
+          )
+      end
+    end
   end
 
   defp build_database_url(repo_config) do
