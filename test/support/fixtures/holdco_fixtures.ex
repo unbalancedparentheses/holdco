@@ -944,4 +944,64 @@ defmodule Holdco.HoldcoFixtures do
 
     rt
   end
+
+  # ── Tax ──────────────────────────────────────────────
+
+  def jurisdiction_fixture(attrs \\ %{}) do
+    {:ok, jurisdiction} =
+      Holdco.Tax.create_jurisdiction(
+        Enum.into(attrs, %{
+          name: "Jurisdiction #{System.unique_integer([:positive])}",
+          country_code: "US",
+          tax_rate: 0.25,
+          tax_type: "income",
+          is_active: true
+        })
+      )
+
+    jurisdiction
+  end
+
+  def withholding_reclaim_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, reclaim} =
+      Holdco.Tax.create_withholding_reclaim(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          jurisdiction: "DE",
+          tax_year: 2025,
+          income_type: "dividend",
+          gross_amount: 10000.0,
+          withholding_rate: 0.2625,
+          amount_withheld: 2625.0,
+          treaty_rate: 0.15,
+          reclaimable_amount: 1125.0,
+          reclaimed_amount: 0.0,
+          status: "pending"
+        })
+      )
+
+    reclaim
+  end
+
+  def repatriation_plan_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, plan} =
+      Holdco.Tax.create_repatriation_plan(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          source_jurisdiction: "IE",
+          target_jurisdiction: "US",
+          amount: 100000.0,
+          currency: "USD",
+          mechanism: "dividend",
+          withholding_tax_rate: 0.05,
+          status: "draft"
+        })
+      )
+
+    plan
+  end
 end

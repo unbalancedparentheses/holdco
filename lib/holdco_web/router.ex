@@ -179,6 +179,11 @@ defmodule HoldcoWeb.Router do
       live "/management-reports", ManagementReportsLive.Index, :index
       live "/audit-diffs", AuditDiffLive.Index, :index
 
+      # Tax Management
+      live "/tax-optimizer", TaxOptimizerLive.Index, :index
+      live "/withholding-reclaims", WithholdingReclaimLive.Index, :index
+      live "/repatriation", RepatriationLive.Index, :index
+
     end
   end
 
