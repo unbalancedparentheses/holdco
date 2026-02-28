@@ -146,6 +146,7 @@ defmodule HoldcoWeb.Router do
       live "/scenarios/:id", ScenarioLive.Show, :show
       live "/import", ImportLive, :index
       live "/notifications", NotificationsLive, :index
+      live "/settings/notifications", NotificationSettingsLive.Index, :index
       live "/search", SearchLive, :index
       live "/contacts", ContactLive.Index, :index
       live "/projects", ProjectLive.Index, :index
