@@ -1040,7 +1040,6 @@ defmodule Holdco.HoldcoFixtures do
     rt
   end
 
-<<<<<<< HEAD
   # ── Tasks ────────────────────────────────────────────
 
   def task_fixture(attrs \\ %{}) do
