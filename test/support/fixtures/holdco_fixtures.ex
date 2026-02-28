@@ -1040,6 +1040,7 @@ defmodule Holdco.HoldcoFixtures do
     rt
   end
 
+<<<<<<< HEAD
   # ── Tasks ────────────────────────────────────────────
 
   def task_fixture(attrs \\ %{}) do
@@ -1146,5 +1147,51 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     comparison
+  end
+
+  # ── Counterparty Exposures ──────────────────────────────
+
+  def counterparty_exposure_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, ce} =
+      Holdco.Analytics.create_counterparty_exposure(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          counterparty_name: "Counterparty #{System.unique_integer([:positive])}",
+          counterparty_type: "bank",
+          exposure_amount: 1_000_000.0,
+          currency: "USD",
+          credit_rating: "A",
+          rating_agency: "S&P",
+          max_exposure_limit: 5_000_000.0,
+          utilization_pct: 20.0,
+          status: "active"
+        })
+      )
+
+    ce
+  end
+
+  # ── Loan Covenants ──────────────────────────────────────
+
+  def loan_covenant_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, lc} =
+      Holdco.Analytics.create_loan_covenant(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          name: "Covenant #{System.unique_integer([:positive])}",
+          covenant_type: "financial",
+          metric: "debt_to_equity",
+          threshold: 2.0,
+          comparison: "below",
+          status: "compliant",
+          measurement_frequency: "quarterly"
+        })
+      )
+
+    lc
   end
 end
