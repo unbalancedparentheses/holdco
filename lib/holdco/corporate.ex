@@ -10,7 +10,10 @@ defmodule Holdco.Corporate do
     ServiceProvider,
     TenantGroup,
     TenantMembership,
-    EntityPermission
+    EntityPermission,
+    EntityLifecycle,
+    RegisterEntry,
+    CorporateAction
   }
 
   # Companies
@@ -264,6 +267,133 @@ defmodule Holdco.Corporate do
     |> audit_and_broadcast("entity_permissions", "delete")
   end
 
+  # ── Entity Lifecycles ──────────────────────────────────
+
+  def list_entity_lifecycles(company_id) do
+    from(el in EntityLifecycle,
+      where: el.company_id == ^company_id,
+      order_by: [desc: el.event_date]
+    )
+    |> Repo.all()
+  end
+
+  def get_entity_lifecycle!(id), do: Repo.get!(EntityLifecycle, id)
+
+  def create_entity_lifecycle(attrs) do
+    %EntityLifecycle{}
+    |> EntityLifecycle.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("entity_lifecycles", "create")
+  end
+
+  def update_entity_lifecycle(%EntityLifecycle{} = el, attrs) do
+    el
+    |> EntityLifecycle.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("entity_lifecycles", "update")
+  end
+
+  def delete_entity_lifecycle(%EntityLifecycle{} = el) do
+    Repo.delete(el)
+    |> audit_and_broadcast("entity_lifecycles", "delete")
+  end
+
+  def entity_timeline(company_id) do
+    from(el in EntityLifecycle,
+      where: el.company_id == ^company_id,
+      order_by: [asc: el.event_date, asc: el.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  # ── Register Entries ───────────────────────────────────
+
+  def list_register_entries(company_id) do
+    from(re in RegisterEntry,
+      where: re.company_id == ^company_id,
+      order_by: [desc: re.entry_date]
+    )
+    |> Repo.all()
+  end
+
+  def get_register_entry!(id), do: Repo.get!(RegisterEntry, id)
+
+  def create_register_entry(attrs) do
+    %RegisterEntry{}
+    |> RegisterEntry.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("register_entries", "create")
+  end
+
+  def update_register_entry(%RegisterEntry{} = re, attrs) do
+    re
+    |> RegisterEntry.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("register_entries", "update")
+  end
+
+  def delete_register_entry(%RegisterEntry{} = re) do
+    Repo.delete(re)
+    |> audit_and_broadcast("register_entries", "delete")
+  end
+
+  def current_register(company_id, register_type) do
+    from(re in RegisterEntry,
+      where: re.company_id == ^company_id and re.register_type == ^register_type and re.status == "current",
+      order_by: [desc: re.entry_date]
+    )
+    |> Repo.all()
+  end
+
+  def register_summary(company_id) do
+    from(re in RegisterEntry,
+      where: re.company_id == ^company_id,
+      group_by: re.register_type,
+      select: {re.register_type, count(re.id)}
+    )
+    |> Repo.all()
+    |> Enum.into(%{})
+  end
+
+  # ── Corporate Actions ──────────────────────────────────
+
+  def list_corporate_actions(company_id) do
+    from(ca in CorporateAction,
+      where: ca.company_id == ^company_id,
+      order_by: [desc: ca.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def get_corporate_action!(id), do: Repo.get!(CorporateAction, id)
+
+  def create_corporate_action(attrs) do
+    %CorporateAction{}
+    |> CorporateAction.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("corporate_actions", "create")
+  end
+
+  def update_corporate_action(%CorporateAction{} = ca, attrs) do
+    ca
+    |> CorporateAction.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("corporate_actions", "update")
+  end
+
+  def delete_corporate_action(%CorporateAction{} = ca) do
+    Repo.delete(ca)
+    |> audit_and_broadcast("corporate_actions", "delete")
+  end
+
+  def pending_actions(company_id) do
+    from(ca in CorporateAction,
+      where: ca.company_id == ^company_id and ca.status not in ["completed", "cancelled"],
+      order_by: [asc: ca.effective_date, asc: ca.inserted_at]
+    )
+    |> Repo.all()
+  end
+
   # Bulk Operations
   def bulk_update_companies(ids, attrs) when is_list(ids) do
     results =
@@ -363,5 +493,82 @@ defmodule Holdco.Corporate do
       error ->
         error
     end
+  end
+
+  # ── IP Assets ───────────────────────────────────────────
+
+  alias Holdco.Corporate.IpAsset
+
+  def list_ip_assets(company_id \\ nil) do
+    query = from(ip in IpAsset, order_by: ip.name, preload: [:company])
+    query = if company_id, do: where(query, [ip], ip.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_ip_asset!(id), do: Repo.get!(IpAsset, id) |> Repo.preload(:company)
+
+  def create_ip_asset(attrs) do
+    %IpAsset{}
+    |> IpAsset.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("ip_assets", "create")
+  end
+
+  def update_ip_asset(%IpAsset{} = ip, attrs) do
+    ip
+    |> IpAsset.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("ip_assets", "update")
+  end
+
+  def delete_ip_asset(%IpAsset{} = ip) do
+    Repo.delete(ip)
+    |> audit_and_broadcast("ip_assets", "delete")
+  end
+
+  def expiring_ip_assets(days \\ 90) do
+    cutoff = Date.add(Date.utc_today(), days)
+
+    from(ip in IpAsset,
+      where: ip.expiry_date <= ^cutoff and ip.expiry_date >= ^Date.utc_today(),
+      where: ip.status in ["pending", "active"],
+      order_by: ip.expiry_date,
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def ip_portfolio_summary(company_id \\ nil) do
+    query = from(ip in IpAsset)
+    query = if company_id, do: where(query, [ip], ip.company_id == ^company_id), else: query
+
+    by_type =
+      from(ip in query,
+        group_by: ip.asset_type,
+        select: %{asset_type: ip.asset_type, count: count(ip.id), total_valuation: sum(ip.valuation)}
+      )
+      |> Repo.all()
+
+    by_status =
+      from(ip in query,
+        group_by: ip.status,
+        select: %{status: ip.status, count: count(ip.id)}
+      )
+      |> Repo.all()
+
+    total_cost =
+      from(ip in query, select: sum(ip.annual_cost))
+      |> Repo.one() || Decimal.new(0)
+
+    total_valuation =
+      from(ip in query, select: sum(ip.valuation))
+      |> Repo.one() || Decimal.new(0)
+
+    %{
+      by_type: by_type,
+      by_status: by_status,
+      total_annual_cost: total_cost,
+      total_valuation: total_valuation
+    }
   end
 end

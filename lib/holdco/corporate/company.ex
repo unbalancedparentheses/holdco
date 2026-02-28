@@ -59,6 +59,12 @@ defmodule Holdco.Corporate.Company do
     has_many :leases, Holdco.Finance.Lease
     has_many :kpis, Holdco.Analytics.Kpi
     has_many :segments, Holdco.Finance.Segment
+    has_many :kyc_records, Holdco.Compliance.KycRecord
+    has_many :aml_alerts, Holdco.Compliance.AmlAlert
+    has_many :ip_assets, Holdco.Corporate.IpAsset
+    has_many :entity_lifecycles, Holdco.Corporate.EntityLifecycle
+    has_many :register_entries, Holdco.Corporate.RegisterEntry
+    has_many :corporate_actions, Holdco.Corporate.CorporateAction
 
     timestamps(type: :utc_datetime)
   end

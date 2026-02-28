@@ -1683,4 +1683,71 @@ defmodule Holdco.HoldcoFixtures do
 
     adjustment
   end
+
+  # ── Entity Lifecycle ───────────────────────────────────
+
+  def entity_lifecycle_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, lifecycle} =
+      Holdco.Corporate.create_entity_lifecycle(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          event_type: "incorporation",
+          event_date: "2024-01-15",
+          effective_date: "2024-01-15",
+          jurisdiction: "Delaware",
+          filing_reference: "REF-" <> to_string(System.unique_integer([:positive])),
+          description: "Company incorporation",
+          status: "completed"
+        })
+      )
+
+    lifecycle
+  end
+
+  # ── Register Entries ───────────────────────────────────
+
+  def register_entry_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, entry} =
+      Holdco.Corporate.create_register_entry(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          register_type: "directors",
+          entry_date: "2024-01-15",
+          person_name: "Director " <> to_string(System.unique_integer([:positive])),
+          role_or_description: "Executive Director",
+          appointment_date: "2024-01-15",
+          status: "current"
+        })
+      )
+
+    entry
+  end
+
+  # ── Corporate Actions ──────────────────────────────────
+
+  def corporate_action_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, action} =
+      Holdco.Corporate.create_corporate_action(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          action_type: "stock_split",
+          announcement_date: "2024-01-01",
+          record_date: "2024-01-15",
+          effective_date: "2024-02-01",
+          description: "2-for-1 stock split",
+          ratio_numerator: 2,
+          ratio_denominator: 1,
+          status: "announced",
+          currency: "USD"
+        })
+      )
+
+    action
+  end
 end

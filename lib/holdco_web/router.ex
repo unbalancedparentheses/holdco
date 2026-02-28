@@ -268,6 +268,17 @@ defmodule HoldcoWeb.Router do
       live "/transfer-pricing", TransferPricingLive.Index, :index
       live "/partnership-basis", PartnershipBasisLive.Index, :index
 
+      # Phase 5 — Compliance & IP
+      live "/kyc", KycLive.Index, :index
+      live "/reporting-templates", ReportingTemplateLive.Index, :index
+      live "/aml-monitoring", AmlLive.Index, :index
+      live "/ip-assets", IpAssetLive.Index, :index
+
+      # Phase 5 — Corporate Lifecycle & Actions
+      live "/entity-lifecycle", EntityLifecycleLive.Index, :index
+      live "/registers", RegisterLive.Index, :index
+      live "/corporate-actions", CorporateActionLive.Index, :index
+
     end
   end
 
