@@ -81,6 +81,21 @@ defmodule HoldcoWeb.Router do
     get "/downloads/:id/preview", DownloadController, :preview
   end
 
+  # Plaid (authenticated)
+  scope "/auth/plaid", HoldcoWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    post "/link-token", PlaidController, :create_link_token
+    post "/exchange-token", PlaidController, :exchange_token
+  end
+
+  # Plaid webhooks (no auth - verified via webhook_verification)
+  scope "/webhooks", HoldcoWeb do
+    pipe_through [:api]
+
+    post "/plaid", PlaidController, :webhook
+  end
+
   # Public routes (no auth required)
   scope "/", HoldcoWeb do
     pipe_through [:browser]
@@ -179,9 +194,12 @@ defmodule HoldcoWeb.Router do
       live "/management-reports", ManagementReportsLive.Index, :index
       live "/audit-diffs", AuditDiffLive.Index, :index
 
-      # Phase 1 — Period Close & Recurring
+      # Phase 2 — Period Close & Recurring
       live "/period-locks", PeriodLockLive.Index, :index
       live "/recurring-transactions", RecurringTransactionsLive.Index, :index
+
+      # Phase 2 — Bank Reconciliation
+      live "/bank-reconciliation", BankReconciliationLive.Index, :index
 
     end
   end

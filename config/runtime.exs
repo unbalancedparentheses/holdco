@@ -113,4 +113,9 @@ if config_env() == :prod do
   #     config :swoosh, :api_client, Swoosh.ApiClient.Req
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
+
+  config :holdco, Holdco.Integrations.Plaid,
+    client_id: System.get_env("PLAID_CLIENT_ID"),
+    secret: System.get_env("PLAID_SECRET"),
+    environment: if(System.get_env("PLAID_ENV") == "production", do: :production, else: :sandbox)
 end

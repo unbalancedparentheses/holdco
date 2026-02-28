@@ -133,6 +133,49 @@ defmodule Holdco.Integrations do
     |> audit_and_broadcast("bank_feed_transactions", "delete")
   end
 
+  # Bank Feed Transaction helpers (upsert, unmatched, matching)
+  def upsert_bank_feed_transaction(feed_config_id, external_id, attrs) do
+    case Repo.one(
+           from(bft in BankFeedTransaction,
+             where: bft.feed_config_id == ^feed_config_id and bft.external_id == ^external_id
+           )
+         ) do
+      nil ->
+        create_bank_feed_transaction(
+          Map.merge(attrs, %{"feed_config_id" => feed_config_id, "external_id" => external_id})
+        )
+
+      existing ->
+        update_bank_feed_transaction(existing, attrs)
+    end
+  end
+
+  def list_active_bank_feed_configs do
+    from(bfc in BankFeedConfig,
+      where: bfc.is_active == true,
+      preload: [:company, :bank_account]
+    )
+    |> Repo.all()
+  end
+
+  def list_unmatched_bank_feed_transactions(feed_config_id) do
+    from(bft in BankFeedTransaction,
+      where: bft.feed_config_id == ^feed_config_id and bft.is_matched == false,
+      order_by: [desc: bft.date]
+    )
+    |> Repo.all()
+  end
+
+  def match_bank_feed_transaction(feed_transaction_id, book_transaction_id) do
+    bft = get_bank_feed_transaction!(feed_transaction_id)
+    update_bank_feed_transaction(bft, %{is_matched: true, matched_transaction_id: book_transaction_id})
+  end
+
+  def unmatch_bank_feed_transaction(feed_transaction_id) do
+    bft = get_bank_feed_transaction!(feed_transaction_id)
+    update_bank_feed_transaction(bft, %{is_matched: false, matched_transaction_id: nil})
+  end
+
   # Signature Requests
   def list_signature_requests(company_id \\ nil) do
     query =

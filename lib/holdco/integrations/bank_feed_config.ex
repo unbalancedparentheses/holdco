@@ -9,6 +9,9 @@ defmodule Holdco.Integrations.BankFeedConfig do
     field :is_active, :boolean, default: true
     field :last_sync_at, :utc_datetime
     field :notes, :string, default: ""
+    field :sync_cursor, :string
+    field :institution_id, :string, default: ""
+    field :institution_name, :string, default: ""
 
     belongs_to :company, Holdco.Corporate.Company
     belongs_to :bank_account, Holdco.Banking.BankAccount
@@ -29,7 +32,10 @@ defmodule Holdco.Integrations.BankFeedConfig do
       :access_token,
       :is_active,
       :last_sync_at,
-      :notes
+      :notes,
+      :sync_cursor,
+      :institution_id,
+      :institution_name
     ])
     |> validate_required([:company_id, :bank_account_id, :provider])
   end
