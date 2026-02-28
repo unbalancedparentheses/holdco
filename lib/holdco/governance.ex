@@ -11,7 +11,9 @@ defmodule Holdco.Governance do
     EquityGrant,
     Deal,
     JointVenture,
-    InvestorAccess
+    InvestorAccess,
+    ConflictOfInterest,
+    ShareholderCommunication
   }
 
   # Board Meetings
@@ -295,6 +297,155 @@ defmodule Holdco.Governance do
       preload: [:company, :user]
     )
     |> Repo.one()
+  end
+
+  # ── Conflicts of Interest ──────────────────────────────
+
+  def list_conflicts_of_interest(company_id \\ nil) do
+    query = from(coi in ConflictOfInterest, order_by: [desc: coi.declared_date], preload: [:company])
+    query = if company_id, do: where(query, [coi], coi.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_conflict_of_interest!(id), do: Repo.get!(ConflictOfInterest, id) |> Repo.preload(:company)
+
+  def create_conflict_of_interest(attrs) do
+    %ConflictOfInterest{}
+    |> ConflictOfInterest.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("conflicts_of_interest", "create")
+  end
+
+  def update_conflict_of_interest(%ConflictOfInterest{} = coi, attrs) do
+    coi
+    |> ConflictOfInterest.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("conflicts_of_interest", "update")
+  end
+
+  def delete_conflict_of_interest(%ConflictOfInterest{} = coi) do
+    Repo.delete(coi)
+    |> audit_and_broadcast("conflicts_of_interest", "delete")
+  end
+
+  def active_conflicts(company_id \\ nil) do
+    query = from(coi in ConflictOfInterest,
+      where: coi.status in ["declared", "under_review", "ongoing"],
+      order_by: [desc: coi.declared_date],
+      preload: [:company]
+    )
+    query = if company_id, do: where(query, [coi], coi.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def conflict_summary(company_id \\ nil) do
+    query = from(coi in ConflictOfInterest)
+    query = if company_id, do: where(query, [coi], coi.company_id == ^company_id), else: query
+
+    by_status =
+      from(coi in query,
+        group_by: coi.status,
+        select: %{status: coi.status, count: count(coi.id)}
+      )
+      |> Repo.all()
+
+    by_type =
+      from(coi in query,
+        group_by: coi.conflict_type,
+        select: %{conflict_type: coi.conflict_type, count: count(coi.id)}
+      )
+      |> Repo.all()
+
+    by_role =
+      from(coi in query,
+        group_by: coi.declarant_role,
+        select: %{declarant_role: coi.declarant_role, count: count(coi.id)}
+      )
+      |> Repo.all()
+
+    %{
+      by_status: by_status,
+      by_type: by_type,
+      by_role: by_role
+    }
+  end
+
+
+  # Board Meeting Calendar Queries
+  def upcoming_meetings(company_id) do
+    today = Date.utc_today()
+
+    from(bm in BoardMeeting,
+      where: bm.company_id == ^company_id,
+      where: bm.meeting_date >= ^today,
+      where: bm.status in ["scheduled", "in_progress"],
+      order_by: [asc: bm.meeting_date],
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def meeting_calendar(company_id, %Date.Range{first: start_date, last: end_date}) do
+    from(bm in BoardMeeting,
+      where: bm.company_id == ^company_id,
+      where: bm.meeting_date >= ^start_date,
+      where: bm.meeting_date <= ^end_date,
+      order_by: [asc: bm.meeting_date],
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  # Shareholder Communications
+  def list_shareholder_communications(company_id \\ nil) do
+    query = from(sc in ShareholderCommunication,
+      order_by: [desc: sc.inserted_at],
+      preload: [:company]
+    )
+    query = if company_id, do: where(query, [sc], sc.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_shareholder_communication!(id),
+    do: Repo.get!(ShareholderCommunication, id) |> Repo.preload(:company)
+
+  def create_shareholder_communication(attrs) do
+    %ShareholderCommunication{}
+    |> ShareholderCommunication.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("shareholder_communications", "create")
+  end
+
+  def update_shareholder_communication(%ShareholderCommunication{} = sc, attrs) do
+    sc
+    |> ShareholderCommunication.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("shareholder_communications", "update")
+  end
+
+  def delete_shareholder_communication(%ShareholderCommunication{} = sc) do
+    Repo.delete(sc)
+    |> audit_and_broadcast("shareholder_communications", "delete")
+  end
+
+  def pending_communications(company_id) do
+    from(sc in ShareholderCommunication,
+      where: sc.company_id == ^company_id,
+      where: sc.status in ["draft", "approved"],
+      order_by: [asc: sc.distribution_date],
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def communication_summary(company_id) do
+    from(sc in ShareholderCommunication,
+      where: sc.company_id == ^company_id,
+      group_by: sc.status,
+      select: {sc.status, count(sc.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
   end
 
   # PubSub

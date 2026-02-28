@@ -65,6 +65,10 @@ defmodule Holdco.Corporate.Company do
     has_many :entity_lifecycles, Holdco.Corporate.EntityLifecycle
     has_many :register_entries, Holdco.Corporate.RegisterEntry
     has_many :corporate_actions, Holdco.Corporate.CorporateAction
+    has_many :contracts, Holdco.Corporate.Contract
+    has_many :lei_records, Holdco.Corporate.LeiRecord
+    has_many :related_party_transactions, Holdco.Corporate.RelatedPartyTransaction
+    has_many :conflicts_of_interest, Holdco.Governance.ConflictOfInterest
 
     timestamps(type: :utc_datetime)
   end

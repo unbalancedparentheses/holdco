@@ -1836,4 +1836,118 @@ defmodule Holdco.HoldcoFixtures do
 
     ip
   end
+
+  # ── Shareholder Communications ─────────────────────────
+
+  def shareholder_communication_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, sc} =
+      Holdco.Governance.create_shareholder_communication(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          communication_type: "notice",
+          title: "Communication #{System.unique_integer([:positive])}"
+        })
+      )
+
+    sc
+  end
+
+  # ── Signature Workflows ───────────────────────────────
+
+  def signature_workflow_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, sw} =
+      Holdco.Documents.create_signature_workflow(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          title: "Workflow #{System.unique_integer([:positive])}",
+          status: "draft",
+          created_by: "admin@test.com",
+          signers: [
+            %{"name" => "Alice", "email" => "alice@test.com", "role" => "CEO", "status" => "pending"},
+            %{"name" => "Bob", "email" => "bob@test.com", "role" => "CFO", "status" => "pending"}
+          ]
+        })
+      )
+
+    sw
+  end
+
+  # ── Contracts ─────────────────────────────────────────
+
+  def contract_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, contract} =
+      Holdco.Corporate.create_contract(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          title: "Contract #{System.unique_integer([:positive])}",
+          counterparty: "Acme Corp",
+          contract_type: "service"
+        })
+      )
+
+    contract
+  end
+
+  # ── LEI Records ───────────────────────────────────────
+
+  def lei_record_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+    code = Map.get(attrs, :lei_code, String.pad_trailing("LEI#{System.unique_integer([:positive])}", 20, "0"))
+
+    {:ok, lei} =
+      Holdco.Corporate.create_lei_record(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          lei_code: code
+        })
+      )
+
+    lei
+  end
+
+  # ── Related Party Transactions ────────────────────────
+
+  def related_party_transaction_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, rpt} =
+      Holdco.Corporate.create_related_party_transaction(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          related_party_name: "Related Co #{System.unique_integer([:positive])}",
+          relationship: "subsidiary",
+          transaction_type: "service",
+          transaction_date: "2024-06-15",
+          amount: "50000.00"
+        })
+      )
+
+    rpt
+  end
+
+  # ── Conflicts of Interest ─────────────────────────────
+
+  def conflict_of_interest_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, coi} =
+      Holdco.Governance.create_conflict_of_interest(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          declarant_name: "John Doe #{System.unique_integer([:positive])}",
+          declarant_role: "director",
+          conflict_type: "financial",
+          description: "Owns shares in competing company",
+          declared_date: "2024-06-15"
+        })
+      )
+
+    coi
+  end
 end

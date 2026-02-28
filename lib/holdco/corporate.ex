@@ -13,7 +13,11 @@ defmodule Holdco.Corporate do
     EntityPermission,
     EntityLifecycle,
     RegisterEntry,
-    CorporateAction
+    CorporateAction,
+    IpAsset,
+    Contract,
+    LeiRecord,
+    RelatedPartyTransaction
   }
 
   # Companies
@@ -479,25 +483,7 @@ defmodule Holdco.Corporate do
     ]
   end
 
-  # PubSub
-  def subscribe, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "corporate")
-  defp broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "corporate", message)
-
-  defp audit_and_broadcast(result, table, action) do
-    case result do
-      {:ok, record} ->
-        Holdco.Platform.log_action(action, table, record.id)
-        broadcast({String.to_atom("#{table}_#{action}d"), record})
-        {:ok, record}
-
-      error ->
-        error
-    end
-  end
-
   # ── IP Assets ───────────────────────────────────────────
-
-  alias Holdco.Corporate.IpAsset
 
   def list_ip_assets(company_id \\ nil) do
     query = from(ip in IpAsset, order_by: ip.name, preload: [:company])
@@ -570,5 +556,203 @@ defmodule Holdco.Corporate do
       total_annual_cost: total_cost,
       total_valuation: total_valuation
     }
+  end
+
+  # ── Contracts ──────────────────────────────────────────
+
+  def list_contracts(company_id \\ nil) do
+    query = from(c in Contract, order_by: [desc: c.inserted_at], preload: [:company])
+    query = if company_id, do: where(query, [c], c.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_contract!(id), do: Repo.get!(Contract, id) |> Repo.preload(:company)
+
+  def create_contract(attrs) do
+    %Contract{}
+    |> Contract.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("contracts", "create")
+  end
+
+  def update_contract(%Contract{} = contract, attrs) do
+    contract
+    |> Contract.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("contracts", "update")
+  end
+
+  def delete_contract(%Contract{} = contract) do
+    Repo.delete(contract)
+    |> audit_and_broadcast("contracts", "delete")
+  end
+
+  def expiring_contracts(days \\ 30) do
+    cutoff = Date.add(Date.utc_today(), days)
+
+    from(c in Contract,
+      where: c.end_date <= ^cutoff and c.end_date >= ^Date.utc_today(),
+      where: c.status in ["active", "expiring"],
+      order_by: c.end_date,
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def contracts_by_counterparty(company_id \\ nil) do
+    query = from(c in Contract)
+    query = if company_id, do: where(query, [c], c.company_id == ^company_id), else: query
+
+    from(c in query,
+      group_by: c.counterparty,
+      select: %{counterparty: c.counterparty, count: count(c.id), total_value: sum(c.value)},
+      order_by: [desc: count(c.id)]
+    )
+    |> Repo.all()
+  end
+
+  def contract_summary(company_id \\ nil) do
+    query = from(c in Contract)
+    query = if company_id, do: where(query, [c], c.company_id == ^company_id), else: query
+
+    by_status =
+      from(c in query,
+        group_by: c.status,
+        select: %{status: c.status, count: count(c.id)}
+      )
+      |> Repo.all()
+
+    by_type =
+      from(c in query,
+        group_by: c.contract_type,
+        select: %{contract_type: c.contract_type, count: count(c.id), total_value: sum(c.value)}
+      )
+      |> Repo.all()
+
+    total_value =
+      from(c in query, select: sum(c.value))
+      |> Repo.one() || Decimal.new(0)
+
+    %{
+      by_status: by_status,
+      by_type: by_type,
+      total_value: total_value
+    }
+  end
+
+  # ── LEI Records ────────────────────────────────────────
+
+  def list_lei_records(company_id \\ nil) do
+    query = from(l in LeiRecord, order_by: l.lei_code, preload: [:company])
+    query = if company_id, do: where(query, [l], l.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_lei_record!(id), do: Repo.get!(LeiRecord, id) |> Repo.preload(:company)
+
+  def create_lei_record(attrs) do
+    %LeiRecord{}
+    |> LeiRecord.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("lei_records", "create")
+  end
+
+  def update_lei_record(%LeiRecord{} = lei, attrs) do
+    lei
+    |> LeiRecord.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("lei_records", "update")
+  end
+
+  def delete_lei_record(%LeiRecord{} = lei) do
+    Repo.delete(lei)
+    |> audit_and_broadcast("lei_records", "delete")
+  end
+
+  def lei_due_for_renewal do
+    cutoff = Date.add(Date.utc_today(), 30)
+
+    from(l in LeiRecord,
+      where: l.next_renewal_date <= ^cutoff and l.next_renewal_date >= ^Date.utc_today(),
+      where: l.registration_status in ["issued", "pending"],
+      order_by: l.next_renewal_date,
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  # ── Related Party Transactions ─────────────────────────
+
+  def list_related_party_transactions(company_id \\ nil) do
+    query = from(rpt in RelatedPartyTransaction, order_by: [desc: rpt.transaction_date], preload: [:company])
+    query = if company_id, do: where(query, [rpt], rpt.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_related_party_transaction!(id), do: Repo.get!(RelatedPartyTransaction, id) |> Repo.preload(:company)
+
+  def create_related_party_transaction(attrs) do
+    %RelatedPartyTransaction{}
+    |> RelatedPartyTransaction.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("related_party_transactions", "create")
+  end
+
+  def update_related_party_transaction(%RelatedPartyTransaction{} = rpt, attrs) do
+    rpt
+    |> RelatedPartyTransaction.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("related_party_transactions", "update")
+  end
+
+  def delete_related_party_transaction(%RelatedPartyTransaction{} = rpt) do
+    Repo.delete(rpt)
+    |> audit_and_broadcast("related_party_transactions", "delete")
+  end
+
+  def related_party_summary(company_id \\ nil) do
+    query = from(rpt in RelatedPartyTransaction)
+    query = if company_id, do: where(query, [rpt], rpt.company_id == ^company_id), else: query
+
+    by_relationship =
+      from(rpt in query,
+        group_by: rpt.relationship,
+        select: %{relationship: rpt.relationship, count: count(rpt.id), total_amount: sum(rpt.amount)},
+        order_by: [desc: sum(rpt.amount)]
+      )
+      |> Repo.all()
+
+    by_type =
+      from(rpt in query,
+        group_by: rpt.transaction_type,
+        select: %{transaction_type: rpt.transaction_type, count: count(rpt.id), total_amount: sum(rpt.amount)}
+      )
+      |> Repo.all()
+
+    total_amount =
+      from(rpt in query, select: sum(rpt.amount))
+      |> Repo.one() || Decimal.new(0)
+
+    %{
+      by_relationship: by_relationship,
+      by_type: by_type,
+      total_amount: total_amount
+    }
+  end
+
+  # PubSub
+  def subscribe, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "corporate")
+  defp broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "corporate", message)
+
+  defp audit_and_broadcast(result, table, action) do
+    case result do
+      {:ok, record} ->
+        Holdco.Platform.log_action(action, table, record.id)
+        broadcast({String.to_atom("#{table}_#{action}d"), record})
+        {:ok, record}
+
+      error ->
+        error
+    end
   end
 end

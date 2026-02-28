@@ -279,6 +279,17 @@ defmodule HoldcoWeb.Router do
       live "/registers", RegisterLive.Index, :index
       live "/corporate-actions", CorporateActionLive.Index, :index
 
+      # Phase 6 — Contract, LEI, Related Party, Conflict of Interest
+      live "/contracts", ContractLive.Index, :index
+      live "/lei", LeiLive.Index, :index
+      live "/related-party-transactions", RelatedPartyLive.Index, :index
+      live "/conflicts-of-interest", ConflictOfInterestLive.Index, :index
+
+      # Phase 5 — Governance & Signatures
+      live "/board-meetings", BoardMeetingLive.Index, :index
+      live "/shareholder-communications", ShareholderCommunicationLive.Index, :index
+      live "/signature-workflows", SignatureWorkflowLive.Index, :index
+
     end
   end
 
