@@ -782,23 +782,6 @@ defmodule Holdco.Fund do
     }
   end
 
-  # ── PubSub ─────────────────────────────────────────────
-
-  def subscribe, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "fund")
-  defp broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "fund", message)
-
-  defp audit_and_broadcast(result, table, action) do
-    case result do
-      {:ok, record} ->
-        Holdco.Platform.log_action(action, table, record.id)
-        broadcast({String.to_atom("#{table}_#{action}d"), record})
-        {:ok, record}
-
-      error ->
-        error
-    end
-  end
-
   # ── Dividend Policies ─────────────────────────────────────
 
   def list_dividend_policies(company_id \\ nil) do
