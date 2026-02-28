@@ -215,6 +215,9 @@ defmodule HoldcoWeb.Router do
       # Phase 2 — Collaboration
       live "/tasks", TasksLive.Index, :index
 
+      # Phase 2 — Alerts
+      live "/alerts", AlertsLive.Index, :index
+
     end
   end
 

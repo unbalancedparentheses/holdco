@@ -693,6 +693,40 @@ defmodule Holdco.HoldcoFixtures do
     bc
   end
 
+  # ── Alert Rules & Alerts ─────────────────────────────────
+
+  def alert_rule_fixture(attrs \\ %{}) do
+    {:ok, rule} =
+      Holdco.Platform.create_alert_rule(
+        Enum.into(attrs, %{
+          name: "Rule #{System.unique_integer([:positive])}",
+          metric: "nav",
+          condition: "below",
+          threshold: 1_000_000.0,
+          severity: "warning"
+        })
+      )
+
+    rule
+  end
+
+  def alert_fixture_for_rule(attrs \\ %{}) do
+    rule = Map.get_lazy(attrs, :alert_rule, fn -> alert_rule_fixture() end)
+
+    {:ok, alert} =
+      Holdco.Platform.create_alert(
+        Enum.into(attrs, %{
+          alert_rule_id: rule.id,
+          message: "Test alert for rule #{rule.id}",
+          severity: rule.severity || "warning",
+          metric_value: Decimal.new("500000"),
+          threshold_value: rule.threshold
+        })
+      )
+
+    alert
+  end
+
   # ── Notifications ──────────────────────────────────────
 
   def notification_fixture(attrs \\ %{}) do
