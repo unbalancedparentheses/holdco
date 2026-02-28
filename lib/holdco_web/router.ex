@@ -54,6 +54,12 @@ defmodule HoldcoWeb.Router do
     get "/audit-log.csv", ExportController, :audit_log
     get "/audit-package.zip", ExportController, :audit_package
     get "/xbrl/:id", XbrlController, :export
+
+    get "/tax-provisions.csv", TaxExportController, :tax_provisions_csv
+    get "/deferred-taxes.csv", TaxExportController, :deferred_taxes_csv
+    get "/withholding-reclaims.csv", TaxExportController, :withholding_reclaims_csv
+    get "/k1-reports.csv", TaxExportController, :k1_reports_csv
+    get "/tax-package.zip", TaxExportController, :tax_package_zip
   end
 
   # QuickBooks OAuth (authenticated)
@@ -244,6 +250,10 @@ defmodule HoldcoWeb.Router do
       live "/dividend-policies", DividendPolicyLive.Index, :index
       live "/tax-provisions", TaxProvisionLive.Index, :index
       live "/deferred-taxes", DeferredTaxLive.Index, :index
+
+      # Phase 4 — Service Agreements & Goodwill
+      live "/service-agreements", ServiceAgreementLive.Index, :index
+      live "/goodwill", GoodwillLive.Index, :index
 
     end
   end
