@@ -1750,4 +1750,90 @@ defmodule Holdco.HoldcoFixtures do
 
     action
   end
+
+  # ── KYC Records ────────────────────────────────────────
+
+  def kyc_record_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, record} =
+      Holdco.Compliance.create_kyc_record(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          entity_name: "Entity #{System.unique_integer([:positive])}",
+          entity_type: "individual",
+          risk_level: "low",
+          verification_status: "not_started",
+          country_of_residence: "US",
+          nationality: "US"
+        })
+      )
+
+    record
+  end
+
+  # ── Reporting Templates ────────────────────────────────
+
+  def reporting_template_fixture(attrs \\ %{}) do
+    {:ok, template} =
+      Holdco.Compliance.create_reporting_template(
+        Enum.into(attrs, %{
+          name: "Template #{System.unique_integer([:positive])}",
+          template_type: "crs",
+          jurisdiction: "US",
+          frequency: "annual",
+          due_date_formula: "+90d",
+          is_active: true
+        })
+      )
+
+    template
+  end
+
+  # ── AML Alerts ─────────────────────────────────────────
+
+  def aml_alert_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, alert} =
+      Holdco.Compliance.create_aml_alert(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          alert_type: "large_transaction",
+          severity: "medium",
+          amount: 100_000,
+          currency: "USD",
+          description: "Large transaction detected",
+          rule_triggered: "amount_threshold",
+          status: "open"
+        })
+      )
+
+    alert
+  end
+
+  # ── IP Assets ──────────────────────────────────────────
+
+  def ip_asset_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, ip} =
+      Holdco.Corporate.create_ip_asset(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          name: "IP Asset #{System.unique_integer([:positive])}",
+          asset_type: "patent",
+          status: "active",
+          jurisdiction: "US",
+          registration_number: "REG-#{System.unique_integer([:positive])}",
+          filing_date: "2024-01-01",
+          expiry_date: "2034-01-01",
+          annual_cost: 5000,
+          currency: "USD",
+          valuation: 100_000
+        })
+      )
+
+    ip
+  end
 end

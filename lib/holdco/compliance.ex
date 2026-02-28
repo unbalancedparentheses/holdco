@@ -461,4 +461,220 @@ defmodule Holdco.Compliance do
         error
     end
   end
+  # ── KYC Records ─────────────────────────────────────────
+
+  alias Holdco.Compliance.KycRecord
+
+  def list_kyc_records(company_id \\ nil) do
+    query = from(k in KycRecord, order_by: [desc: k.inserted_at], preload: [:company])
+    query = if company_id, do: where(query, [k], k.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_kyc_record!(id), do: Repo.get!(KycRecord, id) |> Repo.preload(:company)
+
+  def create_kyc_record(attrs) do
+    %KycRecord{}
+    |> KycRecord.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("kyc_records", "create")
+  end
+
+  def update_kyc_record(%KycRecord{} = record, attrs) do
+    record
+    |> KycRecord.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("kyc_records", "update")
+  end
+
+  def delete_kyc_record(%KycRecord{} = record) do
+    Repo.delete(record)
+    |> audit_and_broadcast("kyc_records", "delete")
+  end
+
+  def kyc_due_for_review do
+    today = Date.utc_today()
+
+    from(k in KycRecord,
+      where: k.next_review_date <= ^today,
+      order_by: k.next_review_date,
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def kyc_summary do
+    by_status =
+      from(k in KycRecord,
+        group_by: k.verification_status,
+        select: %{status: k.verification_status, count: count(k.id)}
+      )
+      |> Repo.all()
+
+    by_risk =
+      from(k in KycRecord,
+        group_by: k.risk_level,
+        select: %{risk_level: k.risk_level, count: count(k.id)}
+      )
+      |> Repo.all()
+
+    %{by_status: by_status, by_risk: by_risk}
+  end
+
+  # ── Reporting Templates ─────────────────────────────────
+
+  alias Holdco.Compliance.ReportingTemplate
+
+  def list_reporting_templates do
+    from(rt in ReportingTemplate, order_by: rt.name)
+    |> Repo.all()
+  end
+
+  def get_reporting_template!(id), do: Repo.get!(ReportingTemplate, id)
+
+  def create_reporting_template(attrs) do
+    %ReportingTemplate{}
+    |> ReportingTemplate.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("reporting_templates", "create")
+  end
+
+  def update_reporting_template(%ReportingTemplate{} = template, attrs) do
+    template
+    |> ReportingTemplate.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("reporting_templates", "update")
+  end
+
+  def delete_reporting_template(%ReportingTemplate{} = template) do
+    Repo.delete(template)
+    |> audit_and_broadcast("reporting_templates", "delete")
+  end
+
+  def generate_report(template_id, params \\ %{}) do
+    template = get_reporting_template!(template_id)
+
+    data =
+      case template.template_type do
+        "crs" ->
+          %{
+            template: template,
+            type: "crs",
+            jurisdiction: template.jurisdiction,
+            generated_at: DateTime.utc_now(),
+            params: params,
+            records: list_kyc_records() |> Enum.filter(&(&1.country_of_residence != nil))
+          }
+
+        "fatca" ->
+          %{
+            template: template,
+            type: "fatca",
+            jurisdiction: template.jurisdiction,
+            generated_at: DateTime.utc_now(),
+            params: params,
+            records: list_fatca_reports()
+          }
+
+        "bo_register" ->
+          %{
+            template: template,
+            type: "bo_register",
+            jurisdiction: template.jurisdiction,
+            generated_at: DateTime.utc_now(),
+            params: params,
+            records: Holdco.Corporate.list_companies() |> Enum.map(fn c ->
+              %{company: c, owners: Holdco.Corporate.list_beneficial_owners(c.id)}
+            end)
+          }
+
+        "aml_report" ->
+          %{
+            template: template,
+            type: "aml_report",
+            jurisdiction: template.jurisdiction,
+            generated_at: DateTime.utc_now(),
+            params: params,
+            records: list_aml_alerts()
+          }
+
+        _ ->
+          %{
+            template: template,
+            type: template.template_type,
+            jurisdiction: template.jurisdiction,
+            generated_at: DateTime.utc_now(),
+            params: params,
+            records: []
+          }
+      end
+
+    {:ok, data}
+  end
+
+  # ── AML Alerts ──────────────────────────────────────────
+
+  alias Holdco.Compliance.AmlAlert
+
+  def list_aml_alerts(company_id \\ nil) do
+    query = from(a in AmlAlert, order_by: [desc: a.inserted_at], preload: [:company])
+    query = if company_id, do: where(query, [a], a.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_aml_alert!(id), do: Repo.get!(AmlAlert, id) |> Repo.preload(:company)
+
+  def create_aml_alert(attrs) do
+    %AmlAlert{}
+    |> AmlAlert.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("aml_alerts", "create")
+  end
+
+  def update_aml_alert(%AmlAlert{} = alert, attrs) do
+    alert
+    |> AmlAlert.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("aml_alerts", "update")
+  end
+
+  def delete_aml_alert(%AmlAlert{} = alert) do
+    Repo.delete(alert)
+    |> audit_and_broadcast("aml_alerts", "delete")
+  end
+
+  def open_aml_alerts do
+    from(a in AmlAlert,
+      where: a.status in ["open", "investigating", "escalated"],
+      order_by: [desc: a.severity, desc: a.inserted_at],
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def aml_alert_summary do
+    by_status =
+      from(a in AmlAlert,
+        group_by: a.status,
+        select: %{status: a.status, count: count(a.id)}
+      )
+      |> Repo.all()
+
+    by_severity =
+      from(a in AmlAlert,
+        group_by: a.severity,
+        select: %{severity: a.severity, count: count(a.id)}
+      )
+      |> Repo.all()
+
+    by_type =
+      from(a in AmlAlert,
+        group_by: a.alert_type,
+        select: %{alert_type: a.alert_type, count: count(a.id)}
+      )
+      |> Repo.all()
+
+    %{by_status: by_status, by_severity: by_severity, by_type: by_type}
+  end
+
 end
