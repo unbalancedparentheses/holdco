@@ -1370,4 +1370,70 @@ defmodule Holdco.HoldcoFixtures do
 
     fee
   end
+
+  # ── Dividend Policies ────────────────────────────────────
+
+  def dividend_policy_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, dp} =
+      Holdco.Fund.create_dividend_policy(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          name: "Policy #{System.unique_integer([:positive])}",
+          policy_type: "payout_ratio",
+          target_payout_ratio: 50.0,
+          frequency: "quarterly"
+        })
+      )
+
+    dp
+  end
+
+  # ── Tax Provisions ──────────────────────────────────────
+
+  def tax_provision_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, tp} =
+      Holdco.Tax.create_tax_provision(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          tax_year: 2025,
+          jurisdiction: "US",
+          provision_type: "current",
+          tax_type: "income",
+          taxable_income: 100_000.0,
+          tax_rate: 21.0,
+          tax_amount: 21_000.0,
+          status: "estimated"
+        })
+      )
+
+    tp
+  end
+
+  # ── Deferred Taxes ──────────────────────────────────────
+
+  def deferred_tax_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, dt} =
+      Holdco.Tax.create_deferred_tax(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          tax_year: 2025,
+          description: "Depreciation difference #{System.unique_integer([:positive])}",
+          deferred_type: "liability",
+          source: "depreciation",
+          book_basis: 100_000.0,
+          tax_basis: 80_000.0,
+          temporary_difference: 20_000.0,
+          tax_rate: 21.0,
+          deferred_amount: 4_200.0
+        })
+      )
+
+    dt
+  end
 end

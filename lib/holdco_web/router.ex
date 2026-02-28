@@ -240,6 +240,11 @@ defmodule HoldcoWeb.Router do
       live "/investor-statements", InvestorStatementsLive.Index, :index
       live "/fund-fees", FundFeesLive.Index, :index
 
+      # Phase 4 — Dividend & Tax
+      live "/dividend-policies", DividendPolicyLive.Index, :index
+      live "/tax-provisions", TaxProvisionLive.Index, :index
+      live "/deferred-taxes", DeferredTaxLive.Index, :index
+
     end
   end
 
