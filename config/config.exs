@@ -87,7 +87,8 @@ config :holdco, Oban,
        {"0 6 * * *", Holdco.Workers.TaxReminderWorker},
        {"0 4 * * *", Holdco.Workers.BackupWorker},
        {"0 5 * * 0", Holdco.Workers.SanctionsCheckWorker},
-       {"0 7 * * 1", Holdco.Workers.EmailDigestWorker}
+       {"0 7 * * 1", Holdco.Workers.EmailDigestWorker},
+       {"*/15 * * * *", Holdco.Workers.AlertEngineWorker}
      ]}
   ]
 

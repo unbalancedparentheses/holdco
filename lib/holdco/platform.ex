@@ -12,7 +12,9 @@ defmodule Holdco.Platform do
     CustomField,
     CustomFieldValue,
     BackupConfig,
-    BackupLog
+    BackupLog,
+    AlertRule,
+    Alert
   }
 
   # Audit Log
@@ -433,6 +435,199 @@ defmodule Holdco.Platform do
     do: Repo.all(from l in BackupLog, order_by: [desc: l.inserted_at], preload: [:config])
 
   def create_backup_log(attrs), do: %BackupLog{} |> BackupLog.changeset(attrs) |> Repo.insert()
+
+  # ── Alert Rules ──────────────────────────────────────────
+
+  def subscribe_alerts, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "alerts")
+  defp broadcast_alert(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "alerts", message)
+
+  def list_alert_rules(company_id \\ nil) do
+    query = from(ar in AlertRule, order_by: [desc: ar.updated_at], preload: [:company, :created_by])
+    query = if company_id, do: where(query, [ar], ar.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def list_active_alert_rules do
+    from(ar in AlertRule, where: ar.is_active == true, preload: [:company])
+    |> Repo.all()
+  end
+
+  def get_alert_rule!(id), do: Repo.get!(AlertRule, id) |> Repo.preload([:company, :created_by, :alerts])
+
+  def create_alert_rule(attrs) do
+    %AlertRule{}
+    |> AlertRule.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("alert_rules", "create")
+  end
+
+  def update_alert_rule(%AlertRule{} = rule, attrs) do
+    rule
+    |> AlertRule.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("alert_rules", "update")
+  end
+
+  def delete_alert_rule(%AlertRule{} = rule) do
+    Repo.delete(rule)
+    |> audit_and_broadcast("alert_rules", "delete")
+  end
+
+  # ── Alerts ──────────────────────────────────────────────
+
+  def list_alerts(opts \\ []) do
+    query = from(a in Alert, order_by: [desc: a.inserted_at], preload: [:alert_rule, :acknowledged_by])
+    query = if opts[:status], do: where(query, [a], a.status == ^opts[:status]), else: query
+    query = if opts[:severity], do: where(query, [a], a.severity == ^opts[:severity]), else: query
+    query = if opts[:limit], do: limit(query, ^opts[:limit]), else: query
+    Repo.all(query)
+  end
+
+  def count_unread_alerts do
+    from(a in Alert, where: a.status == "unread", select: count(a.id))
+    |> Repo.one()
+  end
+
+  def get_alert!(id), do: Repo.get!(Alert, id) |> Repo.preload([:alert_rule, :acknowledged_by])
+
+  def create_alert(attrs) do
+    result =
+      %Alert{}
+      |> Alert.changeset(attrs)
+      |> Repo.insert()
+
+    case result do
+      {:ok, alert} ->
+        broadcast_alert({:new_alert, Repo.preload(alert, [:alert_rule])})
+        {:ok, alert}
+
+      error ->
+        error
+    end
+  end
+
+  def acknowledge_alert(%Alert{} = alert, user_id) do
+    alert
+    |> Alert.changeset(%{
+      status: "acknowledged",
+      acknowledged_at: DateTime.utc_now() |> DateTime.truncate(:second),
+      acknowledged_by_id: user_id
+    })
+    |> Repo.update()
+  end
+
+  def resolve_alert(%Alert{} = alert) do
+    alert
+    |> Alert.changeset(%{
+      status: "resolved",
+      resolved_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
+    |> Repo.update()
+  end
+
+  def mark_alert_read(%Alert{} = alert) do
+    alert
+    |> Alert.changeset(%{status: "read"})
+    |> Repo.update()
+  end
+
+  # ── Metric Evaluation ──────────────────────────────────
+
+  def evaluate_metric(rule) do
+    case rule.metric do
+      "nav" ->
+        nav = Holdco.Portfolio.calculate_nav()
+        {:ok, nav.nav}
+
+      "cash_balance" ->
+        accounts = Holdco.Banking.list_bank_accounts()
+
+        accounts =
+          if rule.company_id,
+            do: Enum.filter(accounts, &(&1.company_id == rule.company_id)),
+            else: accounts
+
+        total =
+          Enum.reduce(accounts, Decimal.new(0), fn ba, acc ->
+            Holdco.Money.add(acc, Holdco.Money.to_decimal(ba.balance))
+          end)
+
+        {:ok, total}
+
+      "holding_value" ->
+        case rule.target do
+          nil ->
+            {:error, "target ticker required for holding_value metric"}
+
+          ticker ->
+            holdings = Holdco.Assets.list_holdings()
+            matching = Enum.filter(holdings, fn h -> h.ticker == ticker end)
+
+            total =
+              Enum.reduce(matching, Decimal.new(0), fn h, acc ->
+                Holdco.Money.add(acc, Holdco.Portfolio.holding_value(h))
+              end)
+
+            {:ok, total}
+        end
+
+      "liability_total" ->
+        liabilities = Holdco.Finance.list_liabilities(rule.company_id)
+
+        total =
+          Enum.reduce(liabilities, Decimal.new(0), fn l, acc ->
+            if l.status == "active",
+              do: Holdco.Money.add(acc, Holdco.Money.to_decimal(l.principal)),
+              else: acc
+          end)
+
+        {:ok, total}
+
+      "portfolio_concentration" ->
+        nav = Holdco.Portfolio.calculate_nav()
+        holdings = Holdco.Assets.list_holdings()
+
+        if Decimal.compare(nav.nav, 0) == :gt do
+          max_pct =
+            holdings
+            |> Enum.map(fn h ->
+              Decimal.div(Holdco.Portfolio.holding_value(h), nav.nav)
+              |> Decimal.mult(100)
+            end)
+            |> Enum.max(fn -> Decimal.new(0) end)
+
+          {:ok, max_pct}
+        else
+          {:ok, Decimal.new(0)}
+        end
+
+      _ ->
+        {:error, "unknown metric: #{rule.metric}"}
+    end
+  end
+
+  def check_condition(rule, metric_value) do
+    threshold = Holdco.Money.to_decimal(rule.threshold)
+    value = Holdco.Money.to_decimal(metric_value)
+
+    case rule.condition do
+      "above" -> Decimal.compare(value, threshold) == :gt
+      "below" -> Decimal.compare(value, threshold) == :lt
+      _ -> false
+    end
+  end
+
+  def within_cooldown?(rule) do
+    case rule.last_triggered_at do
+      nil ->
+        false
+
+      last ->
+        cooldown_seconds = (rule.cooldown_minutes || 60) * 60
+        diff = DateTime.diff(DateTime.utc_now(), last, :second)
+        diff < cooldown_seconds
+    end
+  end
 
   # PubSub
   def subscribe(topic), do: Phoenix.PubSub.subscribe(Holdco.PubSub, topic)
