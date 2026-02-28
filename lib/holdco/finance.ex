@@ -20,7 +20,9 @@ defmodule Holdco.Finance do
     RecurringTransaction,
     ServiceAgreement,
     Goodwill,
-    ImpairmentTest
+    ImpairmentTest,
+    CompensationRecord,
+    BankGuarantee
   }
 
   alias Holdco.Fund.{AccountingBook, BookAdjustment}
@@ -914,6 +916,117 @@ defmodule Holdco.Finance do
           Repo.rollback({:test_create_error, changeset})
       end
     end)
+  end
+
+
+  # ── Compensation Records ──────────────────────────────
+
+  def list_compensation_records(company_id \\ nil) do
+    query = from(cr in CompensationRecord, order_by: [desc: cr.effective_date], preload: [:company])
+    query = if company_id, do: where(query, [cr], cr.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_compensation_record!(id), do: Repo.get!(CompensationRecord, id) |> Repo.preload(:company)
+
+  def create_compensation_record(attrs) do
+    %CompensationRecord{}
+    |> CompensationRecord.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("compensation_records", "create")
+  end
+
+  def update_compensation_record(%CompensationRecord{} = cr, attrs) do
+    cr
+    |> CompensationRecord.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("compensation_records", "update")
+  end
+
+  def delete_compensation_record(%CompensationRecord{} = cr) do
+    Repo.delete(cr)
+    |> audit_and_broadcast("compensation_records", "delete")
+  end
+
+  def total_compensation(company_id) do
+    from(cr in CompensationRecord,
+      where: cr.company_id == ^company_id and cr.status == "active",
+      select: sum(cr.amount)
+    )
+    |> Repo.one() || Decimal.new(0)
+  end
+
+  def compensation_by_department(company_id) do
+    from(cr in CompensationRecord,
+      where: cr.company_id == ^company_id and cr.status == "active",
+      group_by: cr.department,
+      select: %{department: cr.department, count: count(cr.id), total_amount: sum(cr.amount)},
+      order_by: [desc: sum(cr.amount)]
+    )
+    |> Repo.all()
+  end
+
+  # ── Bank Guarantees ──────────────────────────────────────
+
+  def list_bank_guarantees(company_id \\ nil) do
+    query = from(bg in BankGuarantee, order_by: [desc: bg.issue_date], preload: [:company])
+    query = if company_id, do: where(query, [bg], bg.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_bank_guarantee!(id), do: Repo.get!(BankGuarantee, id) |> Repo.preload(:company)
+
+  def create_bank_guarantee(attrs) do
+    %BankGuarantee{}
+    |> BankGuarantee.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("bank_guarantees", "create")
+  end
+
+  def update_bank_guarantee(%BankGuarantee{} = bg, attrs) do
+    bg
+    |> BankGuarantee.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("bank_guarantees", "update")
+  end
+
+  def delete_bank_guarantee(%BankGuarantee{} = bg) do
+    Repo.delete(bg)
+    |> audit_and_broadcast("bank_guarantees", "delete")
+  end
+
+  def active_guarantees(company_id \\ nil) do
+    query = from(bg in BankGuarantee,
+      where: bg.status == "active",
+      order_by: [asc: bg.expiry_date],
+      preload: [:company]
+    )
+    query = if company_id, do: where(query, [bg], bg.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def guarantee_summary(company_id \\ nil) do
+    query = from(bg in BankGuarantee)
+    query = if company_id, do: where(query, [bg], bg.company_id == ^company_id), else: query
+
+    by_type =
+      from(bg in query,
+        group_by: bg.guarantee_type,
+        select: %{guarantee_type: bg.guarantee_type, count: count(bg.id), total_amount: sum(bg.amount)}
+      )
+      |> Repo.all()
+
+    by_status =
+      from(bg in query,
+        group_by: bg.status,
+        select: %{status: bg.status, count: count(bg.id), total_amount: sum(bg.amount)}
+      )
+      |> Repo.all()
+
+    total_amount = from(bg in query, select: sum(bg.amount)) |> Repo.one() || Decimal.new(0)
+    active_amount = from(bg in query, where: bg.status == "active", select: sum(bg.amount)) |> Repo.one() || Decimal.new(0)
+
+    %{by_type: by_type, by_status: by_status, total_amount: total_amount, active_amount: active_amount}
   end
 
   # PubSub

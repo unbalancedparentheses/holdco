@@ -13,7 +13,8 @@ defmodule Holdco.Governance do
     JointVenture,
     InvestorAccess,
     ConflictOfInterest,
-    ShareholderCommunication
+    ShareholderCommunication,
+    EthicsReport
   }
 
   # Board Meetings
@@ -462,5 +463,72 @@ defmodule Holdco.Governance do
       error ->
         error
     end
+  end
+
+  # ── Ethics Reports ──────────────────────────────────────
+
+  def list_ethics_reports(company_id \\ nil) do
+    query = from(er in EthicsReport, order_by: [desc: er.reported_date], preload: [:company])
+    query = if company_id, do: where(query, [er], er.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_ethics_report!(id), do: Repo.get!(EthicsReport, id) |> Repo.preload(:company)
+
+  def create_ethics_report(attrs) do
+    %EthicsReport{}
+    |> EthicsReport.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("ethics_reports", "create")
+  end
+
+  def update_ethics_report(%EthicsReport{} = er, attrs) do
+    er
+    |> EthicsReport.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("ethics_reports", "update")
+  end
+
+  def delete_ethics_report(%EthicsReport{} = er) do
+    Repo.delete(er)
+    |> audit_and_broadcast("ethics_reports", "delete")
+  end
+
+  def open_ethics_reports(company_id) do
+    from(er in EthicsReport,
+      where: er.company_id == ^company_id,
+      where: er.status in ["received", "under_investigation", "escalated"],
+      order_by: [desc: er.severity, desc: er.reported_date],
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def ethics_summary(company_id \\ nil) do
+    query = from(er in EthicsReport)
+    query = if company_id, do: where(query, [er], er.company_id == ^company_id), else: query
+
+    by_status =
+      from(er in query,
+        group_by: er.status,
+        select: %{status: er.status, count: count(er.id)}
+      )
+      |> Repo.all()
+
+    by_severity =
+      from(er in query,
+        group_by: er.severity,
+        select: %{severity: er.severity, count: count(er.id)}
+      )
+      |> Repo.all()
+
+    by_type =
+      from(er in query,
+        group_by: er.report_type,
+        select: %{report_type: er.report_type, count: count(er.id)}
+      )
+      |> Repo.all()
+
+    %{by_status: by_status, by_severity: by_severity, by_type: by_type}
   end
 end

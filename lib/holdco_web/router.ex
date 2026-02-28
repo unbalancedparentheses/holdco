@@ -285,10 +285,25 @@ defmodule HoldcoWeb.Router do
       live "/related-party-transactions", RelatedPartyLive.Index, :index
       live "/conflicts-of-interest", ConflictOfInterestLive.Index, :index
 
+      # Phase 7 — ESG, Emissions, Capital, BCP, Ethics
+      live "/esg", EsgLive.Index, :index
+      live "/emissions", EmissionsLive.Index, :index
+      live "/regulatory-capital", RegulatoryCapitalLive.Index, :index
+      live "/bcp", BcpLive.Index, :index
+      live "/ethics", EthicsLive.Index, :index
+
       # Phase 5 — Governance & Signatures
       live "/board-meetings", BoardMeetingLive.Index, :index
       live "/shareholder-communications", ShareholderCommunicationLive.Index, :index
       live "/signature-workflows", SignatureWorkflowLive.Index, :index
+
+      # Phase 7 — Share Classes, Claims, Compensation, Litigation, Guarantees
+      live "/share-classes", ShareClassLive.Index, :index
+      live "/insurance-claims", InsuranceClaimLive.Index, :index
+      live "/compensation", CompensationLive.Index, :index
+      live "/litigation", LitigationLive.Index, :index
+      live "/bank-guarantees", BankGuaranteeLive.Index, :index
+
 
     end
   end

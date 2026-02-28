@@ -17,7 +17,8 @@ defmodule Holdco.Corporate do
     IpAsset,
     Contract,
     LeiRecord,
-    RelatedPartyTransaction
+    RelatedPartyTransaction,
+    ShareClass
   }
 
   # Companies
@@ -738,6 +739,56 @@ defmodule Holdco.Corporate do
       by_type: by_type,
       total_amount: total_amount
     }
+  end
+
+
+  # ── Share Classes ──────────────────────────────────────
+
+  def list_share_classes(company_id \\ nil) do
+    query = from(sc in ShareClass, order_by: sc.class_code, preload: [:company])
+    query = if company_id, do: where(query, [sc], sc.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_share_class!(id), do: Repo.get!(ShareClass, id) |> Repo.preload(:company)
+
+  def create_share_class(attrs) do
+    %ShareClass{}
+    |> ShareClass.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("share_classes", "create")
+  end
+
+  def update_share_class(%ShareClass{} = sc, attrs) do
+    sc
+    |> ShareClass.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("share_classes", "update")
+  end
+
+  def delete_share_class(%ShareClass{} = sc) do
+    Repo.delete(sc)
+    |> audit_and_broadcast("share_classes", "delete")
+  end
+
+  def cap_table(company_id) do
+    classes = list_share_classes(company_id)
+
+    total_outstanding =
+      Enum.reduce(classes, Decimal.new(0), fn sc, acc ->
+        Decimal.add(acc, sc.shares_outstanding || Decimal.new(0))
+      end)
+
+    Enum.map(classes, fn sc ->
+      outstanding = sc.shares_outstanding || Decimal.new(0)
+
+      pct =
+        if Decimal.gt?(total_outstanding, Decimal.new(0)),
+          do: Decimal.div(outstanding, total_outstanding) |> Decimal.mult(100) |> Decimal.round(2),
+          else: Decimal.new(0)
+
+      %{share_class: sc, ownership_pct: pct}
+    end)
   end
 
   # PubSub
