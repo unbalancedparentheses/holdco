@@ -34,7 +34,7 @@ defmodule HoldcoWeb.TransactionsLive.Show do
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Amount</div>
-        <div class={"metric-value #{if Money.negative?(Money.to_decimal(@transaction.amount)), do: "num-negative", else: "num-positive"}"}>
+        <div class={"metric-value #{if @transaction.transaction_type == "debit" or Money.negative?(@transaction.amount), do: "num-negative", else: "num-positive"}"}>
           {format_currency(@transaction.amount, @transaction.currency)}
         </div>
       </div>

@@ -3,7 +3,7 @@ defmodule Holdco.Repo.Migrations.CreateUsersAuthTables do
 
   def change do
     create table(:users) do
-      add :email, :string, null: false, collate: :nocase
+      add :email, :string, null: false
       add :hashed_password, :string
       add :confirmed_at, :utc_datetime
 
@@ -14,7 +14,7 @@ defmodule Holdco.Repo.Migrations.CreateUsersAuthTables do
 
     create table(:users_tokens) do
       add :user_id, references(:users, on_delete: :delete_all), null: false
-      add :token, :binary, null: false, size: 32
+      add :token, :binary, null: false
       add :context, :string, null: false
       add :sent_to, :string
       add :authenticated_at, :utc_datetime

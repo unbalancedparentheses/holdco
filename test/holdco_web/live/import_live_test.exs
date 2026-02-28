@@ -417,7 +417,7 @@ defmodule HoldcoWeb.ImportLiveTest do
 
       view |> element(~s(button[phx-value-tab="transactions"])) |> render_click()
 
-      csv_content = "Date,Description,Amount,Currency,Category,Company\n2025-01-15,Office rent,-5000,USD,expense,#{company.name}"
+      csv_content = "Date,Description,Amount,Currency,Category,Company\n2025-01-15,Office rent,5000,USD,expense,#{company.name}"
 
       csv_file =
         file_input(view, "#import-form", :csv_file, [

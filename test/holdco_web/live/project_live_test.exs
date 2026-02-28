@@ -77,7 +77,7 @@ defmodule HoldcoWeb.ProjectLiveTest do
 
       html = view |> element("button", "Add Project") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Project"
     end
 
@@ -88,7 +88,7 @@ defmodule HoldcoWeb.ProjectLiveTest do
       view |> element("button", "Add Project") |> render_click()
       html = view |> element(~s(button[phx-click="close_form"])) |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "clicking modal overlay fires close_form", %{conn: conn, user: user} do
@@ -96,9 +96,9 @@ defmodule HoldcoWeb.ProjectLiveTest do
       {:ok, view, _html} = live(conn, ~p"/projects")
 
       view |> element("button", "Add Project") |> render_click()
-      html = view |> element(".modal-overlay") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -108,9 +108,9 @@ defmodule HoldcoWeb.ProjectLiveTest do
       {:ok, view, _html} = live(conn, ~p"/projects")
 
       view |> element("button", "Add Project") |> render_click()
-      html = view |> element(".modal") |> render_click()
+      html = view |> element(".dialog-panel") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
   end
 
@@ -143,7 +143,7 @@ defmodule HoldcoWeb.ProjectLiveTest do
 
       assert html =~ "Project created"
       assert html =~ "Migration Project"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -185,7 +185,7 @@ defmodule HoldcoWeb.ProjectLiveTest do
         |> render_click()
 
       assert html =~ "Edit Project"
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Editable Project"
     end
 
@@ -223,7 +223,7 @@ defmodule HoldcoWeb.ProjectLiveTest do
 
       assert html =~ "Project updated"
       assert html =~ "Renamed Project"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 

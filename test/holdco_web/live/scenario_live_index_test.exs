@@ -85,7 +85,7 @@ defmodule HoldcoWeb.ScenarioLiveIndexTest do
 
       {:ok, _view, html} = live(conn, ~p"/scenarios/new")
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "New Scenario"
       assert html =~ ~s(phx-submit="save")
     end
@@ -95,7 +95,7 @@ defmodule HoldcoWeb.ScenarioLiveIndexTest do
 
       {:ok, _view, html} = live(conn, ~p"/scenarios")
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -113,7 +113,7 @@ defmodule HoldcoWeb.ScenarioLiveIndexTest do
       render_hook(view, "show_form", %{})
       html = render(view)
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "New Scenario"
       assert html =~ ~s(name="scenario[name]")
       assert html =~ ~s(name="scenario[description]")

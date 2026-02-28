@@ -107,7 +107,7 @@ defmodule Holdco.AnalyticsTest do
                  trend: "up"
                })
 
-      assert snap.current_value == 95_000.0
+      assert Decimal.equal?(snap.current_value, Decimal.new("95000.0"))
       assert snap.trend == "up"
     end
 

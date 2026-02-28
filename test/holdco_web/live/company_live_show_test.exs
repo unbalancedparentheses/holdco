@@ -170,7 +170,7 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       # Switch to another tab
       html = view |> element(~s(button[phx-value-tab="transactions"])) |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -337,7 +337,7 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       html = view |> element(~s(button[phx-value-form="holding"])) |> render_click()
 
       assert html =~ "Add Holding"
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ ~s(name="holding[asset]")
       assert html =~ ~s(name="holding[ticker]")
       assert html =~ ~s(name="holding[quantity]")
@@ -834,7 +834,7 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
 
       html = view |> element(~s(button[phx-click="close_form"])) |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -2010,7 +2010,7 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       # Click add_je_line button to add another row
       html = view |> element(~s(button[phx-click="add_je_line"])) |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
 
     test "editor can create a balanced journal entry", %{conn: conn, company: company, user: user} do

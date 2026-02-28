@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.EntityComparisonLive.Index do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Corporate, Finance}
+  alias Holdco.{Corporate, Finance, Money}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -290,7 +290,7 @@ defmodule HoldcoWeb.EntityComparisonLive.Index do
                   <%= for id <- @selected_ids do %>
                     <% is = Map.get(@income_statements, id, %{}) %>
                     <% net = Map.get(is, :net_income, 0) %>
-                    <td class={"td-num #{if net >= 0, do: "num-positive", else: "num-negative"}"} style="font-size: 1.05rem;">
+                    <td class={"td-num #{if Money.gte?(net, 0), do: "num-positive", else: "num-negative"}"} style="font-size: 1.05rem;">
                       {format_number(net)}
                     </td>
                   <% end %>
@@ -387,6 +387,9 @@ defmodule HoldcoWeb.EntityComparisonLive.Index do
   end
 
   # -- Formatting --
+
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
 
   defp format_number(n) when is_float(n),
     do: :erlang.float_to_binary(n, decimals: 0) |> add_commas()

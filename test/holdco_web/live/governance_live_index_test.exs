@@ -139,7 +139,7 @@ defmodule HoldcoWeb.GovernanceLiveIndexTest do
       view |> element("button", "Add") |> render_click()
       html = view |> element(~s(button[phx-value-tab="cap_table"])) |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -288,7 +288,7 @@ defmodule HoldcoWeb.GovernanceLiveIndexTest do
 
       html = view |> element("button", "Add") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Board Meeting"
       assert html =~ ~s(phx-submit="save_meeting")
       assert html =~ ~s(name="board_meeting[company_id]")
@@ -314,7 +314,7 @@ defmodule HoldcoWeb.GovernanceLiveIndexTest do
       view |> element("button", "Add") |> render_click()
       html = view |> element("button", "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "submitting meeting form creates a meeting", %{conn: conn} do
@@ -336,7 +336,7 @@ defmodule HoldcoWeb.GovernanceLiveIndexTest do
         |> render_submit()
 
       assert html =~ "Meeting added"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "deleting a board meeting removes it", %{conn: conn} do
@@ -376,7 +376,7 @@ defmodule HoldcoWeb.GovernanceLiveIndexTest do
       view |> element(~s(button[phx-value-tab="cap_table"])) |> render_click()
       html = view |> element("button", "Add") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Cap Table Entry"
       assert html =~ ~s(phx-submit="save_cap_table")
       assert html =~ ~s(name="cap_table_entry[company_id]")
@@ -410,7 +410,7 @@ defmodule HoldcoWeb.GovernanceLiveIndexTest do
         |> render_submit()
 
       assert html =~ "Entry added"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "deleting a cap table entry removes it", %{conn: conn} do

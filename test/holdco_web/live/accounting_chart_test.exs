@@ -137,7 +137,7 @@ defmodule HoldcoWeb.AccountingChartTest do
 
       html = view |> element("button", "Add Account") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Account"
       assert html =~ ~s(phx-submit="save")
       assert html =~ ~s(name="account[code]")
@@ -166,7 +166,7 @@ defmodule HoldcoWeb.AccountingChartTest do
       view |> element("button", "Add Account") |> render_click()
       html = view |> element(~s(button[phx-click="close_form"]), "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -196,7 +196,7 @@ defmodule HoldcoWeb.AccountingChartTest do
       assert html =~ "Account created"
       assert html =~ "3000"
       assert html =~ "Retained Earnings"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "creates an account without company_id", %{conn: conn, user: user} do

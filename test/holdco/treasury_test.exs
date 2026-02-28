@@ -30,7 +30,7 @@ defmodule Holdco.TreasuryTest do
       assert Treasury.get_cash_pool_entry!(cpe.id).id == cpe.id
 
       {:ok, updated} = Treasury.update_cash_pool_entry(cpe, %{allocated_amount: 10_000.0})
-      assert updated.allocated_amount == 10_000.0
+      assert Decimal.equal?(updated.allocated_amount, Decimal.new("10000.0"))
 
       {:ok, _} = Treasury.delete_cash_pool_entry(updated)
     end

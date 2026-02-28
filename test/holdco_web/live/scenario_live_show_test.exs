@@ -106,7 +106,7 @@ defmodule HoldcoWeb.ScenarioLiveShowTest do
 
       html = view |> element("button", "Add Item") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Scenario Item"
       assert html =~ ~s(phx-submit="save_item")
       assert html =~ ~s(name="item[name]")
@@ -125,16 +125,16 @@ defmodule HoldcoWeb.ScenarioLiveShowTest do
       view |> element("button", "Add Item") |> render_click()
       html = view |> element(~s(button[phx-click="close_form"]), "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "overlay click closes the modal", %{conn: conn, scenario: scenario} do
       {:ok, view, _html} = live(conn, ~p"/scenarios/#{scenario.id}")
 
       view |> element("button", "Add Item") |> render_click()
-      html = view |> element(".modal-overlay") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -168,7 +168,7 @@ defmodule HoldcoWeb.ScenarioLiveShowTest do
       assert html =~ "Item added"
       assert html =~ "Consulting Revenue"
       assert html =~ "revenue"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "viewer cannot save an item", %{conn: conn, scenario: scenario} do

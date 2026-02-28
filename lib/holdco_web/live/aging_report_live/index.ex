@@ -171,8 +171,8 @@ defmodule HoldcoWeb.AgingReportLive.Index do
       transactions
       |> Enum.filter(fn tx ->
         case mode do
-          "ar" -> tx.amount != nil and Money.positive?(tx.amount)
-          "ap" -> tx.amount != nil and Money.negative?(tx.amount)
+          "ar" -> tx.amount != nil and (tx.transaction_type == "credit" or Money.positive?(tx.amount))
+          "ap" -> tx.amount != nil and (tx.transaction_type == "debit" or Money.negative?(tx.amount))
           _ -> false
         end
       end)

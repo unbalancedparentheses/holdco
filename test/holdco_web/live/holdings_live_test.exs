@@ -91,7 +91,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
 
       html = view |> element("button", "Add Holding") |> render_click()
 
-      assert html =~ "modal"
+      assert html =~ "dialog"
       assert html =~ "Asset Name"
       assert html =~ "Ticker"
       assert html =~ "Quantity"
@@ -104,7 +104,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       view |> element("button", "Add Holding") |> render_click()
       html = view |> element("button", "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "save creates a holding", %{conn: conn, user: user} do
@@ -227,9 +227,9 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       {:ok, view, _html} = live(conn, ~p"/holdings")
 
       view |> element("button", "Add Holding") |> render_click()
-      html = view |> element(".modal-overlay") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "editor sees Import CSV link", %{conn: conn} do
@@ -447,7 +447,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       view |> element("button[phx-click='edit'][phx-value-id='#{holding.id}']") |> render_click()
       html = view |> element("button", "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 

@@ -109,7 +109,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
 
       html = view |> element(~s(button[phx-value-tab="licenses"])) |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -133,7 +133,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
 
       html = view |> element("button", "Add") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
 
     test "close_form dismisses the modal", %{conn: conn, user: user} do
@@ -143,7 +143,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       view |> element("button", "Add") |> render_click()
       html = view |> element("button", "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "clicking modal overlay fires close_form", %{conn: conn, user: user} do
@@ -151,9 +151,9 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       {:ok, view, _html} = live(conn, ~p"/compliance")
 
       view |> element("button", "Add") |> render_click()
-      html = view |> element(".modal-overlay") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -167,9 +167,9 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       {:ok, view, _html} = live(conn, ~p"/compliance")
 
       view |> element("button", "Add") |> render_click()
-      html = view |> element(".modal") |> render_click()
+      html = view |> element(".dialog-panel") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
   end
 
@@ -200,7 +200,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "Filing added"
       assert html =~ "DE"
       assert html =~ "Annual Return"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "delete filing as editor", %{conn: conn, user: user} do
@@ -338,7 +338,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "Policy added"
       assert html =~ "Cyber Liability"
       assert html =~ "AIG"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "delete insurance policy as editor", %{conn: conn, user: user} do
@@ -469,7 +469,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "Tax entry added"
       assert html =~ "royalty"
       assert html =~ "IE"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "delete withholding tax as editor", %{conn: conn, user: user} do
@@ -641,7 +641,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "Report added"
       assert html =~ "2025"
       assert html =~ "CA"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "delete FATCA report as editor", %{conn: conn, user: user} do
@@ -704,7 +704,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
 
       assert html =~ "Check added"
       assert html =~ "Suspicious Entity LLC"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "delete sanctions check as editor", %{conn: conn, user: user} do
@@ -825,7 +825,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
 
       assert html =~ "Score added"
       assert html =~ "2025-Q2"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "delete ESG score as editor", %{conn: conn, user: user} do
@@ -890,7 +890,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "License added"
       assert html =~ "money-transmitter"
       assert html =~ "FinCEN"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "delete license as editor", %{conn: conn, user: user} do

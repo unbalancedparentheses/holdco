@@ -109,7 +109,7 @@ defmodule HoldcoWeb.BankAccountsLive.Show do
                 <td class="td-mono">{tx.date}</td>
                 <td><span class="tag tag-ink">{tx.transaction_type}</span></td>
                 <td class="td-name">{tx.description}</td>
-                <td class={"td-num #{if Money.negative?(Money.to_decimal(tx.amount)), do: "num-negative", else: "num-positive"}"}>
+                <td class={"td-num #{if tx.transaction_type == "debit" or Money.negative?(tx.amount), do: "num-negative", else: "num-positive"}"}>
                   {format_currency(tx.amount, tx.currency)}
                 </td>
                 <td>{tx.currency}</td>

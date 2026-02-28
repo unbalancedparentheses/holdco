@@ -116,8 +116,8 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
 
       html = view |> element("button", "Add Document") |> render_click()
 
-      assert html =~ "modal-overlay"
-      assert html =~ "modal-header"
+      assert html =~ "dialog-overlay"
+      assert html =~ "dialog-header"
       assert html =~ "Add Document"
       assert html =~ ~s(phx-submit="save")
       assert html =~ ~s(phx-change="validate")
@@ -144,16 +144,16 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
       view |> element("button", "Add Document") |> render_click()
       html = view |> element("button", "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "clicking modal overlay closes the form", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/documents")
 
       view |> element("button", "Add Document") |> render_click()
-      html = view |> element(".modal-overlay") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "submitting the form creates a document", %{conn: conn} do
@@ -176,7 +176,7 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
         |> render_submit()
 
       assert html =~ "Document added"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "deleting a document removes it from the list", %{conn: conn} do
@@ -357,7 +357,7 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
       {:ok, view, _html} = live(conn, ~p"/documents")
 
       html = render_hook(view, "show_form", %{})
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
 
     test "close_form assigns show_form to false", %{conn: conn} do
@@ -365,7 +365,7 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
 
       render_hook(view, "show_form", %{})
       html = render_hook(view, "close_form", %{})
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 

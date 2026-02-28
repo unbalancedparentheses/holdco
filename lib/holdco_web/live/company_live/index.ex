@@ -66,7 +66,8 @@ defmodule HoldcoWeb.CompanyLive.Index do
     {:noreply,
      assign(socket,
        companies: companies,
-       sorted_companies: sort_hierarchically(companies)
+       sorted_companies: sort_hierarchically(companies),
+       company_tree: Corporate.company_tree()
      )
      |> put_flash(:info, "Company deleted")}
   end

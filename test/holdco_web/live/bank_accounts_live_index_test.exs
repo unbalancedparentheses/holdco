@@ -181,8 +181,8 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
 
       html = view |> element("button", "Add Account") |> render_click()
 
-      assert html =~ "modal-overlay"
-      assert html =~ "modal-header"
+      assert html =~ "dialog-overlay"
+      assert html =~ "dialog-header"
       assert html =~ "Add Bank Account"
       assert html =~ ~s(phx-submit="save")
       assert html =~ ~s(name="bank_account[company_id]")
@@ -221,7 +221,7 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
 
       html = view |> element("button", "Add Pool") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Cash Pool"
       assert html =~ ~s(phx-submit="save_pool")
       assert html =~ ~s(name="pool[name]")
@@ -262,7 +262,7 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
         |> render_submit()
 
       assert html =~ "Bank account added"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "submitting the cash pool form creates a pool", %{conn: conn} do
@@ -283,7 +283,7 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
         |> render_submit()
 
       assert html =~ "Cash pool added"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "deleting a bank account removes it from the list", %{conn: conn} do

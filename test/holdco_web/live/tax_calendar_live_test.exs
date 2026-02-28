@@ -118,14 +118,14 @@ defmodule HoldcoWeb.TaxCalendarLiveTest do
       {:ok, live, _html} = live(conn, ~p"/tax-calendar")
       html = render_click(live, "show_form", %{})
       assert html =~ "Add Tax Deadline"
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
 
     test "close_form closes the modal", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/tax-calendar")
       render_click(live, "show_form", %{})
       html = render_click(live, "close_form", %{})
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "noop event does nothing", %{conn: conn} do

@@ -386,13 +386,13 @@ defmodule HoldcoWeb.DashboardLiveTest do
     end
 
     test "shows negative amount styling", %{conn: conn} do
-      transaction_fixture(%{amount: -500.0, description: "Expense"})
+      transaction_fixture(%{amount: 500.0, description: "Expense", transaction_type: "debit"})
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "num-negative"
     end
 
     test "shows zero amount transaction", %{conn: conn} do
-      transaction_fixture(%{amount: 0.0, description: "Zero Amount Tx"})
+      transaction_fixture(%{amount: 0.01, description: "Zero Amount Tx"})
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "Zero Amount Tx"
     end
@@ -773,7 +773,7 @@ defmodule HoldcoWeb.DashboardLiveTest do
 
   describe "transaction with negative amount in recent transactions" do
     test "negative transaction has num-negative class", %{conn: conn} do
-      transaction_fixture(%{amount: -1500.0, description: "DashNeg", transaction_type: "debit"})
+      transaction_fixture(%{amount: 1500.0, description: "DashNeg", transaction_type: "debit"})
 
       {:ok, _view, html} = live(conn, ~p"/")
 

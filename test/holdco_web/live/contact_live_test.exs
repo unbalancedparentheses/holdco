@@ -62,7 +62,7 @@ defmodule HoldcoWeb.ContactLiveTest do
 
       html = view |> element("button", "Add Contact") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Contact"
     end
 
@@ -73,7 +73,7 @@ defmodule HoldcoWeb.ContactLiveTest do
       view |> element("button", "Add Contact") |> render_click()
       html = view |> element("button", "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "clicking modal overlay fires close_form", %{conn: conn, user: user} do
@@ -81,9 +81,9 @@ defmodule HoldcoWeb.ContactLiveTest do
       {:ok, view, _html} = live(conn, ~p"/contacts")
 
       view |> element("button", "Add Contact") |> render_click()
-      html = view |> element(".modal-overlay") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -93,9 +93,9 @@ defmodule HoldcoWeb.ContactLiveTest do
       {:ok, view, _html} = live(conn, ~p"/contacts")
 
       view |> element("button", "Add Contact") |> render_click()
-      html = view |> element(".modal") |> render_click()
+      html = view |> element(".dialog-panel") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
   end
 
@@ -128,7 +128,7 @@ defmodule HoldcoWeb.ContactLiveTest do
       assert html =~ "Bob Smith"
       assert html =~ "Smith &amp; Co"
       assert html =~ "bob@smithco.com"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -171,7 +171,7 @@ defmodule HoldcoWeb.ContactLiveTest do
         |> render_click()
 
       assert html =~ "Edit Contact"
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Editable Contact"
       assert html =~ "EditOrg"
       assert html =~ "edit@editorg.com"
@@ -212,7 +212,7 @@ defmodule HoldcoWeb.ContactLiveTest do
       assert html =~ "Contact updated"
       assert html =~ "Updated Name"
       assert html =~ "NewOrg"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 

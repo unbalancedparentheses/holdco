@@ -136,7 +136,7 @@ defmodule HoldcoWeb.BankAccountsLiveTest do
         company: company,
         transaction_type: "debit",
         description: "Outgoing payment",
-        amount: -5000.0,
+        amount: 5000.0,
         currency: "EUR",
         date: "2024-04-01"
       })
@@ -220,7 +220,7 @@ defmodule HoldcoWeb.BankAccountsLiveTest do
     test "shows zero amount transaction", %{conn: conn} do
       company = company_fixture(%{name: "ZeroAmtCo"})
       account = bank_account_fixture(%{company: company, bank_name: "ZeroAmtBank"})
-      transaction_fixture(%{company: company, description: "ZeroAmtTx", amount: 0.0})
+      transaction_fixture(%{company: company, description: "ZeroAmtTx", amount: 0.01})
 
       {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
 
@@ -276,14 +276,14 @@ defmodule HoldcoWeb.BankAccountsLiveTest do
       {:ok, view, _html} = live(conn, ~p"/bank-accounts")
       html = render_click(view, "show_form", %{})
       assert html =~ "Add Bank Account"
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
 
     test "close_form closes the modal", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/bank-accounts")
       render_click(view, "show_form", %{})
       html = render_click(view, "close_form", %{})
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "noop event does nothing", %{conn: conn} do

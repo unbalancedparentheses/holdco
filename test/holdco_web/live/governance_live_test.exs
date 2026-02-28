@@ -121,7 +121,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       # Switch tab — form should close
       html = view |> element(~s(button[phx-value-tab="cap_table"])) |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -143,7 +143,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
 
       html = view |> element("button", "Add") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Board Meeting"
     end
 
@@ -157,7 +157,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       # Close it
       html = view |> element("button", "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "non-editor does not see the Add button", %{conn: conn} do
@@ -178,7 +178,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       # The modal div has phx-click="noop"; triggering it should keep modal open
       html = render_click(view, "noop", %{})
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
   end
 
@@ -280,7 +280,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "Meeting added"
       assert html =~ "2025-01-15"
       assert html =~ "special"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "editor can delete a board meeting", %{conn: conn, user: user} do
@@ -315,7 +315,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
         |> render_click()
 
       assert html =~ "Edit Board Meeting"
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
 
       # Submit update form
       html =
@@ -333,7 +333,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "Meeting updated"
       assert html =~ "2024-04-15"
       assert html =~ "annual"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "non-editor cannot save a meeting", %{conn: conn} do
@@ -394,7 +394,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "Entry added"
       assert html =~ "Andreessen Horowitz"
       assert html =~ "Series C"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "editor can delete a cap table entry", %{conn: conn, user: user} do
@@ -524,7 +524,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "Resolution added"
       assert html =~ "Approve stock split"
       assert html =~ "special"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "editor can delete a resolution", %{conn: conn, user: user} do
@@ -729,7 +729,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "Deal added"
       assert html =~ "MegaCorp"
       assert html =~ "merger"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "editor can delete a deal", %{conn: conn, user: user} do
@@ -804,7 +804,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
 
       assert html =~ "Equity plan added"
       assert html =~ "2025 Stock Option Plan"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "editor can delete an equity plan", %{conn: conn, user: user} do
@@ -880,7 +880,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "Joint venture added"
       assert html =~ "Asia JV"
       assert html =~ "Partner Corp"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "editor can delete a joint venture", %{conn: conn, user: user} do
@@ -957,7 +957,7 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "Power of attorney added"
       assert html =~ "CEO Smith"
       assert html =~ "CFO Jones"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "editor can delete a power of attorney", %{conn: conn, user: user} do

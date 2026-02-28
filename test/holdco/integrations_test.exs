@@ -112,47 +112,56 @@ defmodule Holdco.IntegrationsTest do
   end
 
   describe "oauth integrations" do
-    test "upsert_integration/2 creates new" do
-      {:ok, i} = Integrations.upsert_integration("test_provider", %{"status" => "connected"})
+    test "upsert_integration/3 creates new" do
+      company = company_fixture()
+      {:ok, i} = Integrations.upsert_integration("test_provider", company.id, %{"status" => "connected"})
       assert i.provider == "test_provider"
+      assert i.company_id == company.id
     end
 
-    test "upsert_integration/2 updates existing" do
-      {:ok, i1} = Integrations.upsert_integration("update_provider", %{"status" => "connected"})
-      {:ok, i2} = Integrations.upsert_integration("update_provider", %{"status" => "syncing"})
+    test "upsert_integration/3 updates existing" do
+      company = company_fixture()
+      {:ok, i1} = Integrations.upsert_integration("update_provider", company.id, %{"status" => "connected"})
+      {:ok, i2} = Integrations.upsert_integration("update_provider", company.id, %{"status" => "syncing"})
       assert i2.id == i1.id
       assert i2.status == "syncing"
     end
 
-    test "get_integration/1" do
-      Integrations.upsert_integration("get_test", %{"status" => "connected"})
-      assert Integrations.get_integration("get_test") != nil
-      assert Integrations.get_integration("nonexistent") == nil
+    test "get_integration/2" do
+      company = company_fixture()
+      Integrations.upsert_integration("get_test", company.id, %{"status" => "connected"})
+      assert Integrations.get_integration("get_test", company.id) != nil
+      assert Integrations.get_integration("nonexistent", company.id) == nil
     end
 
-    test "disconnect_integration/1" do
-      Integrations.upsert_integration("disconnect_test", %{"status" => "connected", "access_token" => "tok"})
-      {:ok, i} = Integrations.disconnect_integration("disconnect_test")
+    test "disconnect_integration/2" do
+      company = company_fixture()
+      Integrations.upsert_integration("disconnect_test", company.id, %{"status" => "connected", "access_token" => "tok"})
+      {:ok, i} = Integrations.disconnect_integration("disconnect_test", company.id)
       assert i.status == "disconnected"
       assert i.access_token == nil
     end
 
-    test "disconnect_integration/1 for nonexistent" do
-      {:ok, nil} = Integrations.disconnect_integration("no_such_provider")
+    test "disconnect_integration/2 for nonexistent" do
+      company = company_fixture()
+      {:ok, nil} = Integrations.disconnect_integration("no_such_provider", company.id)
     end
 
-    test "update_last_synced/1" do
-      Integrations.upsert_integration("sync_test", %{"status" => "connected"})
-      {:ok, i} = Integrations.update_last_synced("sync_test")
+    test "update_last_synced/2" do
+      company = company_fixture()
+      Integrations.upsert_integration("sync_test", company.id, %{"status" => "connected"})
+      {:ok, i} = Integrations.update_last_synced("sync_test", company.id)
       assert i.last_synced_at != nil
     end
 
-    test "update_last_synced/1 for nonexistent" do
-      {:error, :not_found} = Integrations.update_last_synced("missing")
+    test "update_last_synced/2 for nonexistent" do
+      company = company_fixture()
+      {:error, :not_found} = Integrations.update_last_synced("missing", company.id)
     end
 
     test "list_integrations/0" do
-      Integrations.upsert_integration("list_test", %{"status" => "connected"})
+      company = company_fixture()
+      Integrations.upsert_integration("list_test", company.id, %{"status" => "connected"})
       assert length(Integrations.list_integrations()) > 0
     end
   end

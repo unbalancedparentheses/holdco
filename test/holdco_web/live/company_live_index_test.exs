@@ -318,8 +318,8 @@ defmodule HoldcoWeb.CompanyLiveIndexTest do
       {:ok, _view, html} = live(conn, ~p"/companies/new")
 
       assert html =~ "New Company"
-      assert html =~ "modal-overlay"
-      assert html =~ "modal"
+      assert html =~ "dialog-overlay"
+      assert html =~ "dialog"
     end
 
     test "new company form has required fields", %{conn: conn, user: user} do

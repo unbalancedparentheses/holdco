@@ -280,7 +280,7 @@ defmodule HoldcoWeb.Layouts do
       </div>
     </footer>
 
-    <%= if @current_scope do %>
+    <%= if @current_scope && assigns[:socket] do %>
       {live_render(@socket, HoldcoWeb.AiChatLive, id: "ai-chat-drawer", sticky: true)}
     <% end %>
     """

@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.SegmentLive.Index do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Finance, Corporate}
+  alias Holdco.{Finance, Corporate, Money}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -153,14 +153,14 @@ defmodule HoldcoWeb.SegmentLive.Index do
     revenue =
       trial_balance
       |> Enum.filter(&(&1.account_type in ["revenue", "income"]))
-      |> Enum.reduce(0.0, &((&1.total_credit - &1.total_debit) + &2))
+      |> Enum.reduce(Decimal.new(0), &Money.add(Money.sub(&1.total_credit, &1.total_debit), &2))
 
     expenses =
       trial_balance
       |> Enum.filter(&(&1.account_type == "expense"))
-      |> Enum.reduce(0.0, &((&1.total_debit - &1.total_credit) + &2))
+      |> Enum.reduce(Decimal.new(0), &Money.add(Money.sub(&1.total_debit, &1.total_credit), &2))
 
-    income = revenue - expenses
+    income = Money.sub(revenue, expenses)
     {revenue, expenses, income}
   end
 
@@ -379,7 +379,7 @@ defmodule HoldcoWeb.SegmentLive.Index do
                     <td class="td-name">{a.name}</td>
                     <td class="td-num">{format_number(a.total_debit)}</td>
                     <td class="td-num">{format_number(a.total_credit)}</td>
-                    <td class="td-num num-positive">{format_number(a.total_credit - a.total_debit)}</td>
+                    <td class="td-num num-positive">{format_number(Money.sub(a.total_credit, a.total_debit))}</td>
                   </tr>
                 <% end %>
               </tbody>
@@ -414,7 +414,7 @@ defmodule HoldcoWeb.SegmentLive.Index do
                     <td class="td-name">{a.name}</td>
                     <td class="td-num">{format_number(a.total_debit)}</td>
                     <td class="td-num">{format_number(a.total_credit)}</td>
-                    <td class="td-num num-negative">{format_number(a.total_debit - a.total_credit)}</td>
+                    <td class="td-num num-negative">{format_number(Money.sub(a.total_debit, a.total_credit))}</td>
                   </tr>
                 <% end %>
               </tbody>

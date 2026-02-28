@@ -107,9 +107,9 @@ defmodule HoldcoWeb.CashForecastLiveIndexTest do
     test "detects recurring expenses from 3+ similar transactions", %{conn: conn} do
       company = company_fixture()
       # Create 3 debit transactions with same description but negative amounts
-      transaction_fixture(%{company: company, description: "Office Lease", amount: -3000.0, transaction_type: "debit", date: "2024-01-15"})
-      transaction_fixture(%{company: company, description: "Office Lease", amount: -3000.0, transaction_type: "debit", date: "2024-02-15"})
-      transaction_fixture(%{company: company, description: "Office Lease", amount: -3000.0, transaction_type: "debit", date: "2024-03-15"})
+      transaction_fixture(%{company: company, description: "Office Lease", amount: 3000.0, transaction_type: "debit", date: "2024-01-15"})
+      transaction_fixture(%{company: company, description: "Office Lease", amount: 3000.0, transaction_type: "debit", date: "2024-02-15"})
+      transaction_fixture(%{company: company, description: "Office Lease", amount: 3000.0, transaction_type: "debit", date: "2024-03-15"})
 
       {:ok, _live, html} = live(conn, ~p"/cash-forecast")
       assert html =~ "Office Lease"

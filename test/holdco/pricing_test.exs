@@ -157,9 +157,6 @@ defmodule Holdco.PricingTest do
   end
 
   describe "list_tracked_tickers/0" do
-    # NOTE: list_tracked_tickers uses DISTINCT which is not fully supported
-    # by SQLite3 when combined with ORDER BY on a different expression.
-    @tag :skip
     test "returns distinct tickers from holdings" do
       company = company_fixture()
       holding_fixture(%{company: company, asset: "Apple", ticker: "AAPL_TRK"})

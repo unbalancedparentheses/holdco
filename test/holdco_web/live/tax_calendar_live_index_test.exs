@@ -114,7 +114,7 @@ defmodule HoldcoWeb.TaxCalendarLiveIndexTest do
 
       html = view |> element("button", "Add Deadline") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Tax Deadline"
       assert html =~ ~s(phx-submit="save")
       assert html =~ ~s(name="tax_deadline[jurisdiction]")
@@ -128,16 +128,16 @@ defmodule HoldcoWeb.TaxCalendarLiveIndexTest do
       view |> element("button", "Add Deadline") |> render_click()
       html = view |> element(~s(button[phx-click="close_form"]), "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "close_form via overlay click", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/tax-calendar")
 
       view |> element("button", "Add Deadline") |> render_click()
-      html = view |> element(".modal-overlay") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -166,7 +166,7 @@ defmodule HoldcoWeb.TaxCalendarLiveIndexTest do
       assert html =~ "Deadline added"
       assert html =~ "New York"
       assert html =~ "Franchise tax"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "viewer cannot save a tax deadline", %{conn: conn} do

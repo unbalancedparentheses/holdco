@@ -62,7 +62,7 @@ defmodule HoldcoWeb.SettingsLiveTest do
       view |> element(~s(button[phx-value-tab="settings"])) |> render_click()
       view |> element("button", "Add") |> render_click()
       html = view |> element(~s(button[phx-value-tab="categories"])) |> render_click()
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -74,7 +74,7 @@ defmodule HoldcoWeb.SettingsLiveTest do
       assert html =~ "Add Setting"
 
       html = view |> element("button", "Add Setting") |> render_click()
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add/Update Setting"
 
       html =
@@ -153,7 +153,7 @@ defmodule HoldcoWeb.SettingsLiveTest do
       html =
         view
         |> form(~s(form[phx-submit="save_webhook"]), %{
-          "webhook" => %{"url" => "https://new.example.com/hook", "events" => "[]"}
+          "webhook" => %{"url" => "https://new.example.com/hook"}
         })
         |> render_submit()
 
@@ -437,10 +437,10 @@ defmodule HoldcoWeb.SettingsLiveTest do
       {:ok, view, _html} = live(conn, ~p"/settings")
 
       html = render_click(view, "show_form", %{})
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
 
       html = render_click(view, "close_form", %{})
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 end

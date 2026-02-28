@@ -36,12 +36,12 @@ defmodule HoldcoWeb.DocumentsLiveTest do
     test "opens the add document modal", %{conn: conn} do
       {:ok, view, html} = live(conn, ~p"/documents")
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
 
       html = view |> element("button", "Add Document") |> render_click()
 
-      assert html =~ "modal-overlay"
-      assert html =~ "modal-header"
+      assert html =~ "dialog-overlay"
+      assert html =~ "dialog-header"
       assert html =~ "Add Document"
       assert html =~ ~s(phx-submit="save")
     end
@@ -66,7 +66,7 @@ defmodule HoldcoWeb.DocumentsLiveTest do
 
       html = render_hook(view, "show_form", %{})
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Document"
     end
   end
@@ -83,16 +83,16 @@ defmodule HoldcoWeb.DocumentsLiveTest do
       view |> element("button", "Add Document") |> render_click()
       html = view |> element("button", "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "clicking modal overlay closes the form", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/documents")
 
       view |> element("button", "Add Document") |> render_click()
-      html = view |> element(".modal-overlay") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "close_form via hook removes modal", %{conn: conn} do
@@ -101,7 +101,7 @@ defmodule HoldcoWeb.DocumentsLiveTest do
       render_hook(view, "show_form", %{})
       html = render_hook(view, "close_form", %{})
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -124,7 +124,7 @@ defmodule HoldcoWeb.DocumentsLiveTest do
         |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
         |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Edit Document"
       assert html =~ ~s(phx-submit="update")
       assert html =~ "Editable Doc"
@@ -188,7 +188,7 @@ defmodule HoldcoWeb.DocumentsLiveTest do
         |> render_submit()
 
       assert html =~ "Document updated"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
       assert html =~ "New Name"
     end
 
@@ -488,7 +488,7 @@ defmodule HoldcoWeb.DocumentsLiveTest do
         |> render_submit()
 
       assert html =~ "Document added"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
       assert html =~ "Saved Contract"
     end
 

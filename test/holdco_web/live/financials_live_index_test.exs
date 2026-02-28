@@ -98,7 +98,7 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
 
       html = view |> element("button", "Add Period") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Financial Period"
       assert html =~ ~s(phx-submit="save")
       assert html =~ ~s(name="financial[period]")
@@ -118,7 +118,7 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
 
       html = view |> element("button", "Add Transfer") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Intercompany Transfer"
       assert html =~ ~s(phx-submit="save_transfer")
     end
@@ -208,7 +208,7 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
 
       assert html =~ "Financial record added"
       assert html =~ "2025-Q3"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "viewer cannot save a financial record", %{conn: conn} do
@@ -271,7 +271,7 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
         |> render_submit()
 
       assert html =~ "Transfer created"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "viewer cannot save a transfer", %{conn: conn} do

@@ -85,7 +85,7 @@ defmodule Holdco.Scenarios do
   defp calculate_item_amount(item, month) do
     base_amount = Money.to_float(Money.to_decimal(item.amount))
     growth_rate = Money.to_float(Money.to_decimal(item.growth_rate))
-    probability = Money.to_float(Money.to_decimal(item.probability))
+    probability = Money.to_float(Money.to_decimal(item.probability || 1.0))
 
     # Apply recurrence filter
     active =

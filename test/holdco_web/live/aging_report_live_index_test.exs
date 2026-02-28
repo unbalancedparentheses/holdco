@@ -79,7 +79,7 @@ defmodule HoldcoWeb.AgingReportLiveIndexTest do
       transaction_fixture(%{
         company: company,
         transaction_type: "debit",
-        amount: -3000.0,
+        amount: 3000.0,
         date: Date.utc_today() |> Date.to_iso8601(),
         description: "Supplier invoice",
         counterparty: "Supplier XYZ"
@@ -232,7 +232,8 @@ defmodule HoldcoWeb.AgingReportLiveIndexTest do
 
       transaction_fixture(%{
         company: company,
-        amount: -8000.0,
+        transaction_type: "debit",
+        amount: 8000.0,
         date: Date.utc_today() |> Date.add(-15) |> Date.to_iso8601(),
         description: "Recent payable",
         counterparty: "Vendor Z",
@@ -265,7 +266,7 @@ defmodule HoldcoWeb.AgingReportLiveIndexTest do
 
       transaction_fixture(%{
         company: company,
-        amount: -2500.0,
+        amount: 2500.0,
         date: Date.utc_today() |> Date.to_iso8601(),
         description: "AP chart txn"
       })

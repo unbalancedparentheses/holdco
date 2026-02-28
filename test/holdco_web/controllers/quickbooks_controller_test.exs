@@ -12,7 +12,7 @@ defmodule HoldcoWeb.QuickbooksControllerTest do
         environment: :sandbox
       )
 
-      conn = get(conn, ~p"/auth/quickbooks/connect")
+      conn = get(conn, ~p"/auth/quickbooks/connect", %{"company_id" => "1"})
       assert redirected_to(conn) =~ "https://appcenter.intuit.com/connect/oauth2"
     end
 
@@ -24,7 +24,7 @@ defmodule HoldcoWeb.QuickbooksControllerTest do
         environment: :sandbox
       )
 
-      conn = get(conn, ~p"/auth/quickbooks/connect")
+      conn = get(conn, ~p"/auth/quickbooks/connect", %{"company_id" => "1"})
       location = redirected_to(conn)
       assert location =~ "client_id=test_client_id"
       assert location =~ "response_type=code"
@@ -83,13 +83,19 @@ defmodule HoldcoWeb.QuickbooksControllerTest do
         environment: :sandbox
       )
 
+      # Set the OAuth state in session so the CSRF check passes
+      state = "test_state_value"
+
       conn =
-        get(conn, ~p"/auth/quickbooks/callback", %{
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{qbo_oauth_state: state, qbo_company_id: "1"})
+        |> get(~p"/auth/quickbooks/callback", %{
           "code" => "invalid_code",
-          "realmId" => "99999"
+          "realmId" => "99999",
+          "state" => state
         })
 
-      assert redirected_to(conn) == ~p"/accounts/integrations"
+      assert redirected_to(conn) =~ "/companies/1"
       flash = Phoenix.Flash.get(conn.assigns.flash, :error)
       # The error flash should be set (exchange will fail)
       assert flash =~ "Failed to connect QuickBooks"

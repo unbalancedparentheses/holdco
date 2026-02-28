@@ -389,8 +389,8 @@ defmodule HoldcoWeb.ReportControllerTest do
 
     test "financial report format_usd with negative amount", %{conn: conn} do
       company = company_fixture()
-      # Create a financial with negative revenue to trigger negative formatting
-      financial_fixture(%{company: company, period: "NegPeriod", revenue: -5000.0, expenses: 0.0})
+      # Create a financial with expenses > revenue to trigger negative net formatting
+      financial_fixture(%{company: company, period: "NegPeriod", revenue: 0.0, expenses: 5000.0})
 
       conn = get(conn, ~p"/reports/financial")
       body = response(conn, 200)

@@ -144,7 +144,7 @@ defmodule HoldcoWeb.AccountingJournalTest do
 
       html = view |> element("button", "New Journal Entry") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "New Journal Entry"
       assert html =~ ~s(phx-submit="save")
       assert html =~ ~s(name="entry[date]")
@@ -171,7 +171,7 @@ defmodule HoldcoWeb.AccountingJournalTest do
       view |> element("button", "New Journal Entry") |> render_click()
       html = view |> element(~s(button[phx-click="close_form"]), "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -224,7 +224,7 @@ defmodule HoldcoWeb.AccountingJournalTest do
 
       assert html =~ "Journal entry created"
       assert html =~ "Test balanced entry"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "shows error when debits do not equal credits", %{conn: conn, user: user} do
@@ -348,9 +348,9 @@ defmodule HoldcoWeb.AccountingJournalTest do
       {:ok, view, _html} = live(conn, ~p"/accounts/journal")
 
       view |> element("button", "New Journal Entry") |> render_click()
-      html = view |> element(".modal-overlay") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 

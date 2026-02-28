@@ -24,7 +24,7 @@ defmodule Holdco.Repo.Migrations.AlterPhase1Tables do
 
     # Add estimated_amount to tax_deadlines
     alter table(:tax_deadlines) do
-      add :estimated_amount, :float
+      add :estimated_amount, :decimal
     end
   end
 end

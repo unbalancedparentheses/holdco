@@ -12,10 +12,11 @@ config :bcrypt_elixir, :log_rounds, 1
 # Unit tests: sandbox pool + no server.
 if System.get_env("E2E") do
   config :holdco, Holdco.Repo,
-    database: Path.expand("../holdco_test.db", __DIR__),
-    pool_size: 5,
-    busy_timeout: 15000,
-    journal_mode: :wal
+    username: "postgres",
+    password: "postgres",
+    hostname: "localhost",
+    database: "holdco_test#{System.get_env("MIX_TEST_PARTITION")}",
+    pool_size: 10
 
   config :holdco, HoldcoWeb.Endpoint,
     http: [ip: {127, 0, 0, 1}, port: 4002],
@@ -23,11 +24,12 @@ if System.get_env("E2E") do
     server: true
 else
   config :holdco, Holdco.Repo,
-    database: Path.expand("../holdco_test.db", __DIR__),
-    pool_size: 1,
+    username: "postgres",
+    password: "postgres",
+    hostname: "localhost",
+    database: "holdco_test#{System.get_env("MIX_TEST_PARTITION")}",
     pool: Ecto.Adapters.SQL.Sandbox,
-    busy_timeout: 15000,
-    journal_mode: :wal
+    pool_size: 10
 
   config :holdco, HoldcoWeb.Endpoint,
     http: [ip: {127, 0, 0, 1}, port: 4002],

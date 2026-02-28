@@ -108,7 +108,7 @@ defmodule HoldcoWeb.AccountingLiveTest do
 
       html = view |> element("button", "New Journal Entry") |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "New Journal Entry"
       assert html =~ ~s(phx-submit="save")
     end
@@ -119,7 +119,7 @@ defmodule HoldcoWeb.AccountingLiveTest do
       view |> element("button", "New Journal Entry") |> render_click()
       html = view |> element("button", "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "noop event keeps modal open", %{conn: conn} do
@@ -128,7 +128,7 @@ defmodule HoldcoWeb.AccountingLiveTest do
       view |> element("button", "New Journal Entry") |> render_click()
       html = render_click(view, "noop", %{})
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
   end
 
@@ -248,7 +248,7 @@ defmodule HoldcoWeb.AccountingLiveTest do
         |> render_submit()
 
       assert html =~ "Journal entry created"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
       assert html =~ "New sale"
     end
 
@@ -647,18 +647,18 @@ defmodule HoldcoWeb.AccountingLiveTest do
       {:ok, view, _html} = live(conn, ~p"/accounts/chart")
 
       html = view |> element("button", "Add Account") |> render_click()
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Add Account"
 
       html = render_click(view, "close_form", %{})
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "noop event on chart page", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/accounts/chart")
       view |> element("button", "Add Account") |> render_click()
       html = render_click(view, "noop", %{})
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
     end
   end
 

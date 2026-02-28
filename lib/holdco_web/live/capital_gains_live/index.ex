@@ -24,7 +24,9 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
        page_title: "Capital Gains",
        method: "fifo",
        results: results,
-       summary: summary
+       summary: summary,
+       short_term_rate: @short_term_rate,
+       long_term_rate: @long_term_rate
      )}
   end
 
@@ -73,8 +75,8 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
       </div>
       <div class="metric-cell">
         <div class="metric-label">Total Gains</div>
-        <div class={"metric-value #{gain_class(@summary.total_short_term + @summary.total_long_term)}"}>
-          ${format_number(@summary.total_short_term + @summary.total_long_term)}
+        <div class={"metric-value #{gain_class(Money.add(@summary.total_short_term, @summary.total_long_term))}"}>
+          ${format_number(Money.add(@summary.total_short_term, @summary.total_long_term))}
         </div>
       </div>
       <div class="metric-cell">
@@ -166,13 +168,13 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
               <td class="td-name">Short-Term Realized</td>
               <td class="td-num">{format_number(sum_field(@results, :short_term_realized))}</td>
               <td class="td-num">37%</td>
-              <td class="td-num">{format_number(max(sum_field(@results, :short_term_realized), 0.0) * 0.37)}</td>
+              <td class="td-num">{format_number(Money.mult(Money.max(sum_field(@results, :short_term_realized), 0), @short_term_rate))}</td>
             </tr>
             <tr>
               <td class="td-name">Long-Term Realized</td>
               <td class="td-num">{format_number(sum_field(@results, :long_term_realized))}</td>
               <td class="td-num">20%</td>
-              <td class="td-num">{format_number(max(sum_field(@results, :long_term_realized), 0.0) * 0.20)}</td>
+              <td class="td-num">{format_number(Money.mult(Money.max(sum_field(@results, :long_term_realized), 0), @long_term_rate))}</td>
             </tr>
             <tr style="font-weight: 600; border-top: 2px solid var(--rule);">
               <td class="td-name">Total Estimated Tax</td>

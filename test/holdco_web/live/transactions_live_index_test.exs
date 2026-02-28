@@ -144,8 +144,8 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
 
       html = view |> element("button", "Add Transaction") |> render_click()
 
-      assert html =~ "modal-overlay"
-      assert html =~ "modal-header"
+      assert html =~ "dialog-overlay"
+      assert html =~ "dialog-header"
       assert html =~ "Add Transaction"
       assert html =~ ~s(phx-submit="save")
       assert html =~ ~s(name="transaction[company_id]")
@@ -164,16 +164,16 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
       view |> element("button", "Add Transaction") |> render_click()
       html = view |> element("button", "Cancel") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "clicking modal overlay closes the form", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/transactions")
 
       view |> element("button", "Add Transaction") |> render_click()
-      html = view |> element(".modal-overlay") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "submitting the form creates a transaction", %{conn: conn} do
@@ -198,7 +198,7 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
         |> render_submit()
 
       assert html =~ "Transaction added"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
 
     test "deleting a transaction removes it from the list", %{conn: conn} do
@@ -275,7 +275,7 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
     test "inflows and outflows are computed from transactions", %{conn: conn} do
       company = company_fixture()
       transaction_fixture(%{company: company, amount: 1000.0})
-      transaction_fixture(%{company: company, amount: -400.0})
+      transaction_fixture(%{company: company, amount: 400.0, transaction_type: "debit"})
 
       {:ok, _view, html} = live(conn, ~p"/transactions")
 
@@ -327,7 +327,7 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
       co1 = company_fixture(%{name: "MetricCo1"})
       co2 = company_fixture(%{name: "MetricCo2"})
       transaction_fixture(%{company: co1, amount: 2000.0, description: "MetricTx1"})
-      transaction_fixture(%{company: co2, amount: -500.0, description: "MetricTx2"})
+      transaction_fixture(%{company: co2, amount: 500.0, description: "MetricTx2", transaction_type: "debit"})
 
       {:ok, view, _html} = live(conn, ~p"/transactions")
 
@@ -369,7 +369,7 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
         |> element(~s(button[phx-click="edit"][phx-value-id="#{tx.id}"]))
         |> render_click()
 
-      assert html =~ "modal-overlay"
+      assert html =~ "dialog-overlay"
       assert html =~ "Edit Transaction"
       assert html =~ ~s(phx-submit="update")
       assert html =~ "Save Changes"
@@ -409,7 +409,7 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
         |> render_submit()
 
       assert html =~ "Transaction updated"
-      refute html =~ "modal-overlay"
+      refute html =~ "dialog-overlay"
     end
   end
 

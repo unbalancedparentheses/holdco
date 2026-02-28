@@ -84,7 +84,7 @@ defmodule HoldcoWeb.FinancialsLiveTest do
 
       # Open the modal so the noop target (modal overlay) is present
       view |> element(~s(button[phx-click="show_form"])) |> render_click()
-      html_after = view |> element(~s(div.modal[phx-click="noop"])) |> render_click()
+      html_after = view |> element(~s(div.dialog-panel[phx-click="noop"])) |> render_click()
 
       # Modal should still be open after noop
       assert html_after =~ "Add Financial Period"
@@ -436,8 +436,8 @@ defmodule HoldcoWeb.FinancialsLiveTest do
 
       assert html =~ "Edit Intercompany Transfer"
       assert html =~ ~s(phx-submit="update_transfer")
-      # Phoenix HTML renders large floats in scientific notation
-      assert html =~ "3.0e4"
+      # Decimal values render without scientific notation
+      assert html =~ "30000"
       assert html =~ "2025-04-01"
     end
 

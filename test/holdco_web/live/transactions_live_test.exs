@@ -58,7 +58,7 @@ defmodule HoldcoWeb.TransactionsLiveTest do
           company: company,
           transaction_type: "debit",
           description: "Office rent payment",
-          amount: -2500.0,
+          amount: 2500.0,
           currency: "GBP",
           date: "2024-06-15",
           counterparty: "Landlord Ltd"
@@ -135,7 +135,7 @@ defmodule HoldcoWeb.TransactionsLiveTest do
     test "shows negative amount with negative styling", %{conn: conn} do
       transaction =
         transaction_fixture(%{
-          amount: -1500.0,
+          amount: 1500.0,
           currency: "USD",
           transaction_type: "debit",
           description: "Negative amount txn"

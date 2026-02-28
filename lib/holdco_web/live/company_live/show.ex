@@ -2349,8 +2349,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
                 <td class="td-mono">{f.period}</td>
                 <td class="td-num num-positive">{f.revenue}</td>
                 <td class="td-num num-negative">{f.expenses}</td>
-                <td class={"td-num #{if (f.revenue || 0) - (f.expenses || 0) >= 0, do: "num-positive", else: "num-negative"}"}>
-                  {(f.revenue || 0) - (f.expenses || 0)}
+                <td class={"td-num #{if Money.gte?(Money.sub(f.revenue, f.expenses), 0), do: "num-positive", else: "num-negative"}"}>
+                  {Money.sub(f.revenue, f.expenses)}
                 </td>
                 <td>{f.currency}</td>
                 <td>
@@ -3986,7 +3986,8 @@ defmodule HoldcoWeb.CompanyLive.Show do
     end
   end
   defp parse_float(val) when is_float(val), do: val
-  defp parse_float(val) when is_integer(val), do: val / 1
+  defp parse_float(val) when is_integer(val), do: val * 1.0
+  defp parse_float(%Decimal{} = d), do: Decimal.to_float(d)
 
   defp format_number(%Decimal{} = n), do: n |> Decimal.round(2) |> Decimal.to_string()
   defp format_number(n) when is_float(n), do: Money.format(n, 2)

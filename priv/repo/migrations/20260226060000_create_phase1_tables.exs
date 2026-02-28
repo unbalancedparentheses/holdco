@@ -6,9 +6,9 @@ defmodule Holdco.Repo.Migrations.CreatePhase1Tables do
     create table(:fixed_assets) do
       add :name, :string, null: false
       add :purchase_date, :string
-      add :purchase_price, :float
+      add :purchase_price, :decimal
       add :useful_life_months, :integer
-      add :salvage_value, :float, default: 0.0
+      add :salvage_value, :decimal, default: 0.0
       add :depreciation_method, :string, default: "straight_line"
       add :currency, :string, default: "USD"
       add :notes, :text
@@ -27,8 +27,8 @@ defmodule Holdco.Repo.Migrations.CreatePhase1Tables do
       add :asset_description, :string
       add :start_date, :string
       add :end_date, :string
-      add :monthly_payment, :float
-      add :discount_rate, :float, default: 0.05
+      add :monthly_payment, :decimal
+      add :discount_rate, :decimal, default: 0.05
       add :lease_type, :string, default: "operating"
       add :currency, :string, default: "USD"
       add :notes, :text
@@ -43,8 +43,8 @@ defmodule Holdco.Repo.Migrations.CreatePhase1Tables do
     create table(:kpis) do
       add :name, :string, null: false
       add :metric_type, :string, default: "currency"
-      add :target_value, :float
-      add :threshold_value, :float
+      add :target_value, :decimal
+      add :threshold_value, :decimal
       add :unit, :string
       add :company_id, references(:companies, on_delete: :delete_all)
 
@@ -55,7 +55,7 @@ defmodule Holdco.Repo.Migrations.CreatePhase1Tables do
 
     # KPI Snapshots for historical tracking
     create table(:kpi_snapshots) do
-      add :current_value, :float
+      add :current_value, :decimal
       add :trend, :string
       add :date, :string
       add :kpi_id, references(:kpis, on_delete: :delete_all), null: false

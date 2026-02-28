@@ -73,9 +73,9 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-# Oban background jobs (SQLite requires Lite engine and PG notifier)
+# Oban background jobs
 config :holdco, Oban,
-  engine: Oban.Engines.Lite,
+  engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.PG,
   repo: Holdco.Repo,
   queues: [default: 10, prices: 5, snapshots: 2],

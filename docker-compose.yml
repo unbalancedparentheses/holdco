@@ -1,12 +1,27 @@
 services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: holdco_prod
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   holdco:
     build: .
     ports:
       - "4000:4000"
-    volumes:
-      - holdco_data:/data
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      DATABASE_PATH: /data/holdco.db
+      DATABASE_URL: ecto://postgres:postgres@db/holdco_prod
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-please-change-this-to-a-real-secret-key-base-of-at-least-64-characters}
       PHX_HOST: ${PHX_HOST:-localhost}
       PHX_SERVER: "true"
@@ -18,4 +33,4 @@ services:
       start_period: 10s
 
 volumes:
-  holdco_data:
+  pgdata:

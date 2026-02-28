@@ -120,7 +120,7 @@ defmodule Holdco.Workers.WorkersTest do
 
       updated_config = Holdco.Platform.get_backup_config!(bc.id)
       # On success, last_backup_at should be set
-      # (It may or may not succeed depending on sqlite3 availability)
+      # (It may or may not succeed depending on pg_dump availability)
       assert is_struct(updated_config)
     end
   end

@@ -1,7 +1,7 @@
 defmodule Holdco.Workers.BackupWorker do
   @moduledoc """
-  Oban worker that performs SQLite database backups.
-  Reads active BackupConfigs and runs sqlite3 .backup for each.
+  Oban worker that performs PostgreSQL database backups.
+  Reads active BackupConfigs and runs pg_dump for each.
   """
   use Oban.Worker, queue: :default, max_attempts: 3
 
@@ -10,11 +10,11 @@ defmodule Holdco.Workers.BackupWorker do
   @impl Oban.Worker
   def perform(_job) do
     configs = Platform.list_backup_configs()
-    db_path = Application.get_env(:holdco, Holdco.Repo)[:database]
+    repo_config = Application.get_env(:holdco, Holdco.Repo)
 
     for config <- configs, config.is_active do
       backup_log = create_log(config.id)
-      run_backup(db_path, config, backup_log)
+      run_backup(repo_config, config, backup_log)
     end
 
     :ok
@@ -25,13 +25,15 @@ defmodule Holdco.Workers.BackupWorker do
     log
   end
 
-  defp run_backup(db_path, config, log) do
+  defp run_backup(repo_config, config, log) do
     timestamp = DateTime.utc_now() |> Calendar.strftime("%Y%m%d_%H%M%S")
-    dest = Path.join(config.destination_path, "holdco_backup_#{timestamp}.db")
+    dest = Path.join(config.destination_path, "holdco_backup_#{timestamp}.dump")
 
     File.mkdir_p!(config.destination_path)
 
-    case System.cmd("sqlite3", [db_path, ".backup '#{dest}'"], stderr_to_stdout: true) do
+    database_url = repo_config[:url] || build_database_url(repo_config)
+
+    case System.cmd("pg_dump", [database_url, "-f", dest, "-Fc"], stderr_to_stdout: true) do
       {_output, 0} ->
         file_size = File.stat!(dest).size
 
@@ -85,6 +87,16 @@ defmodule Holdco.Workers.BackupWorker do
         error_message: Exception.message(e),
         completed_at: DateTime.utc_now() |> DateTime.truncate(:second)
       })
+  end
+
+  defp build_database_url(repo_config) do
+    username = repo_config[:username] || "postgres"
+    password = repo_config[:password] || "postgres"
+    hostname = repo_config[:hostname] || "localhost"
+    database = repo_config[:database]
+    port = repo_config[:port] || 5432
+
+    "ecto://#{username}:#{password}@#{hostname}:#{port}/#{database}"
   end
 
   defp cleanup_old_backups(config) do

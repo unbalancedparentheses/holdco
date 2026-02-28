@@ -9,7 +9,7 @@ ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
 FROM ${BUILDER_IMAGE} AS builder
 
 RUN apt-get update -y && \
-    apt-get install -y build-essential git curl libsqlite3-dev nodejs npm && \
+    apt-get install -y build-essential git curl libpq-dev nodejs npm && \
     apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 WORKDIR /app
@@ -38,7 +38,7 @@ RUN mix release
 FROM ${RUNNER_IMAGE}
 
 RUN apt-get update -y && \
-    apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates libsqlite3-0 curl && \
+    apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates libpq5 curl && \
     apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
@@ -50,9 +50,7 @@ ENV LC_ALL en_US.UTF-8
 WORKDIR /app
 
 RUN useradd --system --create-home --shell /bin/false holdco
-RUN mkdir -p /data && chown holdco:holdco /data
 
-ENV DATABASE_PATH=/data/holdco.db
 ENV PHX_SERVER=true
 
 COPY --from=builder --chown=holdco:holdco /app/_build/prod/rel/holdco ./

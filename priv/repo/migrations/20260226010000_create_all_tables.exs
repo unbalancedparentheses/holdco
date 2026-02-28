@@ -142,7 +142,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :name, :string, null: false
       add :nationality, :string
-      add :ownership_pct, :float, default: 0.0
+      add :ownership_pct, :decimal, default: 0.0
       add :control_type, :string, default: "direct"
       add :verified, :boolean, default: false
       add :verified_date, :string
@@ -172,7 +172,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :date, :string, null: false
       add :from_owner, :string, null: false
       add :to_owner, :string, null: false
-      add :ownership_pct, :float, default: 0.0
+      add :ownership_pct, :decimal, default: 0.0
       add :transaction_type, :string, default: "transfer"
       add :notes, :text
       timestamps()
@@ -236,9 +236,9 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :round_name, :string, null: false
       add :investor, :string, null: false
       add :instrument_type, :string, default: "equity"
-      add :shares, :float, default: 0.0
-      add :price_per_share, :float
-      add :amount_invested, :float, default: 0.0
+      add :shares, :decimal, default: 0.0
+      add :price_per_share, :decimal
+      add :amount_invested, :decimal, default: 0.0
       add :currency, :string, default: "USD"
       add :date, :string
       add :notes, :text
@@ -293,7 +293,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :recipient, :string, null: false
       add :grant_type, :string, default: "options"
       add :quantity, :integer, default: 0
-      add :strike_price, :float
+      add :strike_price, :decimal
       add :grant_date, :string
       add :vesting_start, :string
       add :cliff_months, :integer, default: 12
@@ -310,7 +310,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :deal_type, :string, default: "acquisition"
       add :counterparty, :string, null: false
       add :status, :string, default: "pipeline"
-      add :value, :float
+      add :value, :decimal
       add :currency, :string, default: "USD"
       add :target_close_date, :string
       add :closed_date, :string
@@ -324,10 +324,10 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :partner, :string, null: false
       add :name, :string, null: false
-      add :ownership_pct, :float, default: 50.0
+      add :ownership_pct, :decimal, default: 50.0
       add :formation_date, :string
       add :status, :string, default: "active"
-      add :total_value, :float
+      add :total_value, :decimal
       add :currency, :string, default: "USD"
       add :notes, :text
       timestamps()
@@ -354,7 +354,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :asset, :string, null: false
       add :ticker, :string
-      add :quantity, :float
+      add :quantity, :decimal
       add :unit, :string
       add :currency, :string, default: "USD"
       add :asset_type, :string, default: "other"
@@ -377,13 +377,13 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
     create table(:cost_basis_lots) do
       add :holding_id, references(:asset_holdings, on_delete: :delete_all), null: false
       add :purchase_date, :string, null: false
-      add :quantity, :float, null: false
-      add :price_per_unit, :float, null: false
-      add :fees, :float, default: 0.0
+      add :quantity, :decimal, null: false
+      add :price_per_unit, :decimal, null: false
+      add :fees, :decimal, default: 0.0
       add :currency, :string, default: "USD"
-      add :sold_quantity, :float, default: 0.0
+      add :sold_quantity, :decimal, default: 0.0
       add :sold_date, :string
-      add :sold_price, :float
+      add :sold_price, :decimal
       add :notes, :text
       timestamps()
     end
@@ -407,9 +407,9 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :address, :text
       add :property_type, :string, default: "commercial"
       add :purchase_date, :string
-      add :purchase_price, :float
-      add :current_valuation, :float
-      add :rental_income_annual, :float
+      add :purchase_price, :decimal
+      add :current_valuation, :decimal
+      add :rental_income_annual, :decimal
       add :currency, :string, default: "USD"
       add :notes, :text
       timestamps()
@@ -421,10 +421,10 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :fund_name, :string, null: false
       add :fund_type, :string, default: "private_equity"
-      add :commitment, :float, default: 0.0
-      add :called, :float, default: 0.0
-      add :distributed, :float, default: 0.0
-      add :nav, :float, default: 0.0
+      add :commitment, :decimal, default: 0.0
+      add :called, :decimal, default: 0.0
+      add :distributed, :decimal, default: 0.0
+      add :nav, :decimal, default: 0.0
       add :currency, :string, default: "USD"
       add :vintage_year, :integer
       add :notes, :text
@@ -435,11 +435,11 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
 
     create table(:portfolio_snapshots) do
       add :date, :string, null: false
-      add :liquid, :float, default: 0.0
-      add :marketable, :float, default: 0.0
-      add :illiquid, :float, default: 0.0
-      add :liabilities, :float, default: 0.0
-      add :nav, :float, default: 0.0
+      add :liquid, :decimal, default: 0.0
+      add :marketable, :decimal, default: 0.0
+      add :illiquid, :decimal, default: 0.0
+      add :liabilities, :decimal, default: 0.0
+      add :nav, :decimal, default: 0.0
       add :currency, :string, default: "USD"
       timestamps()
     end
@@ -453,7 +453,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :swift, :string
       add :currency, :string, default: "USD"
       add :account_type, :string, default: "operating"
-      add :balance, :float, default: 0.0
+      add :balance, :decimal, default: 0.0
       add :authorized_signers, :text, default: "[]"
       add :notes, :text
       timestamps()
@@ -465,7 +465,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :transaction_type, :string, null: false
       add :description, :string, null: false
-      add :amount, :float, null: false
+      add :amount, :decimal, null: false
       add :currency, :string, default: "USD"
       add :counterparty, :string
       add :date, :string, null: false
@@ -481,8 +481,8 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
     create table(:financials) do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :period, :string, null: false
-      add :revenue, :float, default: 0.0
-      add :expenses, :float, default: 0.0
+      add :revenue, :decimal, default: 0.0
+      add :expenses, :decimal, default: 0.0
       add :currency, :string, default: "USD"
       add :notes, :text
       timestamps()
@@ -512,8 +512,8 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
     create table(:journal_lines) do
       add :entry_id, references(:journal_entries, on_delete: :delete_all), null: false
       add :account_id, references(:accounts, on_delete: :delete_all), null: false
-      add :debit, :float, default: 0.0
-      add :credit, :float, default: 0.0
+      add :debit, :decimal, default: 0.0
+      add :credit, :decimal, default: 0.0
       add :notes, :string
       timestamps()
     end
@@ -524,7 +524,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
     create table(:inter_company_transfers) do
       add :from_company_id, references(:companies, on_delete: :delete_all), null: false
       add :to_company_id, references(:companies, on_delete: :delete_all), null: false
-      add :amount, :float, null: false
+      add :amount, :decimal, null: false
       add :currency, :string, default: "USD"
       add :date, :string, null: false
       add :description, :string
@@ -538,7 +538,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
 
     create table(:dividends) do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
-      add :amount, :float, null: false
+      add :amount, :decimal, null: false
       add :currency, :string, default: "USD"
       add :date, :string, null: false
       add :recipient, :string
@@ -552,7 +552,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
     create table(:capital_contributions) do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :contributor, :string, null: false
-      add :amount, :float, null: false
+      add :amount, :decimal, null: false
       add :currency, :string, default: "USD"
       add :date, :string, null: false
       add :contribution_type, :string, default: "cash"
@@ -566,7 +566,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :jurisdiction, :string, null: false
       add :tax_type, :string, null: false
-      add :amount, :float, null: false
+      add :amount, :decimal, null: false
       add :currency, :string, default: "USD"
       add :date, :string, null: false
       add :period, :string
@@ -581,8 +581,8 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :period, :string, null: false
       add :category, :string, null: false
-      add :budgeted, :float, default: 0.0
-      add :actual, :float, default: 0.0
+      add :budgeted, :decimal, default: 0.0
+      add :actual, :decimal, default: 0.0
       add :currency, :string, default: "USD"
       add :notes, :text
       timestamps()
@@ -663,8 +663,8 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :policy_type, :string, null: false
       add :provider, :string, null: false
       add :policy_number, :string
-      add :coverage_amount, :float
-      add :premium, :float
+      add :coverage_amount, :decimal
+      add :premium, :decimal
       add :currency, :string, default: "USD"
       add :start_date, :string
       add :expiry_date, :string
@@ -679,7 +679,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :to_company_id, references(:companies, on_delete: :delete_all), null: false
       add :description, :string, null: false
       add :method, :string, default: "comparable_uncontrolled"
-      add :amount, :float, default: 0.0
+      add :amount, :decimal, default: 0.0
       add :currency, :string, default: "USD"
       add :period, :string
       add :notes, :text
@@ -691,9 +691,9 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :payment_type, :string, null: false
       add :country_from, :string, null: false
       add :country_to, :string, null: false
-      add :gross_amount, :float, null: false
-      add :rate, :float, null: false
-      add :tax_amount, :float, null: false
+      add :gross_amount, :decimal, null: false
+      add :rate, :decimal, null: false
+      add :tax_amount, :decimal, null: false
       add :currency, :string, default: "USD"
       add :date, :string, null: false
       add :notes, :text
@@ -718,10 +718,10 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
     create table(:esg_scores) do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :period, :string, null: false
-      add :environmental_score, :float
-      add :social_score, :float
-      add :governance_score, :float
-      add :overall_score, :float
+      add :environmental_score, :decimal
+      add :social_score, :decimal
+      add :governance_score, :decimal
+      add :overall_score, :decimal
       add :framework, :string, default: "custom"
       add :notes, :text
       timestamps()
@@ -802,7 +802,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
     create table(:cash_pools) do
       add :name, :string, null: false
       add :currency, :string, default: "USD"
-      add :target_balance, :float, default: 0.0
+      add :target_balance, :decimal, default: 0.0
       add :notes, :text, default: ""
       timestamps()
     end
@@ -811,7 +811,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :pool_id, references(:cash_pools, on_delete: :delete_all), null: false
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :bank_account_id, references(:bank_accounts, on_delete: :nilify_all)
-      add :allocated_amount, :float, default: 0.0
+      add :allocated_amount, :decimal, default: 0.0
       add :notes, :text, default: ""
       timestamps()
     end
@@ -821,7 +821,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
     # Pricing
     create table(:price_history) do
       add :ticker, :string, null: false
-      add :price, :float, null: false
+      add :price, :decimal, null: false
       add :currency, :string, default: "USD"
       timestamps()
     end
@@ -872,7 +872,7 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :external_id, :string, null: false
       add :date, :string, null: false
       add :description, :text, default: ""
-      add :amount, :float, default: 0.0
+      add :amount, :decimal, default: 0.0
       add :currency, :string, default: "USD"
       add :category, :string, default: ""
       add :is_matched, :boolean, default: false
@@ -922,12 +922,12 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :scenario_id, references(:scenarios, on_delete: :delete_all), null: false
       add :name, :string, null: false
       add :item_type, :string, default: "revenue"
-      add :amount, :float, default: 0.0
+      add :amount, :decimal, default: 0.0
       add :currency, :string, default: "USD"
-      add :growth_rate, :float, default: 0.0
+      add :growth_rate, :decimal, default: 0.0
       add :growth_type, :string, default: "linear"
       add :recurrence, :string, default: "monthly"
-      add :probability, :float, default: 1.0
+      add :probability, :decimal, default: 1.0
       add :start_date, :string
       add :end_date, :string
       add :notes, :text
@@ -941,9 +941,9 @@ defmodule Holdco.Repo.Migrations.CreateAllTables do
       add :company_id, references(:companies, on_delete: :delete_all), null: false
       add :liability_type, :string, null: false
       add :creditor, :string, null: false
-      add :principal, :float, null: false
+      add :principal, :decimal, null: false
       add :currency, :string, default: "USD"
-      add :interest_rate, :float
+      add :interest_rate, :decimal
       add :maturity_date, :string
       add :status, :string, default: "active"
       add :notes, :text
