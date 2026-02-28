@@ -179,6 +179,10 @@ defmodule HoldcoWeb.Router do
       live "/management-reports", ManagementReportsLive.Index, :index
       live "/audit-diffs", AuditDiffLive.Index, :index
 
+      # Phase 2 — Compliance & Fund
+      live "/transfer-pricing", TransferPricingLive.Index, :index
+      live "/partnership-basis", PartnershipBasisLive.Index, :index
+
     end
   end
 
