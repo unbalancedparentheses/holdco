@@ -174,12 +174,10 @@ defmodule HoldcoWeb.Router do
       live "/scenarios/new", ScenarioLive.Index, :new
       live "/scenarios/:id", ScenarioLive.Show, :show
       live "/import", ImportLive, :index
-      live "/bulk-edit", BulkEditLive.Index, :index
       live "/notifications", NotificationsLive, :index
       live "/settings/notifications", NotificationSettingsLive.Index, :index
       live "/search", SearchLive, :index
       live "/contacts", ContactLive.Index, :index
-      live "/projects", ProjectLive.Index, :index
       live "/audit-log", AuditLive.Index, :index
       live "/reports", ReportsLive, :index
       live "/settings", SettingsLive.Index, :index
@@ -194,16 +192,8 @@ defmodule HoldcoWeb.Router do
       live "/org-chart", OrgChartLive.Index, :index
 
       # Phase 1 — Accounting & Finance
-      live "/depreciation", DepreciationLive.Index, :index
-      live "/segments", SegmentLive.Index, :index
-      live "/revaluation", RevaluationLive.Index, :index
       live "/budgets/variance", BudgetVarianceLive.Index, :index
-      live "/waterfall", WaterfallLive.Index, :index
-      live "/capital-calls", CapitalCallsLive.Index, :index
-      live "/distributions", DistributionsLive.Index, :index
-      live "/k1-reports", K1Live.Index, :index
       live "/consolidated", ConsolidatedLive.Index, :index
-      live "/leases", LeaseLive.Index, :index
       live "/compare", EntityComparisonLive.Index, :index
 
       # Phase 1 — Risk & Covenants
@@ -213,9 +203,6 @@ defmodule HoldcoWeb.Router do
       # Phase 1 — Reports & Analytics
       live "/tax/capital-gains", CapitalGainsLive.Index, :index
       live "/kpis", KpiLive.Index, :index
-      live "/aging", AgingReportLive.Index, :index
-      live "/management-reports", ManagementReportsLive.Index, :index
-      live "/audit-diffs", AuditDiffLive.Index, :index
 
       # Phase 2 — Period Close & Recurring
       live "/period-locks", PeriodLockLive.Index, :index
@@ -226,9 +213,6 @@ defmodule HoldcoWeb.Router do
 
       # Phase 2 — Scheduled Reports
       live "/scheduled-reports", ScheduledReportsLive.Index, :index
-
-      # Phase 2 — Collaboration
-      live "/tasks", TasksLive.Index, :index
 
       # Phase 2 — Alerts
       live "/alerts", AlertsLive.Index, :index
@@ -241,120 +225,24 @@ defmodule HoldcoWeb.Router do
       live "/anomalies", AnomalyLive.Index, :index
       live "/benchmarks", BenchmarkLive.Index, :index
 
-      # Phase 4 — Fund Management
-      live "/fund-nav", FundNavLive.Index, :index
-      live "/investor-statements", InvestorStatementsLive.Index, :index
-      live "/fund-fees", FundFeesLive.Index, :index
-
-      # Phase 4 — Dividend & Tax
-      live "/dividend-policies", DividendPolicyLive.Index, :index
+      # Tax
       live "/tax-provisions", TaxProvisionLive.Index, :index
       live "/deferred-taxes", DeferredTaxLive.Index, :index
-
-      # Phase 4 — Service Agreements & Goodwill
-      live "/service-agreements", ServiceAgreementLive.Index, :index
-      live "/goodwill", GoodwillLive.Index, :index
-
-      # Phase 4 — Tax Management
-      live "/tax-optimizer", TaxOptimizerLive.Index, :index
-      live "/withholding-reclaims", WithholdingReclaimLive.Index, :index
-      live "/repatriation", RepatriationLive.Index, :index
-
-      # Phase 4 — Fundraising & Multi-Book
-      live "/fundraising", FundraisingLive.Index, :index
-      live "/multi-book", MultiBookLive.Index, :index
-
-      # Phase 4 — Compliance & Fund
       live "/transfer-pricing", TransferPricingLive.Index, :index
-      live "/partnership-basis", PartnershipBasisLive.Index, :index
 
-      # Phase 5 — Compliance & IP
-      live "/kyc", KycLive.Index, :index
-      live "/reporting-templates", ReportingTemplateLive.Index, :index
-      live "/aml-monitoring", AmlLive.Index, :index
-      live "/ip-assets", IpAssetLive.Index, :index
-
-      # Phase 5 — Corporate Lifecycle & Actions
-      live "/entity-lifecycle", EntityLifecycleLive.Index, :index
-      live "/registers", RegisterLive.Index, :index
-      live "/corporate-actions", CorporateActionLive.Index, :index
-
-      # Phase 6 — Contract, LEI, Related Party, Conflict of Interest
-      live "/contracts", ContractLive.Index, :index
-      live "/lei", LeiLive.Index, :index
-      live "/related-party-transactions", RelatedPartyLive.Index, :index
-      live "/conflicts-of-interest", ConflictOfInterestLive.Index, :index
-
-      # Phase 7 — ESG, Emissions, Capital, BCP, Ethics
-      live "/esg", EsgLive.Index, :index
-      live "/emissions", EmissionsLive.Index, :index
-      live "/regulatory-capital", RegulatoryCapitalLive.Index, :index
-      live "/bcp", BcpLive.Index, :index
-      live "/ethics", EthicsLive.Index, :index
-
-      # Phase 5 — Governance & Signatures
+      # Governance & Corporate
       live "/board-meetings", BoardMeetingLive.Index, :index
-      live "/shareholder-communications", ShareholderCommunicationLive.Index, :index
-      live "/signature-workflows", SignatureWorkflowLive.Index, :index
-
-      # Phase 7 — Share Classes, Claims, Compensation, Litigation, Guarantees
+      live "/corporate-actions", CorporateActionLive.Index, :index
+      live "/registers", RegisterLive.Index, :index
       live "/share-classes", ShareClassLive.Index, :index
-      live "/insurance-claims", InsuranceClaimLive.Index, :index
-      live "/compensation", CompensationLive.Index, :index
-      live "/litigation", LitigationLive.Index, :index
-      live "/bank-guarantees", BankGuaranteeLive.Index, :index
+      live "/related-party-transactions", RelatedPartyLive.Index, :index
 
-      # Phase 8 — Trust, Charitable Giving, Family Governance, Estate Planning
-      live "/trusts", TrustLive.Index, :index
-      live "/charitable-giving", CharitableGivingLive.Index, :index
-      live "/family-governance", FamilyGovernanceLive.Index, :index
-      live "/estate-planning", EstatePlanningLive.Index, :index
+      # Contracts
+      live "/contracts", ContractLive.Index, :index
 
-      # Batch 11 — SSO, Security Keys, Data Retention, Custom Dashboards
-      live "/sso-config", SsoConfigLive.Index, :index
-      live "/security-keys", SecurityKeyLive.Index, :index
-      live "/data-retention", DataRetentionLive.Index, :index
-      live "/custom-dashboards", CustomDashboardLive.Index, :index
-
-      # Phase 8 — DeFi, On-Chain, Data Room, Airdrops
+      # DeFi
       live "/defi-positions", DefiPositionLive.Index, :index
-      live "/data-room", DataRoomLive.Index, :index
-      live "/airdrops", AirdropLive.Index, :index
 
-
-      # Notification Channels, Document Intelligence, Regulatory Changes, Collaboration
-      live "/settings/notification-channels", NotificationChannelsLive.Index, :index
-      live "/document-intelligence", DocumentIntelligenceLive.Index, :index
-      live "/regulatory-changes", RegulatoryChangesLive.Index, :index
-      live "/collaboration", CollaborationLive.Index, :index
-
-      # Platform Extensibility — Plugins, BI Connectors, White-label, Webhooks
-      live "/plugins", PluginLive.Index, :index
-      live "/bi-connectors", BiConnectorLive.Index, :index
-      live "/white-label", WhiteLabelLive.Index, :index
-      live "/webhooks", WebhookEndpointLive.Index, :index
-
-      # Creative Features — Activity, Quick Actions, Health Score, Data Lineage
-      live "/activity", ActivityLive.Index, :index
-      live "/quick-actions", QuickActionsLive.Index, :index
-      live "/health-score", HealthScoreLive.Index, :index
-      live "/data-lineage", DataLineageLive.Index, :index
-
-    end
-  end
-
-  # Investor Portal (separate session with investor-specific hooks)
-  scope "/investor", HoldcoWeb do
-    pipe_through [:browser, :require_authenticated_user]
-
-    live_session :investor_portal,
-      layout: {HoldcoWeb.Layouts, :app},
-      on_mount: [
-        {HoldcoWeb.UserAuth, :ensure_authenticated},
-        {HoldcoWeb.Live.Hooks, :current_path},
-        {HoldcoWeb.InvestorPortalLive.Hooks, :ensure_investor}
-      ] do
-      live "/", InvestorPortalLive.Index, :index
     end
   end
 

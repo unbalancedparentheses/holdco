@@ -40,71 +40,41 @@ defmodule HoldcoWeb.SearchLive do
   @pages [
     {"Portfolio", [
       {"/holdings", "Positions"}, {"/transactions", "Transactions"}, {"/bank-accounts", "Bank Accounts"},
-      {"/financials", "Financials"}, {"/scenarios", "Scenarios"}, {"/defi-positions", "DeFi Positions"},
-    ]},
-    {"Fund Management", [
-      {"/capital-calls", "Capital Calls"}, {"/distributions", "Distributions"}, {"/fund-nav", "Fund NAV"},
-      {"/investor-statements", "Investor Statements"}, {"/fund-fees", "Fees"}, {"/k1-reports", "K-1 Reports"},
-      {"/dividend-policies", "Dividend Policies"}, {"/fundraising", "Fundraising"}, {"/partnership-basis", "Partnership Basis"}
+      {"/financials", "Financials"}, {"/scenarios", "Scenarios"}, {"/defi-positions", "DeFi Positions"}
     ]},
     {"Corporate", [
       {"/governance", "Governance"}, {"/compliance", "Compliance"}, {"/documents", "Documents"},
-      {"/board-meetings", "Board Meetings"}, {"/shareholder-communications", "Shareholders"},
-      {"/corporate-actions", "Corporate Actions"}, {"/entity-lifecycle", "Entity Lifecycle"},
-      {"/registers", "Registers"}, {"/share-classes", "Share Classes"}, {"/lei", "LEI Tracking"},
-      {"/signature-workflows", "Signatures"}, {"/contacts", "Contacts"}, {"/calendar", "Calendar"},
-      {"/projects", "Projects"}, {"/compensation", "Compensation"}, {"/data-room", "Data Room"},
-      {"/ethics", "Ethics"}
-    ]},
-    {"Legal & Compliance", [
-      {"/contracts", "Contracts"}, {"/kyc", "KYC/AML"}, {"/aml-monitoring", "AML Monitoring"},
-      {"/litigation", "Litigation"}, {"/insurance-claims", "Insurance Claims"},
-      {"/bank-guarantees", "Bank Guarantees"}, {"/ip-assets", "IP Assets"},
-      {"/conflicts-of-interest", "Conflicts of Interest"}, {"/related-party-transactions", "Related Party Txns"}
+      {"/calendar", "Calendar"}, {"/org-chart", "Org Chart"}, {"/board-meetings", "Board Meetings"},
+      {"/contacts", "Contacts"}, {"/corporate-actions", "Corporate Actions"},
+      {"/registers", "Registers"}, {"/share-classes", "Share Classes"},
+      {"/related-party-transactions", "Related Party Txns"}
     ]},
     {"Accounting", [
       {"/accounts/chart", "Chart of Accounts"}, {"/accounts/journal", "Journal Entries"},
       {"/accounts/reports", "Reports"}, {"/accounts/integrations", "Integrations"},
-      {"/depreciation", "Depreciation"}, {"/revaluation", "Revaluation"}, {"/segments", "Segments"},
-      {"/consolidated", "Consolidated"}, {"/multi-book", "Multi-Book"}, {"/period-locks", "Period Locks"},
+      {"/consolidated", "Consolidated"}, {"/period-locks", "Period Locks"},
       {"/recurring-transactions", "Recurring"}, {"/bank-reconciliation", "Reconciliation"},
-      {"/budgets/variance", "Budget Variance"}, {"/waterfall", "Waterfall"}, {"/leases", "Leases"},
-      {"/service-agreements", "Service Agreements"}, {"/goodwill", "Goodwill"}
+      {"/budgets/variance", "Budget Variance"}
     ]},
     {"Tax", [
       {"/tax-provisions", "Tax Provisions"}, {"/deferred-taxes", "Deferred Taxes"},
-      {"/tax-optimizer", "Tax Optimizer"}, {"/withholding-reclaims", "Withholding Reclaims"},
-      {"/repatriation", "Repatriation"}, {"/transfer-pricing", "Transfer Pricing"},
-      {"/tax/capital-gains", "Capital Gains"}, {"/tax-calendar", "Tax Calendar"}
+      {"/transfer-pricing", "Transfer Pricing"}, {"/tax/capital-gains", "Capital Gains"},
+      {"/tax-calendar", "Tax Calendar"}
     ]},
     {"Risk & Analytics", [
       {"/risk/concentration", "Concentration"}, {"/counterparty-risk", "Counterparty"},
       {"/covenants", "Covenants"}, {"/stress-test", "Stress Testing"}, {"/liquidity", "Liquidity"},
       {"/debt-maturity", "Debt Maturity"}, {"/cash-forecast", "Cash Forecast"},
-      {"/esg", "ESG"}, {"/emissions", "Emissions"}, {"/regulatory-capital", "Regulatory Capital"},
-      {"/regulatory-changes", "Regulatory Changes"}, {"/bcp", "Business Continuity"},
       {"/anomalies", "Anomalies"}, {"/benchmarks", "Benchmarks"}
     ]},
     {"Reports", [
-      {"/reports", "Overview"}, {"/kpis", "KPIs"}, {"/aging", "Aging"},
-      {"/management-reports", "Management Reports"}, {"/compare", "Entity Comparison"},
-      {"/audit-diffs", "Audit Diffs"}, {"/scheduled-reports", "Scheduled Reports"},
-      {"/reporting-templates", "Templates"}, {"/health-score", "Health Score"},
-      {"/data-lineage", "Data Lineage"}
+      {"/reports", "Overview"}, {"/kpis", "KPIs"}, {"/compare", "Entity Comparison"},
+      {"/scheduled-reports", "Scheduled Reports"}, {"/contracts", "Contracts"}
     ]},
-    {"Family Office", [
-      {"/trusts", "Trusts"}, {"/charitable-giving", "Charitable Giving"},
-      {"/family-governance", "Family Governance"}, {"/estate-planning", "Estate Planning"}
-    ]},
-    {"Admin & Platform", [
-      {"/settings", "Settings"}, {"/audit-log", "Audit Log"}, {"/custom-dashboards", "Custom Dashboards"},
-      {"/sso-config", "SSO Config"}, {"/security-keys", "Security Keys"},
-      {"/data-retention", "Data Retention"}, {"/plugins", "Plugins"}, {"/webhooks", "Webhooks"},
-      {"/bi-connectors", "BI Connectors"}, {"/white-label", "White Label"},
-      {"/approvals", "Approvals"}, {"/notifications", "Notifications"}, {"/import", "Import"},
-      {"/bulk-edit", "Bulk Edit"}, {"/tasks", "Tasks"}, {"/alerts", "Alerts"},
-      {"/activity", "Activity Feed"}, {"/collaboration", "Collaboration"},
-      {"/document-intelligence", "Document Intelligence"}
+    {"Admin", [
+      {"/settings", "Settings"}, {"/settings/notifications", "Notification Settings"},
+      {"/audit-log", "Audit Log"}, {"/approvals", "Approvals"},
+      {"/notifications", "Notifications"}, {"/alerts", "Alerts"}, {"/import", "Import"}
     ]}
   ]
 

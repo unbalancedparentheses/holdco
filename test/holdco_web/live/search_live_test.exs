@@ -25,7 +25,7 @@ defmodule HoldcoWeb.SearchLiveTest do
 
       assert html =~ ~s(name="q")
       assert html =~ "form-input"
-      assert html =~ "Search companies, holdings, transactions, documents..."
+      assert html =~ "Search companies, positions, transactions, documents, or type a feature name..."
     end
 
     test "renders search button", %{conn: conn} do
@@ -80,7 +80,7 @@ defmodule HoldcoWeb.SearchLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/search?q=Apple")
 
-      assert html =~ "Holdings"
+      assert html =~ "Positions"
       assert html =~ "Apple Inc"
     end
 

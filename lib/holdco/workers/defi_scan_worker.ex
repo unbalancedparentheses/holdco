@@ -15,14 +15,8 @@ defmodule Holdco.Workers.DefiScanWorker do
   def perform(_job) do
     result = Holdco.Integrations.DefiScanner.scan_all_positions()
 
-    case result do
-      {:ok, summary} ->
-        Logger.info("DeFi scan complete: #{summary.updated} updated, #{summary.errors} errors")
-        :ok
-
-      {:error, reason} ->
-        Logger.error("DeFi scan failed: #{inspect(reason)}")
-        {:error, reason}
-    end
+    {:ok, summary} = result
+    Logger.info("DeFi scan complete: #{summary.updated} updated, #{summary.errors} errors")
+    :ok
   end
 end

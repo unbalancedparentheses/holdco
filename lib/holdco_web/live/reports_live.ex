@@ -153,40 +153,6 @@ defmodule HoldcoWeb.ReportsLive do
 
         <div class="panel" style="padding: 1.5rem;">
           <h2 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 1.1rem; margin-bottom: 0.5rem;">
-            Management Reports
-          </h2>
-          <p style="color: #666; font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;">
-            Executive-level management reports with KPI dashboards, entity performance
-            summaries, and strategic portfolio analytics for board and stakeholder review.
-          </p>
-          <div style="font-size: 0.8rem; color: #888; margin-bottom: 1rem;">
-            <div style="margin-bottom: 0.25rem;">Includes:</div>
-            <ul style="margin-left: 1.25rem; line-height: 1.6;">
-              <li>KPI summary dashboard</li>
-              <li>Entity-level performance cards</li>
-              <li>Capital allocation overview</li>
-              <li>Strategic recommendations</li>
-            </ul>
-          </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <.link
-              navigate={~p"/management-reports"}
-              style="display: inline-block; background: #0d7680; color: #fff; padding: 0.5rem 1.25rem; border-radius: 4px; text-decoration: none; font-size: 0.85rem; font-weight: 600;"
-            >
-              View Reports
-            </.link>
-            <button
-              phx-click={JS.dispatch("js:print-report", to: "#reports-page", detail: %{url: ~p"/management-reports"})}
-              class="btn btn-secondary"
-              style="font-size: 0.85rem; padding: 0.5rem 1rem;"
-            >
-              Save as PDF
-            </button>
-          </div>
-        </div>
-
-        <div class="panel" style="padding: 1.5rem;">
-          <h2 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 1.1rem; margin-bottom: 0.5rem;">
             Audit Package
           </h2>
           <p style="color: #666; font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;">
