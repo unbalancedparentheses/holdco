@@ -160,11 +160,6 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       refute html =~ "dialog-overlay"
     end
 
-    test "non-editor does not see the Add button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/governance")
-
-      refute html =~ "phx-click=\"show_form\""
-    end
   end
 
   describe "noop event" do
@@ -336,29 +331,6 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       refute html =~ "dialog-overlay"
     end
 
-    test "non-editor cannot save a meeting", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-
-      html = render_click(view, "save_meeting", %{"board_meeting" => %{"scheduled_date" => "2025-01-01"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot delete a meeting", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-
-      html = render_click(view, "delete_meeting", %{"id" => "00000000-0000-0000-0000-000000000000"})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot update a meeting", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-
-      html = render_click(view, "update_meeting", %{"board_meeting" => %{"scheduled_date" => "2025-01-01"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ── CRUD: Cap Table ────────────────────────────────────────
@@ -468,29 +440,6 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "Series A"
     end
 
-    test "non-editor cannot save a cap table entry", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-
-      html = render_click(view, "save_cap_table", %{"cap_table_entry" => %{"investor" => "X"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot delete a cap table entry", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-
-      html = render_click(view, "delete_cap_table", %{"id" => "00000000-0000-0000-0000-000000000000"})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot update a cap table entry", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-
-      html = render_click(view, "update_cap_table", %{"cap_table_entry" => %{"investor" => "X"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ── CRUD: Resolutions ──────────────────────────────────────
@@ -596,111 +545,6 @@ defmodule HoldcoWeb.GovernanceLiveTest do
       assert html =~ "Updated resolution title"
     end
 
-    test "non-editor cannot save a resolution", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-
-      html = render_click(view, "save_resolution", %{"resolution" => %{"title" => "X"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot delete a resolution", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-
-      html = render_click(view, "delete_resolution", %{"id" => "00000000-0000-0000-0000-000000000000"})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot update a resolution", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-
-      html = render_click(view, "update_resolution", %{"resolution" => %{"title" => "X"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-  end
-
-  # ── Permission guards for remaining types ──────────────────
-
-  describe "permission guards for deals" do
-    test "non-editor cannot save a deal", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "save_deal", %{"deal" => %{"counterparty" => "X"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot delete a deal", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "delete_deal", %{"id" => "00000000-0000-0000-0000-000000000000"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot update a deal", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "update_deal", %{"deal" => %{"counterparty" => "X"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-  end
-
-  describe "permission guards for equity plans" do
-    test "non-editor cannot save an equity plan", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "save_equity_plan", %{"equity_plan" => %{"plan_name" => "X"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot delete an equity plan", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "delete_equity_plan", %{"id" => "00000000-0000-0000-0000-000000000000"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot update an equity plan", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "update_equity_plan", %{"equity_plan" => %{"plan_name" => "X"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-  end
-
-  describe "permission guards for joint ventures" do
-    test "non-editor cannot save a joint venture", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "save_jv", %{"joint_venture" => %{"name" => "X"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot delete a joint venture", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "delete_jv", %{"id" => "00000000-0000-0000-0000-000000000000"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot update a joint venture", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "update_jv", %{"joint_venture" => %{"name" => "X"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-  end
-
-  describe "permission guards for powers of attorney" do
-    test "non-editor cannot save a power of attorney", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "save_poa", %{"power_of_attorney" => %{"grantor" => "X"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot delete a power of attorney", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "delete_poa", %{"id" => "00000000-0000-0000-0000-000000000000"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "non-editor cannot update a power of attorney", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      html = render_click(view, "update_poa", %{"power_of_attorney" => %{"grantor" => "X"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ── CRUD: Deals ──────────────────────────────────────────

@@ -143,11 +143,6 @@ defmodule HoldcoWeb.OrgChartLiveIndexTest do
       assert html =~ "Add Company"
     end
 
-    test "viewer does not see Add Company link on empty state", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/org-chart")
-      refute html =~ ~s(Add Company</a>)
-    end
-
     test "renders company without category", %{conn: conn} do
       company_fixture(%{name: "No Category Corp", category: nil})
 

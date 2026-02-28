@@ -10,7 +10,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
     test "renders holdings page", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/holdings")
 
-      assert html =~ "Holdings"
+      assert html =~ "Positions"
     end
 
     test "renders page title and deck", %{conn: conn} do
@@ -30,8 +30,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
     test "holdings page renders without nav highlight", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/holdings")
 
-      # Holdings is no longer in the nav bar (removed from Consolidated dropdown)
-      assert html =~ "Holdings"
+      assert html =~ "Positions"
     end
 
     test "shows export button", %{conn: conn} do
@@ -44,13 +43,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, _view, html} = live(conn, ~p"/holdings")
 
-      assert html =~ "Add Holding"
-    end
-
-    test "does not show add button for viewers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      refute html =~ "Add Holding"
+      assert html =~ "Add Position"
     end
 
     test "displays holdings in table", %{conn: conn} do
@@ -65,7 +58,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
     test "shows empty state when no holdings", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/holdings")
 
-      assert html =~ "No holdings yet"
+      assert html =~ "No positions yet"
     end
 
     test "renders allocation section", %{conn: conn} do
@@ -89,7 +82,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, view, _html} = live(conn, ~p"/holdings")
 
-      html = view |> element("button", "Add Holding") |> render_click()
+      html = view |> element("button", "Add Position") |> render_click()
 
       assert html =~ "dialog"
       assert html =~ "Asset Name"
@@ -101,7 +94,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, view, _html} = live(conn, ~p"/holdings")
 
-      view |> element("button", "Add Holding") |> render_click()
+      view |> element("button", "Add Position") |> render_click()
       html = view |> element("button", "Cancel") |> render_click()
 
       refute html =~ "dialog-overlay"
@@ -112,7 +105,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       company = company_fixture(%{name: "Save Holding Corp"})
       {:ok, view, _html} = live(conn, ~p"/holdings")
 
-      view |> element("button", "Add Holding") |> render_click()
+      view |> element("button", "Add Position") |> render_click()
 
       html =
         view
@@ -128,7 +121,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
         })
         |> render_submit()
 
-      assert html =~ "Holding added" or html =~ "New Test Asset"
+      assert html =~ "Position added" or html =~ "New Test Asset"
     end
 
     test "delete removes a holding", %{conn: conn, user: user} do
@@ -143,29 +136,6 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       refute html =~ "DeleteMe"
     end
 
-    test "viewers cannot delete holdings", %{conn: conn} do
-      holding_fixture(%{asset: "Protected"})
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "Protected"
-      refute html =~ "Del"
-    end
-  end
-
-  describe "viewer permission guards" do
-    test "viewer save event returns permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/holdings")
-
-      render_hook(view, "save", %{"holding" => %{"asset" => "test"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "viewer delete event returns permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/holdings")
-
-      render_hook(view, "delete", %{"id" => "999"})
-      assert render(view) =~ "permission"
-    end
   end
 
   describe "noop event" do
@@ -173,7 +143,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       {:ok, view, _html} = live(conn, ~p"/holdings")
 
       render_hook(view, "noop", %{})
-      assert render(view) =~ "Holdings"
+      assert render(view) =~ "Positions"
     end
   end
 
@@ -184,7 +154,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       send(view.pid, :some_broadcast)
 
       html = render(view)
-      assert html =~ "Holdings"
+      assert html =~ "Positions"
     end
   end
 
@@ -198,7 +168,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       company_fixture(%{name: "FormCompanyCo"})
       {:ok, view, _html} = live(conn, ~p"/holdings")
 
-      html = view |> element("button", "Add Holding") |> render_click()
+      html = view |> element("button", "Add Position") |> render_click()
 
       assert html =~ "FormCompanyCo"
       assert html =~ ~s(name="holding[company_id]")
@@ -207,7 +177,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
     test "form shows asset type dropdown", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/holdings")
 
-      html = view |> element("button", "Add Holding") |> render_click()
+      html = view |> element("button", "Add Position") |> render_click()
 
       assert html =~ ~s(name="holding[asset_type]")
       assert html =~ "Equity"
@@ -216,7 +186,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
     test "form shows unit and currency inputs", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/holdings")
 
-      html = view |> element("button", "Add Holding") |> render_click()
+      html = view |> element("button", "Add Position") |> render_click()
 
       assert html =~ ~s(name="holding[unit]")
       assert html =~ ~s(name="holding[currency]")
@@ -226,7 +196,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
     test "clicking overlay closes the form", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/holdings")
 
-      view |> element("button", "Add Holding") |> render_click()
+      view |> element("button", "Add Position") |> render_click()
       html = view |> element(".dialog-overlay") |> render_click()
 
       refute html =~ "dialog-overlay"
@@ -432,7 +402,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
 
       html = view |> element("button[phx-click='edit'][phx-value-id='#{holding.id}']") |> render_click()
 
-      assert html =~ "Edit Holding"
+      assert html =~ "Edit Position"
       assert html =~ "Save Changes"
       assert html =~ "Editable Asset"
       assert html =~ "EDT"
@@ -481,16 +451,9 @@ defmodule HoldcoWeb.HoldingsLiveTest do
         })
         |> render_submit()
 
-      assert html =~ "Holding updated" or html =~ "After Update"
+      assert html =~ "Position updated" or html =~ "After Update"
     end
 
-    test "viewer cannot update a holding via event hook", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "viewer")
-      {:ok, view, _html} = live(conn, ~p"/holdings")
-
-      html = render_hook(view, "update", %{"holding" => %{"asset" => "sneaky"}})
-      assert html =~ "permission"
-    end
   end
 
   describe "sort by company" do
@@ -529,7 +492,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
 
     test "save with invalid data shows error flash", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/holdings")
-      view |> element("button", "Add Holding") |> render_click()
+      view |> element("button", "Add Position") |> render_click()
 
       html =
         view

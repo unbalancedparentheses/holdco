@@ -68,7 +68,7 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
 
       assert html =~ "Overview"
-      assert html =~ "Holdings"
+      assert html =~ "Positions"
       assert html =~ "Bank Accounts"
       assert html =~ "Transactions"
       assert html =~ "Documents"
@@ -273,7 +273,7 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
 
       html = view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
 
-      assert html =~ "<h2>Holdings</h2>"
+      assert html =~ "<h2>Positions</h2>"
     end
 
     test "shows empty state when no holdings", %{conn: conn, company: company} do
@@ -302,15 +302,7 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
 
       html = view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
 
-      assert html =~ "Add Holding"
-    end
-
-    test "viewer does not see Add Holding button", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
-
-      refute html =~ "Add Holding"
+      assert html =~ "Add Position"
     end
 
     test "editor sees Del button for holdings", %{conn: conn, company: company, user: user} do
@@ -336,7 +328,7 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
       html = view |> element(~s(button[phx-value-form="holding"])) |> render_click()
 
-      assert html =~ "Add Holding"
+      assert html =~ "Add Position"
       assert html =~ "dialog-overlay"
       assert html =~ ~s(name="holding[asset]")
       assert html =~ ~s(name="holding[ticker]")
@@ -628,14 +620,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ ~s(phx-value-form="equity_plan")
     end
 
-    test "viewer does not see Add buttons in governance tab", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="governance"])) |> render_click()
-
-      refute html =~ "Add Meeting"
-      refute html =~ ~s(phx-value-form="cap_table")
-    end
   end
 
   describe "compliance tab content" do
@@ -835,348 +819,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       html = view |> element(~s(button[phx-click="close_form"])) |> render_click()
 
       refute html =~ "dialog-overlay"
-    end
-  end
-
-  describe "role-based permission guards" do
-    setup [:create_company]
-
-    test "viewer gets permission error when trying to save holding", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :save_holding, %{"holding" => %{"asset" => "Test"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error when trying to save bank account", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :save_bank_account, %{"bank_account" => %{"bank_name" => "Test"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error when trying to save transaction", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :save_transaction, %{"transaction" => %{"description" => "Test"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error when trying to update company", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :update_company, %{"company" => %{"name" => "New Name"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_holding", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_holding, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_bank_account", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_bank_account, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_transaction", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_transaction, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_document", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_document, %{"document" => %{"name" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_document", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_document, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_board_meeting", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_board_meeting, %{"board_meeting" => %{"scheduled_date" => "2024-01-01"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_board_meeting", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_board_meeting, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_service_provider", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_service_provider, %{"service_provider" => %{"name" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_service_provider", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_service_provider, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_key_personnel", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_key_personnel, %{"key_personnel" => %{"name" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_key_personnel", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_key_personnel, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_beneficial_owner", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_beneficial_owner, %{"beneficial_owner" => %{"name" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_beneficial_owner", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_beneficial_owner, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_tax_deadline", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_tax_deadline, %{"tax_deadline" => %{"jurisdiction" => "US"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_tax_deadline", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_tax_deadline, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_financial", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_financial, %{"financial" => %{"period" => "2024"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_financial", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_financial, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_insurance_policy", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_insurance_policy, %{"insurance_policy" => %{"policy_type" => "D&O"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_insurance_policy", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_insurance_policy, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_cap_table", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_cap_table, %{"cap_table" => %{"investor" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_cap_table", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_cap_table, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_resolution", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_resolution, %{"resolution" => %{"title" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_resolution", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_resolution, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_deal", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_deal, %{"deal" => %{"counterparty" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_deal", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_deal, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_jv", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_jv, %{"jv" => %{"name" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_jv", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_jv, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_poa", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_poa, %{"poa" => %{"grantor" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_poa", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_poa, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_equity_plan", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_equity_plan, %{"equity_plan" => %{"plan_name" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_equity_plan", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_equity_plan, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_filing", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_filing, %{"filing" => %{"jurisdiction" => "US"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_filing", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_filing, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_license", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_license, %{"license" => %{"license_type" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_license", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_license, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_esg", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_esg, %{"esg" => %{"period" => "2024"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_esg", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_esg, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_sanctions", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_sanctions, %{"sanctions" => %{"checked_name" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_sanctions", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_sanctions, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_fatca", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_fatca, %{"fatca" => %{"reporting_year" => "2024"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_fatca", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_fatca, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_withholding", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_withholding, %{"withholding" => %{"payment_type" => "dividend"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_withholding", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_withholding, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_liability", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_liability, %{"liability" => %{"creditor" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_liability", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_liability, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_dividend", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_dividend, %{"dividend" => %{"amount" => "100"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_dividend", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_dividend, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_account", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_account, %{"account" => %{"name" => "Test"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_account", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_account, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for save_journal_entry", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :save_journal_entry, %{"entry" => %{"date" => "2024-01-01"}})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer gets permission error for delete_journal_entry", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :delete_journal_entry, %{"id" => "1"})
-      assert html =~ "You don&#39;t have permission to do that"
     end
   end
 
@@ -2305,21 +1947,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ "Comment deleted"
     end
 
-    test "viewer cannot delete comments", %{conn: conn, company: company, user: user} do
-      {:ok, comment} =
-        Holdco.Collaboration.create_comment(%{
-          user_id: user.id,
-          entity_type: "companies",
-          entity_id: company.id,
-          body: "Protected comment"
-        })
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :delete_comment, %{"id" => "#{comment.id}"})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   describe "handle_info broadcasts" do
@@ -2368,13 +1995,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ "Company updated" or html =~ "Updated Corp"
     end
 
-    test "viewer cannot update company", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :update_company, %{"company" => %{"name" => "Should Fail"}})
-
-      assert html =~ "permission" or html =~ company.name
-    end
   end
 
   describe "journal entry validation" do

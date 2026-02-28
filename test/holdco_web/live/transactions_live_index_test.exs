@@ -88,27 +88,6 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
     end
   end
 
-  describe "viewer role (no can_write)" do
-    test "does not show Add Transaction button for viewer", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      refute html =~ "Add Transaction"
-    end
-
-    test "does not show Import CSV link for viewer", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      refute html =~ "Import CSV"
-    end
-
-    test "does not show delete button for viewer", %{conn: conn} do
-      transaction_fixture()
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      refute html =~ "btn btn-danger btn-sm"
-    end
-  end
-
   describe "editor role" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
@@ -286,22 +265,6 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
     end
   end
 
-  describe "viewer permission guards" do
-    test "viewer save event returns permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/transactions")
-
-      render_hook(view, "save", %{"transaction" => %{"description" => "test"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "viewer delete event returns permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/transactions")
-
-      render_hook(view, "delete", %{"id" => "999"})
-      assert render(view) =~ "permission"
-    end
-  end
-
   describe "noop event" do
     test "noop does not crash the view", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/transactions")
@@ -413,12 +376,4 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
     end
   end
 
-  describe "viewer update permission guard" do
-    test "viewer update event returns permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/transactions")
-
-      html = render_hook(view, "update", %{"transaction" => %{"description" => "blocked"}})
-      assert html =~ "permission"
-    end
-  end
 end

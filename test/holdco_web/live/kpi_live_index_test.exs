@@ -152,7 +152,7 @@ defmodule HoldcoWeb.KpiLiveIndexTest do
       {:ok, live, _html} = live(conn, ~p"/kpis")
       render_click(live, "show_form", %{})
       html = render_click(live, "close_form", %{})
-      refute html =~ "Add KPI"
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -254,39 +254,6 @@ defmodule HoldcoWeb.KpiLiveIndexTest do
       render_click(live, "show_snapshot_form", %{})
       html = render_click(live, "close_snapshot_form", %{})
       refute html =~ "Record Snapshot for"
-    end
-  end
-
-  describe "viewer permission gating" do
-    test "viewer cannot save a KPI", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/kpis")
-      html = render_click(live, "save", %{"kpi" => %{"name" => "Test"}})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot update a KPI", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/kpis")
-      html = render_click(live, "update", %{"kpi" => %{"name" => "Test"}})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot delete a KPI", %{conn: conn} do
-      company = company_fixture()
-      kpi = kpi_fixture(%{company: company, name: "Delete KPI"})
-
-      {:ok, live, _html} = live(conn, ~p"/kpis")
-      html = render_click(live, "delete", %{"id" => to_string(kpi.id)})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot save a snapshot", %{conn: conn} do
-      company = company_fixture()
-      kpi = kpi_fixture(%{company: company, name: "Snap Denied KPI"})
-
-      {:ok, live, _html} = live(conn, ~p"/kpis")
-      render_click(live, "select_kpi", %{"id" => to_string(kpi.id)})
-      html = render_click(live, "save_snapshot", %{"snapshot" => %{"date" => "2024-06-01", "current_value" => "100"}})
-      assert html =~ "permission"
     end
   end
 

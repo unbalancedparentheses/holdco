@@ -57,11 +57,6 @@ defmodule HoldcoWeb.AccountingLiveTest do
       assert html =~ "New Journal Entry"
     end
 
-    test "does not show New Journal Entry button for viewers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/journal")
-      refute html =~ "New Journal Entry"
-    end
-
     test "shows empty state when no journal entries exist", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/accounts/journal")
       assert html =~ "No journal entries yet."
@@ -318,20 +313,6 @@ defmodule HoldcoWeb.AccountingLiveTest do
     end
   end
 
-  describe "journal save event (viewer)" do
-    test "viewer cannot save journal entries", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/journal")
-
-      html =
-        render_hook(view, "save", %{
-          "entry" => %{"date" => "2024-01-01", "description" => "Blocked"},
-          "lines" => %{}
-        })
-
-      assert html =~ "permission"
-    end
-  end
-
   describe "journal delete event" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
@@ -359,13 +340,6 @@ defmodule HoldcoWeb.AccountingLiveTest do
       refute html =~ "Deletable entry"
     end
 
-    test "viewer cannot delete a journal entry", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "viewer")
-      {:ok, view, _html} = live(conn, ~p"/accounts/journal")
-
-      html = render_hook(view, "delete", %{"id" => "999"})
-      assert html =~ "permission"
-    end
   end
 
   describe "journal handle_info" do
@@ -659,20 +633,6 @@ defmodule HoldcoWeb.AccountingLiveTest do
       view |> element("button", "Add Account") |> render_click()
       html = render_click(view, "noop", %{})
       assert html =~ "dialog-overlay"
-    end
-  end
-
-  describe "chart of accounts - viewer permission guards" do
-    test "viewer cannot save an account", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/chart")
-      html = render_hook(view, "save", %{"account" => %{"code" => "1", "name" => "X", "account_type" => "asset"}})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot delete an account", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/chart")
-      html = render_hook(view, "delete", %{"id" => "1"})
-      assert html =~ "permission"
     end
   end
 

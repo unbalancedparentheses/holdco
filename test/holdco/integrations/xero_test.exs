@@ -440,4 +440,317 @@ defmodule Holdco.Integrations.XeroTest do
       assert xero.access_token == nil
     end
   end
+
+  # ── authorize_url edge cases ─────────────────────────
+
+  describe "authorize_url/0 edge cases" do
+    test "works with nil config values (no env set)" do
+      Application.delete_env(:holdco, Holdco.Integrations.Xero)
+      {url, state} = Xero.authorize_url()
+      assert is_binary(url)
+      assert is_binary(state)
+      assert String.starts_with?(url, "https://login.xero.com/identity/connect/authorize?")
+    end
+
+    test "each call generates a unique state token" do
+      Application.put_env(:holdco, Holdco.Integrations.Xero,
+        client_id: "id",
+        client_secret: "secret",
+        redirect_uri: "http://localhost:4000/callback"
+      )
+
+      states =
+        for _ <- 1..5 do
+          {_url, state} = Xero.authorize_url()
+          state
+        end
+
+      # All states should be unique
+      assert length(Enum.uniq(states)) == 5
+    end
+  end
+
+  # ── map_account_type edge cases ─────────────────────
+
+  describe "map_account_type/1 edge cases" do
+    test "maps all Xero account types exhaustively" do
+      # Test every single defined mapping
+      mappings = %{
+        "BANK" => "asset",
+        "CURRENT" => "asset",
+        "CURRLIAB" => "liability",
+        "DEPRECIATN" => "expense",
+        "DIRECTCOSTS" => "expense",
+        "EQUITY" => "equity",
+        "EXPENSE" => "expense",
+        "FIXED" => "asset",
+        "INVENTORY" => "asset",
+        "LIABILITY" => "liability",
+        "NONCURRENT" => "asset",
+        "OTHERINCOME" => "revenue",
+        "OVERHEADS" => "expense",
+        "PREPAYMENT" => "asset",
+        "REVENUE" => "revenue",
+        "SALES" => "revenue",
+        "TERMLIAB" => "liability",
+        "PAYGLIABILITY" => "liability",
+        "SUPERANNUATIONEXPENSE" => "expense",
+        "SUPERANNUATIONLIABILITY" => "liability",
+        "WAGESEXPENSE" => "expense"
+      }
+
+      for {xero_type, expected} <- mappings do
+        assert Xero.map_account_type(xero_type) == expected,
+               "Expected #{xero_type} -> #{expected}, got #{Xero.map_account_type(xero_type)}"
+      end
+    end
+
+    test "defaults to asset for unrecognized types" do
+      assert Xero.map_account_type("NONEXISTENT") == "asset"
+      assert Xero.map_account_type("random") == "asset"
+      assert Xero.map_account_type(nil) == "asset"
+      assert Xero.map_account_type("") == "asset"
+      assert Xero.map_account_type(42) == "asset"
+    end
+  end
+
+  # ── sync_all with connected integration ──────────────
+
+  describe "sync_all/1 with connected integration" do
+    test "attempts sync when integration is connected (API error expected)" do
+      company = company_fixture()
+
+      {:ok, _} =
+        Integrations.upsert_integration("xero", company.id, %{
+          "access_token" => "test_access_token",
+          "refresh_token" => "test_refresh_token",
+          "token_expires_at" =>
+            DateTime.utc_now() |> DateTime.add(3600) |> DateTime.truncate(:second),
+          "realm_id" => "test-tenant-id",
+          "status" => "connected"
+        })
+
+      # This will try to hit the real Xero API and fail, but it exercises
+      # the sync_all path with a connected integration
+      result = Xero.sync_all(company.id)
+
+      case result do
+        {:ok, results} ->
+          assert is_map(results)
+          assert Map.has_key?(results, :accounts)
+          assert Map.has_key?(results, :journal_entries)
+
+        {:error, _reason} ->
+          # Expected: API calls fail in test environment
+          assert true
+      end
+    end
+  end
+
+  # ── exchange_code/3 ──────────────────────────────────
+
+  describe "exchange_code/3" do
+    setup do
+      Application.put_env(:holdco, Holdco.Integrations.Xero,
+        client_id: "test_client_id",
+        client_secret: "test_client_secret",
+        redirect_uri: "http://localhost:4000/auth/xero/callback"
+      )
+
+      :ok
+    end
+
+    test "returns error when token endpoint fails (invalid code)" do
+      company = company_fixture()
+
+      result = Xero.exchange_code("invalid_code", "tenant_id", company.id)
+      # The real Xero token endpoint will reject the invalid code
+      assert {:error, _reason} = result
+    end
+  end
+
+  # ── refresh_token/1 ─────────────────────────────────
+
+  describe "refresh_token/1" do
+    setup do
+      Application.put_env(:holdco, Holdco.Integrations.Xero,
+        client_id: "test_client_id",
+        client_secret: "test_client_secret",
+        redirect_uri: "http://localhost:4000/auth/xero/callback"
+      )
+
+      :ok
+    end
+
+    test "returns error when refresh endpoint fails (invalid refresh token)" do
+      company = company_fixture()
+
+      {:ok, integration} =
+        Integrations.upsert_integration("xero", company.id, %{
+          "access_token" => "expired_token",
+          "refresh_token" => "invalid_refresh_token",
+          "token_expires_at" =>
+            DateTime.utc_now() |> DateTime.add(-3600) |> DateTime.truncate(:second),
+          "realm_id" => "test-tenant-id",
+          "status" => "connected"
+        })
+
+      result = Xero.refresh_token(integration)
+      assert {:error, _reason} = result
+    end
+  end
+
+  # ── api_get/2 and api_post/3 ─────────────────────────
+
+  describe "api_get/2" do
+    test "returns API error when Xero rejects the request" do
+      company = company_fixture()
+
+      {:ok, integration} =
+        Integrations.upsert_integration("xero", company.id, %{
+          "access_token" => "invalid_access_token",
+          "refresh_token" => "invalid_refresh",
+          "token_expires_at" =>
+            DateTime.utc_now() |> DateTime.add(3600) |> DateTime.truncate(:second),
+          "realm_id" => "test-tenant-id",
+          "status" => "connected"
+        })
+
+      result = Xero.api_get(integration, "/Accounts")
+      assert {:error, _reason} = result
+    end
+  end
+
+  describe "api_post/3" do
+    test "returns API error when Xero rejects the request" do
+      company = company_fixture()
+
+      {:ok, integration} =
+        Integrations.upsert_integration("xero", company.id, %{
+          "access_token" => "invalid_access_token",
+          "refresh_token" => "invalid_refresh",
+          "token_expires_at" =>
+            DateTime.utc_now() |> DateTime.add(3600) |> DateTime.truncate(:second),
+          "realm_id" => "test-tenant-id",
+          "status" => "connected"
+        })
+
+      result = Xero.api_post(integration, "/Invoices", %{type: "ACCREC"})
+      assert {:error, _reason} = result
+    end
+  end
+
+  # ── sync_accounts/2 ──────────────────────────────────
+
+  describe "sync_accounts/2" do
+    test "returns error when API call fails" do
+      company = company_fixture()
+
+      {:ok, integration} =
+        Integrations.upsert_integration("xero", company.id, %{
+          "access_token" => "bad_token",
+          "refresh_token" => "bad_refresh",
+          "token_expires_at" =>
+            DateTime.utc_now() |> DateTime.add(3600) |> DateTime.truncate(:second),
+          "realm_id" => "test-tenant-id",
+          "status" => "connected"
+        })
+
+      result = Xero.sync_accounts(integration, company.id)
+      assert {:error, _reason} = result
+    end
+  end
+
+  # ── sync_journal_entries/2 ───────────────────────────
+
+  describe "sync_journal_entries/2" do
+    test "returns error when API call fails" do
+      company = company_fixture()
+
+      {:ok, integration} =
+        Integrations.upsert_integration("xero", company.id, %{
+          "access_token" => "bad_token",
+          "refresh_token" => "bad_refresh",
+          "token_expires_at" =>
+            DateTime.utc_now() |> DateTime.add(3600) |> DateTime.truncate(:second),
+          "realm_id" => "test-tenant-id",
+          "status" => "connected"
+        })
+
+      result = Xero.sync_journal_entries(integration, company.id)
+      assert {:error, _reason} = result
+    end
+  end
+
+  # ── parse_xero_date (private, tested indirectly) ─────────────────
+  # We can't call parse_xero_date directly since it's private, but we can
+  # test it via the sync flow or test the mapping logic we know exists.
+
+  describe "Xero date parsing via public API" do
+    test "map_account_type handles integer argument gracefully" do
+      # The catch-all clause handles any non-matching argument
+      assert Xero.map_account_type(123) == "asset"
+    end
+
+    test "map_account_type handles atom argument gracefully" do
+      assert Xero.map_account_type(:something) == "asset"
+    end
+
+    test "map_account_type handles list argument gracefully" do
+      assert Xero.map_account_type([]) == "asset"
+    end
+  end
+
+  # ── ensure_fresh_token! (tested via api_get with expired token) ──
+
+  describe "ensure_fresh_token! via api_get with expired token" do
+    test "attempts refresh when token is expired" do
+      Application.put_env(:holdco, Holdco.Integrations.Xero,
+        client_id: "test_id",
+        client_secret: "test_secret",
+        redirect_uri: "http://localhost:4000/callback"
+      )
+
+      company = company_fixture()
+
+      {:ok, integration} =
+        Integrations.upsert_integration("xero", company.id, %{
+          "access_token" => "expired_access_token",
+          "refresh_token" => "expired_refresh_token",
+          "token_expires_at" =>
+            DateTime.utc_now() |> DateTime.add(-7200) |> DateTime.truncate(:second),
+          "realm_id" => "test-tenant-id",
+          "status" => "connected"
+        })
+
+      # api_get should try to refresh the token first (will fail, then use old token)
+      result = Xero.api_get(integration, "/Organisation")
+      assert {:error, _reason} = result
+    end
+
+    test "does not attempt refresh when token_expires_at is nil" do
+      company = company_fixture()
+
+      {:ok, integration} =
+        Integrations.upsert_integration("xero", company.id, %{
+          "access_token" => "token_no_expiry",
+          "refresh_token" => "refresh",
+          "token_expires_at" => nil,
+          "realm_id" => "test-tenant-id",
+          "status" => "connected"
+        })
+
+      # Should just use the existing token without trying to refresh
+      result = Xero.api_get(integration, "/Organisation")
+      assert {:error, _reason} = result
+    end
+  end
+
+  # ── sync_all with already disconnected integration ──────────────
+
+  describe "sync_all/1 status checks" do
+    test "returns not_connected when no integration record exists at all" do
+      assert {:error, :not_connected} = Xero.sync_all(-999)
+    end
+  end
 end

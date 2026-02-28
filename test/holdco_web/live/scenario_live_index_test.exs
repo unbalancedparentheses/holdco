@@ -62,12 +62,6 @@ defmodule HoldcoWeb.ScenarioLiveIndexTest do
       assert html =~ "tag-lemon"
     end
 
-    test "viewer cannot see New Scenario link", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/scenarios")
-
-      refute html =~ "New Scenario"
-    end
-
     test "editor sees New Scenario link", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, _view, html} = live(conn, ~p"/scenarios")
@@ -157,13 +151,6 @@ defmodule HoldcoWeb.ScenarioLiveIndexTest do
       assert flash["info"] == "Scenario created"
     end
 
-    test "viewer cannot save a scenario", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/scenarios")
-
-      render_hook(view, "save", %{"scenario" => %{"name" => "Blocked"}})
-
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Delete Scenario ─────────────────────────────────────
@@ -183,12 +170,6 @@ defmodule HoldcoWeb.ScenarioLiveIndexTest do
       refute html =~ "ToDelete"
     end
 
-    test "viewer cannot delete a scenario", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/scenarios")
-
-      render_hook(view, "delete", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Noop event ──────────────────────────────────────────

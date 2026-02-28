@@ -44,7 +44,7 @@ defmodule HoldcoWeb.HoldingsLiveShowTest do
       holding = holding_fixture()
       {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
 
-      assert html =~ "Back to Holdings"
+      assert html =~ "Back to Positions"
       assert html =~ "/holdings"
     end
 

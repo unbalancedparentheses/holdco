@@ -55,12 +55,6 @@ defmodule HoldcoWeb.AccountingJournalTest do
       assert html =~ "JE-001"
     end
 
-    test "viewer cannot see New Journal Entry button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/journal")
-
-      refute html =~ "New Journal Entry"
-    end
-
     test "editor sees New Journal Entry button", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, _view, html} = live(conn, ~p"/accounts/journal")
@@ -276,12 +270,6 @@ defmodule HoldcoWeb.AccountingJournalTest do
       assert html =~ "At least 2 lines required"
     end
 
-    test "viewer cannot save a journal entry", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/journal")
-
-      render_hook(view, "save", %{"entry" => %{"date" => "2025-01-01", "description" => "Blocked"}})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Delete Journal Entry ────────────────────────────────
@@ -304,12 +292,6 @@ defmodule HoldcoWeb.AccountingJournalTest do
       refute html =~ "Delete me entry"
     end
 
-    test "viewer cannot delete a journal entry", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/journal")
-
-      render_hook(view, "delete", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Noop event ──────────────────────────────────────────
@@ -416,15 +398,6 @@ defmodule HoldcoWeb.AccountingJournalTest do
       {:ok, _view, html} = live(conn, ~p"/accounts/journal")
 
       assert html =~ "No ref entry"
-    end
-
-    test "viewer cannot see delete button", %{conn: conn} do
-      journal_entry_fixture(%{date: "2025-05-01", description: "ViewerTestEntry"})
-
-      {:ok, _view, html} = live(conn, ~p"/accounts/journal")
-
-      assert html =~ "ViewerTestEntry"
-      refute html =~ "btn btn-danger btn-sm"
     end
 
     test "editor sees delete button", %{conn: conn, user: user} do

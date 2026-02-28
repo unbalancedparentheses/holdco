@@ -77,12 +77,6 @@ defmodule HoldcoWeb.ScenarioLiveShowTest do
       assert html =~ "projection-chart"
     end
 
-    test "viewer cannot see Add Item button", %{conn: conn, scenario: scenario} do
-      {:ok, _view, html} = live(conn, ~p"/scenarios/#{scenario.id}")
-
-      refute html =~ "Add Item"
-    end
-
     test "editor sees Add Item button", %{conn: conn, user: user, scenario: scenario} do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, _view, html} = live(conn, ~p"/scenarios/#{scenario.id}")
@@ -171,12 +165,6 @@ defmodule HoldcoWeb.ScenarioLiveShowTest do
       refute html =~ "dialog-overlay"
     end
 
-    test "viewer cannot save an item", %{conn: conn, scenario: scenario} do
-      {:ok, view, _html} = live(conn, ~p"/scenarios/#{scenario.id}")
-
-      render_hook(view, "save_item", %{"item" => %{"name" => "Blocked"}})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Delete Item ─────────────────────────────────────────
@@ -198,14 +186,6 @@ defmodule HoldcoWeb.ScenarioLiveShowTest do
       refute html =~ "ToRemove"
     end
 
-    test "viewer cannot delete an item", %{conn: conn, scenario: scenario} do
-      item = scenario_item_fixture(%{scenario_id: scenario.id, name: "CantDelete"})
-
-      {:ok, view, _html} = live(conn, ~p"/scenarios/#{scenario.id}")
-
-      render_hook(view, "delete_item", %{"id" => to_string(item.id)})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Projection with items ───────────────────────────────

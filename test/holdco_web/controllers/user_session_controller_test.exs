@@ -25,7 +25,7 @@ defmodule HoldcoWeb.UserSessionControllerTest do
         |> html_response(200)
 
       assert html =~ "Re-authenticate"
-      refute html =~ "Register"
+      refute html =~ "Sign up"
       assert html =~ "Log in with email"
 
       assert html =~

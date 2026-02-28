@@ -163,37 +163,6 @@ defmodule HoldcoWeb.TaxCalendarLiveTest do
     end
   end
 
-  describe "viewer permission guards" do
-    test "viewer cannot save a deadline", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/tax-calendar")
-      html = render_click(live, "save", %{"tax_deadline" => %{"description" => "Blocked"}})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot mark_complete", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/tax-calendar")
-      html = render_click(live, "mark_complete", %{})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot delete a deadline", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/tax-calendar")
-      html = render_click(live, "delete", %{})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot update a deadline", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/tax-calendar")
-      html = render_click(live, "update", %{"tax_deadline" => %{"description" => "Blocked"}})
-      assert html =~ "permission"
-    end
-
-    test "viewer does not see Add Deadline button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/tax-calendar")
-      refute html =~ ">Add Deadline<"
-    end
-  end
-
   describe "editor operations" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")

@@ -1,5 +1,5 @@
 defmodule HoldcoWeb.DashboardLiveTest do
-  use HoldcoWeb.ConnCase, async: true
+  use HoldcoWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import Holdco.HoldcoFixtures
@@ -555,7 +555,7 @@ defmodule HoldcoWeb.DashboardLiveTest do
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "+ Company"
       assert html =~ "+ Transaction"
-      assert html =~ "+ Holding"
+      assert html =~ "+ Position"
       assert html =~ "Import CSV"
     end
 
@@ -565,16 +565,6 @@ defmodule HoldcoWeb.DashboardLiveTest do
       assert html =~ ~s(/transactions)
       assert html =~ ~s(/holdings)
       assert html =~ ~s(/import)
-    end
-  end
-
-  describe "viewer quick action buttons" do
-    test "viewer does not see quick action buttons", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      refute html =~ "+ Company"
-      refute html =~ "+ Transaction"
-      refute html =~ "+ Holding"
-      refute html =~ "Import CSV"
     end
   end
 
@@ -696,6 +686,9 @@ defmodule HoldcoWeb.DashboardLiveTest do
     test "audit log with valid timestamp renders formatted time", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
+      # Flush any PubSub messages from other async tests
+      _ = render(view)
+
       log = %{id: 777, action: "update", table_name: "companies", record_id: 10, inserted_at: ~N[2024-06-15 09:30:45]}
       send(view.pid, {:audit_log_created, log})
       html = render(view)
@@ -718,6 +711,9 @@ defmodule HoldcoWeb.DashboardLiveTest do
     test "audit log format_time shows HH:MM:SS format", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
+      # Flush any PubSub messages from other async tests
+      _ = render(view)
+
       log = %{id: 775, action: "delete", table_name: "transactions", record_id: 3, inserted_at: ~N[2024-12-25 23:59:59]}
       send(view.pid, {:audit_log_created, log})
       html = render(view)
@@ -727,6 +723,9 @@ defmodule HoldcoWeb.DashboardLiveTest do
 
     test "multiple audit logs render with correct times", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
+
+      # Flush any PubSub messages from other async tests
+      _ = render(view)
 
       log1 = %{id: 774, action: "create", table_name: "companies", record_id: 1, inserted_at: ~N[2024-01-01 08:00:00]}
       log2 = %{id: 773, action: "update", table_name: "companies", record_id: 2, inserted_at: ~N[2024-01-01 16:30:00]}

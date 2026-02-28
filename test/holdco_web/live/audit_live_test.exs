@@ -1,5 +1,5 @@
 defmodule HoldcoWeb.AuditLiveTest do
-  use HoldcoWeb.ConnCase, async: true
+  use HoldcoWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import Holdco.HoldcoFixtures
@@ -301,13 +301,15 @@ defmodule HoldcoWeb.AuditLiveTest do
       })
       |> render_submit()
 
-      # Simulate a matching broadcast
-      {:ok, log} = Holdco.Platform.create_audit_log(%{
+      # Simulate a matching broadcast (build struct directly to avoid PubSub cross-test interference)
+      log = %{
+        id: System.unique_integer([:positive]),
         action: "create",
         table_name: "holdings",
         record_id: 55,
-        details: "Filtered realtime"
-      })
+        details: "Filtered realtime",
+        inserted_at: DateTime.utc_now()
+      }
 
       send(view.pid, {:audit_log_created, log})
 
@@ -325,13 +327,15 @@ defmodule HoldcoWeb.AuditLiveTest do
       })
       |> render_submit()
 
-      # Simulate a NON-matching broadcast (action=create)
-      {:ok, log} = Holdco.Platform.create_audit_log(%{
+      # Simulate a NON-matching broadcast (action=create, but filter is "delete")
+      log = %{
+        id: System.unique_integer([:positive]),
         action: "create",
         table_name: "holdings",
         record_id: 56,
-        details: "Should not appear"
-      })
+        details: "Should not appear",
+        inserted_at: DateTime.utc_now()
+      }
 
       send(view.pid, {:audit_log_created, log})
 
@@ -362,13 +366,15 @@ defmodule HoldcoWeb.AuditLiveTest do
       })
       |> render_submit()
 
-      # Simulate a matching broadcast
-      {:ok, log} = Holdco.Platform.create_audit_log(%{
+      # Simulate a matching broadcast (build struct directly to avoid PubSub cross-test interference)
+      log = %{
+        id: System.unique_integer([:positive]),
         action: "create",
         table_name: "holdings",
         record_id: 77,
-        details: "Holdings filter match"
-      })
+        details: "Holdings filter match",
+        inserted_at: DateTime.utc_now()
+      }
 
       send(view.pid, {:audit_log_created, log})
 
@@ -386,13 +392,15 @@ defmodule HoldcoWeb.AuditLiveTest do
       })
       |> render_submit()
 
-      # Simulate a non-matching broadcast (table_name=holdings)
-      {:ok, log} = Holdco.Platform.create_audit_log(%{
+      # Simulate a non-matching broadcast (table_name=holdings, but filter is "companies")
+      log = %{
+        id: System.unique_integer([:positive]),
         action: "create",
         table_name: "holdings",
         record_id: 78,
-        details: "Should not show for companies filter"
-      })
+        details: "Should not show for companies filter",
+        inserted_at: DateTime.utc_now()
+      }
 
       send(view.pid, {:audit_log_created, log})
 
@@ -412,12 +420,14 @@ defmodule HoldcoWeb.AuditLiveTest do
       })
       |> render_submit()
 
-      {:ok, log} = Holdco.Platform.create_audit_log(%{
+      log = %{
+        id: System.unique_integer([:positive]),
         action: "create",
         table_name: "test",
         record_id: 80,
-        details: "After from date"
-      })
+        details: "After from date",
+        inserted_at: DateTime.utc_now()
+      }
 
       send(view.pid, {:audit_log_created, log})
 
@@ -435,12 +445,14 @@ defmodule HoldcoWeb.AuditLiveTest do
       })
       |> render_submit()
 
-      {:ok, log} = Holdco.Platform.create_audit_log(%{
+      log = %{
+        id: System.unique_integer([:positive]),
         action: "create",
         table_name: "test",
         record_id: 81,
-        details: "Too recent for old to filter"
-      })
+        details: "Too recent for old to filter",
+        inserted_at: DateTime.utc_now()
+      }
 
       send(view.pid, {:audit_log_created, log})
 
@@ -470,12 +482,14 @@ defmodule HoldcoWeb.AuditLiveTest do
       })
       |> render_submit()
 
-      {:ok, log} = Holdco.Platform.create_audit_log(%{
+      log = %{
+        id: System.unique_integer([:positive]),
         action: "create",
         table_name: "test",
         record_id: 82,
-        details: "Invalid from date entry"
-      })
+        details: "Invalid from date entry",
+        inserted_at: DateTime.utc_now()
+      }
 
       send(view.pid, {:audit_log_created, log})
 
@@ -493,12 +507,14 @@ defmodule HoldcoWeb.AuditLiveTest do
       })
       |> render_submit()
 
-      {:ok, log} = Holdco.Platform.create_audit_log(%{
+      log = %{
+        id: System.unique_integer([:positive]),
         action: "create",
         table_name: "test",
         record_id: 83,
-        details: "Invalid to date entry"
-      })
+        details: "Invalid to date entry",
+        inserted_at: DateTime.utc_now()
+      }
 
       send(view.pid, {:audit_log_created, log})
 

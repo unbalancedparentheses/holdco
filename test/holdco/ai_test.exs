@@ -561,14 +561,59 @@ defmodule Holdco.AITest do
     end
   end
 
-  # ── DataContext formatting helpers ─────────────────
+  # ── chat/2 when configured (error path — no real API call) ──
 
-  describe "DataContext format_num/1 (via build_summary internals)" do
-    # We test the format_num helper indirectly through the module's public API.
-    # Since build_summary hits upstream bugs, we test the Conversation schema
-    # and Message schema formatting instead (covered above). The DataContext
-    # formatting functions are private and validated through integration tests
-    # once the upstream Portfolio.calculate_nav bug is fixed.
+  describe "chat/2 when configured with invalid key" do
+    setup do
+      Platform.upsert_setting("llm_provider", "anthropic")
+      Platform.upsert_setting("llm_api_key", "sk-invalid-key-for-testing")
+      Platform.upsert_setting("llm_model", "claude-sonnet-4-20250514")
+      :ok
+    end
+
+    test "attempts to call LLM and returns an error tuple (network failure)" do
+      result = AI.chat([%{"role" => "user", "content" => "Hello"}])
+      # In test env, Req.post will fail because the API key is invalid or network is unavailable
+      assert {:error, _reason} = result
+    end
+
+    test "accepts custom system_prompt option" do
+      result = AI.chat(
+        [%{"role" => "user", "content" => "Hi"}],
+        system_prompt: "You are a test bot."
+      )
+      assert {:error, _reason} = result
+    end
+  end
+
+  # ── generate_insights/1 when configured ──
+
+  describe "generate_insights/1 when configured with invalid key" do
+    setup do
+      Platform.upsert_setting("llm_provider", "openai")
+      Platform.upsert_setting("llm_api_key", "sk-invalid-key-for-testing")
+      :ok
+    end
+
+    test "attempts to call LLM and returns an error tuple" do
+      result = AI.generate_insights("Some portfolio data context")
+      assert {:error, _reason} = result
+    end
+  end
+
+  # ── test_connection/0 when configured ──
+
+  describe "test_connection/0 when configured with invalid key" do
+    setup do
+      Platform.upsert_setting("llm_provider", "anthropic")
+      Platform.upsert_setting("llm_api_key", "sk-invalid-key-for-testing")
+      :ok
+    end
+
+    test "attempts to call LLM and returns an error tuple" do
+      result = AI.test_connection()
+      assert {:error, _reason} = result
+    end
   end
 
   # ── LLMClient (no real HTTP calls) ─────────────────
@@ -578,12 +623,27 @@ defmodule Holdco.AITest do
       assert {:error, msg} = Holdco.AI.LLMClient.call(:unknown, [], %{})
       assert msg =~ "Unknown provider"
     end
+
+    test "includes provider name in error message" do
+      assert {:error, msg} = Holdco.AI.LLMClient.call(:gemini, [], %{})
+      assert msg =~ "gemini"
+    end
   end
 
-  describe "LLMClient.test_connection/3 with unknown provider" do
-    test "returns error" do
+  describe "LLMClient.test_connection/3" do
+    test "returns error for unknown provider" do
       assert {:error, "Unknown provider"} =
                Holdco.AI.LLMClient.test_connection(:unknown, "key", "model")
+    end
+
+    test "anthropic test_connection with invalid key returns error" do
+      result = Holdco.AI.LLMClient.test_connection(:anthropic, "sk-invalid", "claude-sonnet-4-20250514")
+      assert {:error, _reason} = result
+    end
+
+    test "openai test_connection with invalid key returns error" do
+      result = Holdco.AI.LLMClient.test_connection(:openai, "sk-invalid", "gpt-4")
+      assert {:error, _reason} = result
     end
   end
 

@@ -215,7 +215,8 @@ defmodule HoldcoWeb.NotificationsLiveTest do
     test "notifications nav link is highlighted", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/notifications")
 
-      assert html =~ ~r/nav-util-link\s+active/
+      assert html =~ ~s(class="active")
+      assert html =~ "Notifications"
     end
   end
 

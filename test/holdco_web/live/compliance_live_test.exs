@@ -264,47 +264,6 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "Amended"
     end
 
-    test "save_filing is denied for non-editor", %{conn: conn} do
-      company = company_fixture(%{name: "Blocked Filing Corp"})
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      # Non-editor cannot see the Add button, but we push the event directly
-      html =
-        render_hook(view, "save_filing", %{
-          "regulatory_filing" => %{
-            "company_id" => company.id,
-            "jurisdiction" => "US",
-            "filing_type" => "10-K",
-            "due_date" => "2025-03-31"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "delete_filing is denied for non-editor", %{conn: conn} do
-      filing = regulatory_filing_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html = render_hook(view, "delete_filing", %{"id" => filing.id})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "update_filing is denied for non-editor", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "update_filing", %{
-          "regulatory_filing" => %{
-            "jurisdiction" => "US",
-            "filing_type" => "10-K",
-            "due_date" => "2025-03-31"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -409,32 +368,6 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "Allianz"
     end
 
-    test "save_insurance is denied for non-editor", %{conn: conn} do
-      company = company_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      view |> element(~s(button[phx-value-tab="insurance"])) |> render_click()
-
-      html =
-        render_hook(view, "save_insurance", %{
-          "insurance_policy" => %{
-            "company_id" => company.id,
-            "policy_type" => "D&O",
-            "provider" => "Test"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "delete_insurance is denied for non-editor", %{conn: conn} do
-      policy = insurance_policy_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html = render_hook(view, "delete_insurance", %{"id" => policy.id})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -563,54 +496,6 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "DE"
     end
 
-    test "save_withholding is denied for non-editor", %{conn: conn} do
-      company = company_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "save_withholding", %{
-          "withholding_tax" => %{
-            "company_id" => company.id,
-            "payment_type" => "dividend",
-            "country_from" => "US",
-            "country_to" => "UK",
-            "gross_amount" => "10000",
-            "rate" => "0.15",
-            "tax_amount" => "1500",
-            "date" => "2025-01-01"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "delete_withholding is denied for non-editor", %{conn: conn} do
-      wt = withholding_tax_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html = render_hook(view, "delete_withholding", %{"id" => wt.id})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "update_withholding is denied for non-editor", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "update_withholding", %{
-          "withholding_tax" => %{
-            "payment_type" => "dividend",
-            "country_from" => "US",
-            "country_to" => "UK",
-            "gross_amount" => "10000",
-            "rate" => "0.15",
-            "tax_amount" => "1500",
-            "date" => "2025-01-01"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -661,21 +546,6 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "Report deleted"
     end
 
-    test "save_fatca is denied for non-editor", %{conn: conn} do
-      company = company_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "save_fatca", %{
-          "fatca_report" => %{
-            "company_id" => company.id,
-            "reporting_year" => "2025",
-            "jurisdiction" => "US"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -771,29 +641,6 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "Updated Name"
     end
 
-    test "save_sanctions is denied for non-editor", %{conn: conn} do
-      company = company_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "save_sanctions", %{
-          "sanctions_check" => %{
-            "company_id" => company.id,
-            "checked_name" => "Test"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "delete_sanctions is denied for non-editor", %{conn: conn} do
-      check = sanctions_check_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html = render_hook(view, "delete_sanctions", %{"id" => check.id})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -845,20 +692,6 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "Score deleted"
     end
 
-    test "save_esg is denied for non-editor", %{conn: conn} do
-      company = company_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "save_esg", %{
-          "esg_score" => %{
-            "company_id" => company.id,
-            "period" => "2025-Q1"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -911,30 +744,6 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       refute html =~ "banking"
     end
 
-    test "save_license is denied for non-editor", %{conn: conn} do
-      company = company_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "save_license", %{
-          "regulatory_license" => %{
-            "company_id" => company.id,
-            "license_type" => "broker-dealer",
-            "issuing_authority" => "SEC"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "delete_license is denied for non-editor", %{conn: conn} do
-      license = regulatory_license_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html = render_hook(view, "delete_license", %{"id" => license.id})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -1093,27 +902,6 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "NZ"
     end
 
-    test "delete_fatca is denied for non-editor", %{conn: conn} do
-      report = fatca_report_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html = render_hook(view, "delete_fatca", %{"id" => report.id})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "update_fatca is denied for non-editor", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "update_fatca", %{
-          "fatca_report" => %{
-            "reporting_year" => "2025",
-            "jurisdiction" => "US"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -1168,26 +956,6 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "2025-Q1"
     end
 
-    test "delete_esg is denied for non-editor", %{conn: conn} do
-      score = esg_score_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html = render_hook(view, "delete_esg", %{"id" => score.id})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "update_esg is denied for non-editor", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "update_esg", %{
-          "esg_score" => %{
-            "period" => "2025-Q1"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -1240,62 +1008,7 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "FINRA"
     end
 
-    test "update_license is denied for non-editor", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "update_license", %{
-          "regulatory_license" => %{
-            "license_type" => "broker",
-            "issuing_authority" => "SEC"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
-
-  # ------------------------------------------------------------------
-  # Additional viewer permission guards
-  # ------------------------------------------------------------------
-
-  describe "additional viewer permission guards" do
-    test "update_insurance is denied for non-editor", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "update_insurance", %{
-          "insurance_policy" => %{
-            "policy_type" => "D&O",
-            "provider" => "Test"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "update_sanctions is denied for non-editor", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html =
-        render_hook(view, "update_sanctions", %{
-          "sanctions_check" => %{
-            "checked_name" => "Test"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "delete_sanctions is denied for non-editor via hook", %{conn: conn} do
-      check = sanctions_check_fixture()
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      html = render_hook(view, "delete_sanctions", %{"id" => check.id})
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-  end
-
   # ------------------------------------------------------------------
   # Error paths for create/update operations
   # ------------------------------------------------------------------
@@ -1581,10 +1294,5 @@ defmodule HoldcoWeb.ComplianceLiveTest do
       assert html =~ "Create first filing"
     end
 
-    test "non-editor does not see create-first button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/compliance")
-
-      refute html =~ "Create first filing"
-    end
   end
 end

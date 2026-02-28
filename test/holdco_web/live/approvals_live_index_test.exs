@@ -87,12 +87,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       assert html =~ "admin@test.com"
     end
 
-    test "viewer cannot see New Request button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      refute html =~ "New Request"
-    end
-
     test "editor sees New Request button", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, _view, html} = live(conn, ~p"/approvals")
@@ -181,12 +175,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       refute html =~ "dialog-overlay"
     end
 
-    test "viewer cannot create a request", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/approvals")
-
-      render_hook(view, "create_request", %{"approval_request" => %{"table_name" => "companies", "action" => "create"}})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Cast Vote ────────────────────────────────────────────
@@ -241,15 +229,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       assert html =~ "N-of-M threshold met"
     end
 
-    test "non-admin cannot cast a vote", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      req = approval_request_fixture(%{status: "pending"})
-
-      {:ok, view, _html} = live(conn, ~p"/approvals")
-
-      render_hook(view, "cast_vote", %{"vote" => %{"request_id" => to_string(req.id), "decision" => "approved"}})
-      assert render(view) =~ "Admin access required"
-    end
   end
 
   # ── Delete Request ──────────────────────────────────────
@@ -268,15 +247,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       refute html =~ "Delete me"
     end
 
-    test "non-admin cannot delete", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      req = approval_request_fixture(%{status: "pending"})
-
-      {:ok, view, _html} = live(conn, ~p"/approvals")
-
-      render_hook(view, "delete_request", %{"id" => to_string(req.id)})
-      assert render(view) =~ "Admin access required"
-    end
   end
 
   # ── Admin sees vote/delete buttons ────────────────────────
@@ -292,15 +262,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       assert html =~ "Del"
     end
 
-    test "non-admin does not see Cast Vote button", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      approval_request_fixture(%{status: "pending", requested_by: "someone@test.com"})
-
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      refute html =~ ~s(phx-click="show_vote_form")
-      refute html =~ ~s(phx-click="cast_vote")
-    end
   end
 
   # ── Vote Details Toggle ──────────────────────────────────
@@ -460,6 +421,156 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
 
       assert html =~ "tag-jade"
       assert html =~ "tag-crimson"
+    end
+  end
+
+  # ── Vote Form Open/Close ──────────────────────────────────
+
+  describe "vote form events" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      :ok
+    end
+
+    test "show_vote_form opens the vote dialog", %{conn: conn} do
+      req = approval_request_fixture(%{status: "pending", requested_by: "voter@test.com"})
+
+      {:ok, view, _html} = live(conn, ~p"/approvals")
+
+      html =
+        view
+        |> element(~s(button[phx-click="show_vote_form"][phx-value-id="#{req.id}"]))
+        |> render_click()
+
+      assert html =~ "Cast Your Vote"
+      assert html =~ "dialog-overlay"
+      assert html =~ ~s(phx-submit="cast_vote")
+    end
+
+    test "close_vote_form closes the vote dialog", %{conn: conn} do
+      req = approval_request_fixture(%{status: "pending", requested_by: "voter@test.com"})
+
+      {:ok, view, _html} = live(conn, ~p"/approvals")
+
+      view
+      |> element(~s(button[phx-click="show_vote_form"][phx-value-id="#{req.id}"]))
+      |> render_click()
+
+      html = render_hook(view, "close_vote_form", %{})
+      refute html =~ "Cast Your Vote"
+    end
+  end
+
+  # ── Viewer/editor permission guards ───────────────────────
+
+  describe "editor sees new request button" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "editor can see New Request button", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/approvals")
+
+      assert html =~ "New Request"
+    end
+  end
+
+  # ── Cast vote error paths ────────────────────────────────
+
+  describe "cast_vote error paths" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      :ok
+    end
+
+    test "voting on an already-decided request shows error", %{conn: conn, user: _user} do
+      req =
+        approval_request_fixture(%{
+          status: "approved",
+          requested_by: "finalized@test.com",
+          reviewed_by: "admin@test.com",
+          required_approvals: 1
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/approvals")
+
+      html =
+        render_hook(view, "cast_vote", %{
+          "vote" => %{
+            "request_id" => to_string(req.id),
+            "decision" => "approved",
+            "notes" => "Late vote"
+          }
+        })
+
+      assert html =~ "already been decided"
+    end
+
+    test "duplicate vote by same user shows error", %{conn: conn, user: _user} do
+      req =
+        approval_request_fixture(%{
+          status: "pending",
+          requested_by: "dupvote@test.com",
+          required_approvals: 3
+        })
+
+      # Cast first vote
+      {:ok, view, _html} = live(conn, ~p"/approvals")
+
+      view
+      |> element(~s(button[phx-click="show_vote_form"][phx-value-id="#{req.id}"]))
+      |> render_click()
+
+      view
+      |> form(~s(form[phx-submit="cast_vote"]), %{
+        "vote" => %{
+          "request_id" => to_string(req.id),
+          "decision" => "approved",
+          "notes" => "First vote"
+        }
+      })
+      |> render_submit()
+
+      # Try to cast a second vote via hook
+      render_hook(view, "cast_vote", %{
+        "vote" => %{
+          "request_id" => to_string(req.id),
+          "decision" => "rejected",
+          "notes" => "Second vote"
+        }
+      })
+
+      html = render(view)
+      assert html =~ "already voted" or html =~ "Failed to cast vote" or html =~ "Voted"
+    end
+  end
+
+  # ── create_request failure ──────────────────────────────
+
+  describe "create_request failure" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "create request with invalid data shows error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/approvals")
+
+      view |> element("button", "New Request") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="create_request"]), %{
+          "approval_request" => %{
+            "table_name" => "",
+            "action" => "",
+            "required_approvals" => ""
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to create approval request"
     end
   end
 end

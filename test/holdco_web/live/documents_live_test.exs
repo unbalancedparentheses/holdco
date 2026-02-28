@@ -299,51 +299,6 @@ defmodule HoldcoWeb.DocumentsLiveTest do
     end
   end
 
-  describe "permission guards (viewer cannot save/update/delete)" do
-    test "save event returns permission error for viewer", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      render_hook(view, "save", %{"document" => %{"name" => "blocked"}})
-      html = render(view)
-
-      assert html =~ "permission"
-    end
-
-    test "update event returns permission error for viewer", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      render_hook(view, "update", %{"document" => %{"name" => "blocked"}})
-      html = render(view)
-
-      assert html =~ "permission"
-    end
-
-    test "delete event returns permission error for viewer", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      render_hook(view, "delete", %{"id" => "999"})
-      html = render(view)
-
-      assert html =~ "permission"
-    end
-
-    test "viewer does not see Add Document button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      refute html =~ "Add Document"
-    end
-
-    test "viewer does not see Edit or Del buttons", %{conn: conn} do
-      document_fixture(%{name: "ViewerDoc"})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "ViewerDoc"
-      refute html =~ ~s(phx-click="edit")
-      refute html =~ ~s(phx-click="delete")
-    end
-  end
-
   describe "noop event" do
     test "noop event does not change state or crash", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/documents")

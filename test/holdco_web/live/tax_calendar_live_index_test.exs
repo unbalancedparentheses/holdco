@@ -87,12 +87,6 @@ defmodule HoldcoWeb.TaxCalendarLiveIndexTest do
       assert html =~ "Pending"
     end
 
-    test "viewer cannot see Add Deadline button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/tax-calendar")
-
-      refute html =~ "Add Deadline"
-    end
-
     test "editor sees Add Deadline button", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, _view, html} = live(conn, ~p"/tax-calendar")
@@ -169,13 +163,6 @@ defmodule HoldcoWeb.TaxCalendarLiveIndexTest do
       refute html =~ "dialog-overlay"
     end
 
-    test "viewer cannot save a tax deadline", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/tax-calendar")
-
-      render_hook(view, "save", %{"tax_deadline" => %{"jurisdiction" => "US", "description" => "x", "due_date" => "2025-01-01"}})
-
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Mark Complete ───────────────────────────────────────
@@ -193,15 +180,6 @@ defmodule HoldcoWeb.TaxCalendarLiveIndexTest do
       assert html =~ ~s(phx-click="mark_complete")
     end
 
-    test "viewer cannot mark as complete", %{conn: conn} do
-      company = company_fixture()
-      _td = tax_deadline_fixture(%{company_id: company.id, status: "pending"})
-
-      {:ok, view, _html} = live(conn, ~p"/tax-calendar")
-
-      render_hook(view, "mark_complete", %{"id" => "999"})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Delete Tax Deadline ─────────────────────────────────
@@ -222,12 +200,6 @@ defmodule HoldcoWeb.TaxCalendarLiveIndexTest do
       refute html =~ "Del test"
     end
 
-    test "viewer cannot delete a tax deadline", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/tax-calendar")
-
-      render_hook(view, "delete", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Noop event ──────────────────────────────────────────

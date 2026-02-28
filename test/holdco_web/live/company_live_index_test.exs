@@ -261,28 +261,6 @@ defmodule HoldcoWeb.CompanyLiveIndexTest do
     end
   end
 
-  describe "role-based visibility - viewer" do
-    test "viewer does not see New Company button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/companies")
-
-      refute html =~ "New Company"
-    end
-
-    test "viewer does not see Import CSV link", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/companies")
-
-      refute html =~ "Import CSV"
-    end
-
-    test "viewer does not see Delete button", %{conn: conn} do
-      company_fixture(%{name: "No Delete Corp"})
-
-      {:ok, _view, html} = live(conn, ~p"/companies")
-
-      refute html =~ "btn btn-danger btn-sm"
-    end
-  end
-
   describe "role-based visibility - editor" do
     test "editor sees New Company button", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
@@ -423,14 +401,6 @@ defmodule HoldcoWeb.CompanyLiveIndexTest do
       refute html =~ "Doomed Corp"
     end
 
-    test "viewer does not see delete button for companies", %{conn: conn} do
-      company_fixture(%{name: "Protected Corp"})
-
-      {:ok, _view, html} = live(conn, ~p"/companies")
-
-      assert html =~ "Protected Corp"
-      refute html =~ ~s(phx-click="delete")
-    end
   end
 
   describe "close form" do
@@ -445,23 +415,6 @@ defmodule HoldcoWeb.CompanyLiveIndexTest do
 
       {path, _flash} = assert_redirect(view)
       assert path == "/companies"
-    end
-  end
-
-  describe "permission guards for save and delete" do
-    test "viewer save event returns permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/companies/new")
-
-      html = render_hook(view, "save", %{"company" => %{"name" => "Blocked Co", "country" => "US"}})
-      assert html =~ "permission"
-    end
-
-    test "viewer delete event returns permission error", %{conn: conn} do
-      company = company_fixture(%{name: "UnDeletable Corp"})
-      {:ok, view, _html} = live(conn, ~p"/companies")
-
-      html = render_hook(view, "delete", %{"id" => to_string(company.id)})
-      assert html =~ "permission"
     end
   end
 

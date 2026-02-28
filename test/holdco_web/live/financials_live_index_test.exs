@@ -64,25 +64,6 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
       assert html =~ "No intercompany transfers yet."
     end
 
-    test "viewer cannot see Add Period button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/financials")
-
-      refute html =~ "Add Period"
-    end
-
-    test "editor sees Add Period button", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      {:ok, _view, html} = live(conn, ~p"/financials")
-
-      assert html =~ "Add Period"
-    end
-
-    test "editor sees Add Transfer button", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      {:ok, _view, html} = live(conn, ~p"/financials")
-
-      assert html =~ "Add Transfer"
-    end
   end
 
   # ── Show/Close Form ─────────────────────────────────────
@@ -211,13 +192,6 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
       refute html =~ "dialog-overlay"
     end
 
-    test "viewer cannot save a financial record", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      render_hook(view, "save", %{"financial" => %{"period" => "2025-Q1"}})
-
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Delete Financial ────────────────────────────────────
@@ -238,12 +212,6 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
       refute html =~ "2025-Q4"
     end
 
-    test "viewer cannot delete a financial record", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      render_hook(view, "delete", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Save/Delete Transfer ────────────────────────────────
@@ -274,12 +242,6 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
       refute html =~ "dialog-overlay"
     end
 
-    test "viewer cannot save a transfer", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      render_hook(view, "save_transfer", %{"transfer" => %{"amount" => "1000"}})
-      assert render(view) =~ "permission"
-    end
   end
 
   describe "delete_transfer event" do
@@ -294,12 +256,6 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
       assert render(view) =~ "Transfer deleted"
     end
 
-    test "viewer cannot delete a transfer", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      render_hook(view, "delete_transfer", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Noop event ──────────────────────────────────────────

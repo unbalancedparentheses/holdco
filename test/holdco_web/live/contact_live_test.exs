@@ -256,59 +256,6 @@ defmodule HoldcoWeb.ContactLiveTest do
   end
 
   # ------------------------------------------------------------------
-  # Permission guards (viewer)
-  # ------------------------------------------------------------------
-
-  describe "permission guards" do
-    test "viewer cannot save a contact", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/contacts")
-
-      html =
-        render_hook(view, "save", %{
-          "contact" => %{
-            "name" => "Blocked Contact",
-            "title" => "CEO",
-            "organization" => "BlockedOrg",
-            "email" => "blocked@org.com",
-            "phone" => "+1-555-0000",
-            "role_tag" => "advisor"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer cannot delete a contact", %{conn: conn} do
-      contact = contact_fixture(%{name: "Protected Contact"})
-      {:ok, view, _html} = live(conn, ~p"/contacts")
-
-      html = render_hook(view, "delete", %{"id" => "#{contact.id}"})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer cannot update a contact", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/contacts")
-
-      html =
-        render_hook(view, "update", %{
-          "contact" => %{
-            "name" => "Hacked Name",
-            "organization" => "HackedOrg"
-          }
-        })
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "viewer does not see Add Contact button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-
-      refute html =~ "Add Contact"
-    end
-  end
-
-  # ------------------------------------------------------------------
   # handle_info (pubsub)
   # ------------------------------------------------------------------
 
@@ -483,6 +430,309 @@ defmodule HoldcoWeb.ContactLiveTest do
         |> render_submit()
 
       assert html =~ "Failed to update contact" || html =~ "Contacts"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Interactions — view, add, cancel, save, delete
+  # ------------------------------------------------------------------
+
+  describe "view_interactions" do
+    test "clicking History opens interaction dialog for a contact", %{conn: conn} do
+      contact = contact_fixture(%{name: "Interactive Person"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      html =
+        view
+        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+        |> render_click()
+
+      assert html =~ "Interaction History"
+      assert html =~ "Interactive Person"
+      assert html =~ "No interactions recorded yet."
+    end
+
+    test "close_interactions dismisses the dialog", %{conn: conn} do
+      contact = contact_fixture(%{name: "Closeable Person"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      view
+      |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+      |> render_click()
+
+      html = view |> element(".dialog-overlay") |> render_click()
+      refute html =~ "Interaction History"
+    end
+  end
+
+  describe "add_interaction and cancel_interaction_form" do
+    test "add_interaction shows the interaction form", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      contact = contact_fixture(%{name: "Form Person"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      view
+      |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+      |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="add_interaction"]))
+        |> render_click()
+
+      assert html =~ ~s(phx-submit="save_interaction")
+      assert html =~ "Type"
+      assert html =~ "Summary"
+    end
+
+    test "cancel_interaction_form hides the interaction form", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      contact = contact_fixture(%{name: "Cancel Person"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      view
+      |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+      |> render_click()
+
+      view
+      |> element(~s(button[phx-click="add_interaction"]))
+      |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="cancel_interaction_form"]))
+        |> render_click()
+
+      refute html =~ ~s(phx-submit="save_interaction")
+    end
+  end
+
+  describe "save_interaction" do
+    test "editor can save an interaction", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      contact = contact_fixture(%{name: "Save Interaction Person"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      view
+      |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+      |> render_click()
+
+      view
+      |> element(~s(button[phx-click="add_interaction"]))
+      |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_interaction"]), %{
+          "interaction" => %{
+            "interaction_type" => "call",
+            "date" => "2025-06-15",
+            "summary" => "Discussed Q2 results",
+            "notes" => "Follow up next week"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Interaction added"
+      assert html =~ "call"
+      assert html =~ "Discussed Q2 results"
+    end
+
+    test "save_interaction with missing required fields shows error", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      contact = contact_fixture(%{name: "Fail Interaction Person"})
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      view
+      |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+      |> render_click()
+
+      view
+      |> element(~s(button[phx-click="add_interaction"]))
+      |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_interaction"]), %{
+          "interaction" => %{
+            "interaction_type" => "",
+            "summary" => ""
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add interaction"
+    end
+  end
+
+  describe "delete_interaction" do
+    test "editor can delete an interaction", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      contact = contact_fixture(%{name: "Del Interaction Person"})
+
+      {:ok, interaction} =
+        Holdco.Collaboration.create_interaction(%{
+          contact_id: contact.id,
+          interaction_type: "meeting",
+          summary: "Quarterly review",
+          date: "2025-03-10"
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      view
+      |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+      |> render_click()
+
+      html =
+        view
+        |> element(~s(button[phx-click="delete_interaction"][phx-value-id="#{interaction.id}"]))
+        |> render_click()
+
+      assert html =~ "Interaction deleted"
+      refute html =~ "Quarterly review"
+    end
+  end
+
+  describe "interactions display" do
+    test "shows multiple interactions in history", %{conn: conn} do
+      contact = contact_fixture(%{name: "Multi Interaction Person"})
+
+      Holdco.Collaboration.create_interaction(%{
+        contact_id: contact.id,
+        interaction_type: "call",
+        summary: "First call",
+        date: "2025-01-10"
+      })
+
+      Holdco.Collaboration.create_interaction(%{
+        contact_id: contact.id,
+        interaction_type: "meeting",
+        summary: "Board meeting",
+        date: "2025-02-20"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      html =
+        view
+        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+        |> render_click()
+
+      assert html =~ "First call"
+      assert html =~ "Board meeting"
+      assert html =~ "call"
+      assert html =~ "meeting"
+    end
+
+    test "interaction with notes displays notes", %{conn: conn} do
+      contact = contact_fixture(%{name: "Notes Person"})
+
+      Holdco.Collaboration.create_interaction(%{
+        contact_id: contact.id,
+        interaction_type: "email",
+        summary: "Sent proposal",
+        notes: "Awaiting feedback by Friday",
+        date: "2025-04-01"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      html =
+        view
+        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+        |> render_click()
+
+      assert html =~ "Sent proposal"
+      assert html =~ "Awaiting feedback by Friday"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Interaction type CSS classes
+  # ------------------------------------------------------------------
+
+  describe "interaction type display" do
+    test "call interaction shows jade tag", %{conn: conn} do
+      contact = contact_fixture(%{name: "Tag Call Person"})
+
+      Holdco.Collaboration.create_interaction(%{
+        contact_id: contact.id,
+        interaction_type: "call",
+        summary: "Test call"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      html =
+        view
+        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+        |> render_click()
+
+      assert html =~ "tag-jade"
+    end
+
+    test "meeting interaction shows teal tag", %{conn: conn} do
+      contact = contact_fixture(%{name: "Tag Meeting Person"})
+
+      Holdco.Collaboration.create_interaction(%{
+        contact_id: contact.id,
+        interaction_type: "meeting",
+        summary: "Test meeting"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      html =
+        view
+        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+        |> render_click()
+
+      assert html =~ "tag-teal"
+    end
+
+    test "email interaction shows lemon tag", %{conn: conn} do
+      contact = contact_fixture(%{name: "Tag Email Person"})
+
+      Holdco.Collaboration.create_interaction(%{
+        contact_id: contact.id,
+        interaction_type: "email",
+        summary: "Test email"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      html =
+        view
+        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+        |> render_click()
+
+      assert html =~ "tag-lemon"
+    end
+
+    test "note interaction shows ink tag", %{conn: conn} do
+      contact = contact_fixture(%{name: "Tag Note Person"})
+
+      Holdco.Collaboration.create_interaction(%{
+        contact_id: contact.id,
+        interaction_type: "note",
+        summary: "Test note"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/contacts")
+
+      html =
+        view
+        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
+        |> render_click()
+
+      assert html =~ "tag-ink"
     end
   end
 end

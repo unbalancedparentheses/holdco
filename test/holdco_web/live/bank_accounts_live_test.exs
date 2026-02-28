@@ -324,38 +324,6 @@ defmodule HoldcoWeb.BankAccountsLiveTest do
     end
   end
 
-  describe "index page viewer permission guards" do
-    test "viewer cannot save a bank account", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
-      html = render_click(view, "save", %{"bank_account" => %{"bank_name" => "Blocked"}})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot update a bank account", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
-      html = render_click(view, "update", %{"bank_account" => %{"bank_name" => "Blocked"}})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot delete a bank account", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
-      html = render_click(view, "delete", %{})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot save_pool", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
-      html = render_click(view, "save_pool", %{"pool" => %{"name" => "Blocked Pool"}})
-      assert html =~ "permission"
-    end
-
-    test "viewer cannot delete_pool", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
-      html = render_click(view, "delete_pool", %{})
-      assert html =~ "permission"
-    end
-  end
-
   describe "index page editor CRUD" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")

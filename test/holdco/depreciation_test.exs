@@ -1,5 +1,5 @@
 defmodule Holdco.DepreciationTest do
-  use Holdco.DataCase, async: true
+  use Holdco.DataCase, async: false
 
   import Holdco.HoldcoFixtures
 

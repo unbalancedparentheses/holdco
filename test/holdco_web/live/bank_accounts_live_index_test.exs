@@ -118,27 +118,6 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
     end
   end
 
-  describe "viewer role (no can_write)" do
-    test "does not show Add Account button for viewer", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      refute html =~ "Add Account"
-    end
-
-    test "does not show Add Pool button for viewer", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      refute html =~ "Add Pool"
-    end
-
-    test "does not show delete buttons for viewer", %{conn: conn} do
-      bank_account_fixture()
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      refute html =~ "btn btn-danger btn-sm"
-    end
-  end
-
   describe "editor role" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")

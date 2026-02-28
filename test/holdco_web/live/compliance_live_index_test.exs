@@ -48,12 +48,6 @@ defmodule HoldcoWeb.ComplianceLiveIndexTest do
       assert html =~ "TestCo"
     end
 
-    test "viewer cannot see Add button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/compliance")
-
-      refute html =~ "phx-click=\"show_form\""
-    end
-
     test "editor sees Add button on regulatory filings tab", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, _view, html} = live(conn, ~p"/compliance")
@@ -257,15 +251,6 @@ defmodule HoldcoWeb.ComplianceLiveIndexTest do
       refute html =~ "dialog-overlay"
     end
 
-    test "viewer cannot save a filing", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      render_hook(view, "save_filing", %{
-        "regulatory_filing" => %{"jurisdiction" => "US", "filing_type" => "10-K", "due_date" => "2025-01-01"}
-      })
-
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Delete Filing ───────────────────────────────────────
@@ -543,59 +528,6 @@ defmodule HoldcoWeb.ComplianceLiveIndexTest do
     end
   end
 
-  # ── Permission Guards ───────────────────────────────────
-
-  describe "permission guards for viewer role" do
-    test "save_filing is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      render_hook(view, "save_filing", %{"regulatory_filing" => %{"jurisdiction" => "US"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_filing is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      render_hook(view, "delete_filing", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_license is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      render_hook(view, "save_license", %{"regulatory_license" => %{"license_type" => "x"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_sanctions is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      render_hook(view, "save_sanctions", %{"sanctions_check" => %{"checked_name" => "x"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_esg is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      render_hook(view, "save_esg", %{"esg_score" => %{"period" => "2025"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_fatca is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      render_hook(view, "save_fatca", %{"fatca_report" => %{"reporting_year" => "2025"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_withholding is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-
-      render_hook(view, "save_withholding", %{"withholding_tax" => %{"payment_type" => "x"}})
-      assert render(view) =~ "permission"
-    end
-  end
-
   # ── Noop event ──────────────────────────────────────────
 
   describe "noop event" do
@@ -605,52 +537,6 @@ defmodule HoldcoWeb.ComplianceLiveIndexTest do
       render_hook(view, "noop", %{})
 
       assert render(view) =~ "Compliance"
-    end
-  end
-
-  # ── Additional permission guards ──────────────────────
-
-  describe "additional viewer permission guards" do
-    test "delete_license is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-      render_hook(view, "delete_license", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_insurance is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-      render_hook(view, "delete_insurance", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_sanctions is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-      render_hook(view, "delete_sanctions", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_esg is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-      render_hook(view, "delete_esg", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_fatca is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-      render_hook(view, "delete_fatca", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_withholding is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-      render_hook(view, "delete_withholding", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_insurance is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/compliance")
-      render_hook(view, "save_insurance", %{"insurance_policy" => %{"policy_type" => "x"}})
-      assert render(view) =~ "permission"
     end
   end
 

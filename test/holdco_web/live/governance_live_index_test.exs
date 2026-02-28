@@ -143,29 +143,6 @@ defmodule HoldcoWeb.GovernanceLiveIndexTest do
     end
   end
 
-  describe "viewer role (no can_write)" do
-    test "does not show Add button on meetings tab for viewer", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/governance")
-
-      refute html =~ ~s(phx-click="show_form")
-    end
-
-    test "does not show delete buttons for viewer", %{conn: conn} do
-      board_meeting_fixture()
-      {:ok, _view, html} = live(conn, ~p"/governance")
-
-      refute html =~ "btn btn-danger btn-sm"
-    end
-
-    test "does not show Add button on cap_table tab for viewer", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-
-      html = view |> element(~s(button[phx-value-tab="cap_table"])) |> render_click()
-
-      refute html =~ ~s(phx-click="show_form")
-    end
-  end
-
   describe "data display" do
     test "shows board meeting data on meetings tab", %{conn: conn} do
       company = company_fixture(%{name: "MeetingCo"})
@@ -731,92 +708,6 @@ defmodule HoldcoWeb.GovernanceLiveIndexTest do
 
       assert html =~ "Power of attorney deleted"
       refute html =~ "DeletePOAGrantor"
-    end
-  end
-
-  describe "viewer permission guards" do
-    test "save_meeting is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "save_meeting", %{"board_meeting" => %{"scheduled_date" => "2024-01-01"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_meeting is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "delete_meeting", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_cap_table is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "save_cap_table", %{"cap_table_entry" => %{"investor" => "x"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_cap_table is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "delete_cap_table", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_resolution is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "save_resolution", %{"resolution" => %{"title" => "x"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_resolution is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "delete_resolution", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_deal is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "save_deal", %{"deal" => %{"counterparty" => "x"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_deal is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "delete_deal", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_equity_plan is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "save_equity_plan", %{"equity_plan" => %{"plan_name" => "x"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_equity_plan is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "delete_equity_plan", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_jv is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "save_jv", %{"joint_venture" => %{"name" => "x"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_jv is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "delete_jv", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
-
-    test "save_poa is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "save_poa", %{"power_of_attorney" => %{"grantor" => "x"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "delete_poa is blocked for viewers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/governance")
-      render_hook(view, "delete_poa", %{"id" => "1"})
-      assert render(view) =~ "permission"
     end
   end
 

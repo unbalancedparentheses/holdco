@@ -9,7 +9,7 @@ defmodule HoldcoWeb.NotificationSettingsLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    user_id = socket.assigns.current_user.id
+    user_id = socket.assigns.current_scope.user.id
     if connected?(socket), do: Notifications.subscribe(user_id)
 
     {:ok,
@@ -66,7 +66,7 @@ defmodule HoldcoWeb.NotificationSettingsLive.Index do
     do: {:noreply, put_flash(socket, :error, "Write access required")}
 
   def handle_event("save_channel", %{"channel" => params} = full_params, socket) do
-    user_id = socket.assigns.current_user.id
+    user_id = socket.assigns.current_scope.user.id
 
     # Collect event type checkboxes
     selected_events = Map.get(full_params, "event_types", [])
@@ -128,7 +128,7 @@ defmodule HoldcoWeb.NotificationSettingsLive.Index do
     # Create a test notification
     {:ok, test_notif} =
       Notifications.create_notification(%{
-        user_id: socket.assigns.current_user.id,
+        user_id: socket.assigns.current_scope.user.id,
         title: "Test Notification",
         body: "This is a test notification from Holdco to verify your #{channel.provider} channel is working.",
         type: "info"
@@ -163,7 +163,7 @@ defmodule HoldcoWeb.NotificationSettingsLive.Index do
   def handle_info(_, socket), do: {:noreply, socket}
 
   defp reload_data(socket) do
-    user_id = socket.assigns.current_user.id
+    user_id = socket.assigns.current_scope.user.id
 
     assign(socket,
       channels: Notifications.list_channels(user_id),

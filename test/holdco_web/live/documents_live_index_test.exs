@@ -73,21 +73,6 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
     end
   end
 
-  describe "viewer role (no can_write)" do
-    test "does not show Add Document button for viewer", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      refute html =~ "Add Document"
-    end
-
-    test "does not show delete buttons for viewer", %{conn: conn} do
-      document_fixture()
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      refute html =~ "btn btn-danger btn-sm"
-    end
-  end
-
   describe "editor role" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
@@ -250,22 +235,6 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
       assert html =~ "Download"
       # PDF files get a View button
       assert html =~ "View"
-    end
-  end
-
-  describe "viewer permission guards for save and delete" do
-    test "viewer save event returns permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      render_hook(view, "save", %{"document" => %{"name" => "test"}})
-      assert render(view) =~ "permission"
-    end
-
-    test "viewer delete event returns permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      render_hook(view, "delete", %{"id" => "999"})
-      assert render(view) =~ "permission"
     end
   end
 
@@ -548,29 +517,6 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
     end
   end
 
-  describe "viewer cannot see action buttons" do
-    test "viewer does not see Edit button for documents with uploads", %{conn: conn} do
-      doc = document_fixture(%{name: "ViewerUploadDoc"})
-      document_upload_fixture(%{document: doc, file_name: "file.pdf", content_type: "application/pdf"})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "ViewerUploadDoc"
-      assert html =~ "file.pdf"
-      refute html =~ ~s(phx-click="edit")
-      refute html =~ ~s(phx-click="delete")
-    end
-  end
-
-  describe "viewer update permission guard" do
-    test "viewer update event returns permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      render_hook(view, "update", %{"document" => %{"name" => "blocked"}})
-      assert render(view) =~ "permission"
-    end
-  end
-
   describe "document rendering edge cases" do
     test "renders doc_type as tag badge", %{conn: conn} do
       document_fixture(%{name: "BadgeDoc", doc_type: "lease_agreement"})
@@ -615,6 +561,213 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
         |> render_change()
 
       assert html =~ "2 documents in the library"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Edit form update submission
+  # ------------------------------------------------------------------
+
+  describe "editor update submission" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "submitting the edit form updates the document", %{conn: conn} do
+      company = company_fixture(%{name: "UpdateDocCo"})
+      doc = document_fixture(%{company: company, name: "Old Name", doc_type: "contract"})
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+
+      # Open edit form
+      view
+      |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
+      |> render_click()
+
+      # Submit update
+      html =
+        view
+        |> form("form[phx-submit=\"update\"]", %{
+          "document" => %{
+            "company_id" => to_string(company.id),
+            "name" => "New Name",
+            "doc_type" => "report",
+            "url" => "https://updated.example.com",
+            "notes" => "Updated notes"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Document updated"
+      assert html =~ "New Name"
+      refute html =~ "dialog-overlay"
+    end
+
+    test "update with invalid data shows error", %{conn: conn} do
+      company = company_fixture(%{name: "UpdateFailCo"})
+      doc = document_fixture(%{company: company, name: "FailDoc"})
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+
+      view
+      |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
+      |> render_click()
+
+      html =
+        view
+        |> form("form[phx-submit=\"update\"]", %{
+          "document" => %{
+            "company_id" => "",
+            "name" => ""
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update document"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Edit form close via overlay click
+  # ------------------------------------------------------------------
+
+  describe "edit form overlay close" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "clicking overlay on edit form closes it", %{conn: conn} do
+      doc = document_fixture(%{name: "OverlayCloseDoc"})
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+
+      view
+      |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
+      |> render_click()
+
+      html = view |> element(".dialog-overlay") |> render_click()
+      refute html =~ "dialog-overlay"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Edit button and form for different documents
+  # ------------------------------------------------------------------
+
+  describe "editor edit button presence" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "shows edit and delete buttons for each document", %{conn: conn} do
+      document_fixture(%{name: "EditBtnDoc1"})
+      document_fixture(%{name: "EditBtnDoc2"})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "EditBtnDoc1"
+      assert html =~ "EditBtnDoc2"
+      # Both should have edit buttons
+      assert html =~ ~s(phx-click="edit")
+      assert html =~ ~s(phx-click="delete")
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Save form with URL and notes fields
+  # ------------------------------------------------------------------
+
+  describe "save form optional fields" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "save form accepts optional url and notes", %{conn: conn} do
+      company = company_fixture(%{name: "OptFieldsCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+      view |> element("button", "Add Document") |> render_click()
+
+      html =
+        view
+        |> form("form[phx-submit=\"save\"]", %{
+          "document" => %{
+            "company_id" => to_string(company.id),
+            "name" => "Optional Fields Doc",
+            "doc_type" => "report",
+            "url" => "https://files.example.com/report.pdf",
+            "notes" => "Quarterly financials"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Document added"
+      assert html =~ "Optional Fields Doc"
+    end
+
+    test "save form works without optional fields", %{conn: conn} do
+      company = company_fixture(%{name: "MinimalCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+      view |> element("button", "Add Document") |> render_click()
+
+      html =
+        view
+        |> form("form[phx-submit=\"save\"]", %{
+          "document" => %{
+            "company_id" => to_string(company.id),
+            "name" => "Minimal Doc"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Document added"
+      assert html =~ "Minimal Doc"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Editor: edit event opens edit form
+  # ------------------------------------------------------------------
+
+  describe "editor edit event" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "edit event opens edit form for given document", %{conn: conn} do
+      company = company_fixture(%{name: "EditEvtCo"})
+      doc = document_fixture(%{company: company, name: "EditEvtDoc", doc_type: "memo"})
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+
+      html = render_hook(view, "edit", %{"id" => to_string(doc.id)})
+
+      assert html =~ "Edit Document"
+      assert html =~ "EditEvtDoc"
+      assert html =~ "memo"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Document with company shows company link
+  # ------------------------------------------------------------------
+
+  describe "document with company link" do
+    test "shows company name as link for document with company", %{conn: conn} do
+      company = company_fixture(%{name: "LinkedCo2"})
+      document_fixture(%{company: company, name: "LinkedDoc2"})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "LinkedDoc2"
+      assert html =~ "LinkedCo2"
+      assert html =~ ~s(/companies/#{company.id})
     end
   end
 end

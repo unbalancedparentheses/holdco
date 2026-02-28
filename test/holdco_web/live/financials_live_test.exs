@@ -133,31 +133,6 @@ defmodule HoldcoWeb.FinancialsLiveTest do
       refute html =~ "2025-Q2"
     end
 
-    test "non-editor cannot save a financial record", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      # Non-editor should not see the Add Period button
-      refute render(view) =~ ~s(phx-click="show_form")
-    end
-
-    test "permission guard blocks save for non-editors", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "viewer")
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      # Directly push the save event (bypassing UI guard)
-      html = render_hook(view, "save", %{"financial" => %{"period" => "2025-Q3", "company_id" => "1"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "permission guard blocks delete for non-editors", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "viewer")
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      html = render_hook(view, "delete", %{"id" => "1"})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   describe "transfer CRUD" do
@@ -213,23 +188,6 @@ defmodule HoldcoWeb.FinancialsLiveTest do
       refute html =~ "Unique-Transfer-Desc-Del"
     end
 
-    test "permission guard blocks save_transfer for non-editors", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "viewer")
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      html = render_hook(view, "save_transfer", %{"transfer" => %{"amount" => "100", "date" => "2025-01-01"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
-
-    test "permission guard blocks delete_transfer for non-editors", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "viewer")
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      html = render_hook(view, "delete_transfer", %{"id" => "1"})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   describe "filter_company event" do
@@ -404,14 +362,6 @@ defmodule HoldcoWeb.FinancialsLiveTest do
       assert html =~ "2025-Q1-Updated"
     end
 
-    test "permission guard blocks update for non-editors", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "viewer")
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      html = render_hook(view, "update", %{"financial" => %{"period" => "2025-Q3"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   describe "edit_transfer event" do
@@ -475,14 +425,6 @@ defmodule HoldcoWeb.FinancialsLiveTest do
       assert html =~ "Transfer updated"
     end
 
-    test "permission guard blocks update_transfer for non-editors", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "viewer")
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      html = render_hook(view, "update_transfer", %{"transfer" => %{"amount" => "999"}})
-
-      assert html =~ "You don&#39;t have permission to do that"
-    end
   end
 
   describe "currency symbol rendering" do

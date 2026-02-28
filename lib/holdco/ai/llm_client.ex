@@ -70,9 +70,13 @@ defmodule Holdco.AI.LLMClient do
     {:ok, content}
   end
 
-  defp parse_anthropic_response({:ok, %{status: status, body: body}}) do
+  defp parse_anthropic_response({:ok, %{status: status, body: body}}) when is_map(body) do
     error = get_in(body, ["error", "message"]) || "HTTP #{status}"
     {:error, error}
+  end
+
+  defp parse_anthropic_response({:ok, %{status: status, body: body}}) when is_binary(body) do
+    {:error, "HTTP #{status}: #{String.slice(body, 0, 200)}"}
   end
 
   defp parse_anthropic_response({:error, reason}) do
@@ -87,9 +91,13 @@ defmodule Holdco.AI.LLMClient do
     {:ok, content || ""}
   end
 
-  defp parse_openai_response({:ok, %{status: status, body: body}}) do
+  defp parse_openai_response({:ok, %{status: status, body: body}}) when is_map(body) do
     error = get_in(body, ["error", "message"]) || "HTTP #{status}"
     {:error, error}
+  end
+
+  defp parse_openai_response({:ok, %{status: status, body: body}}) when is_binary(body) do
+    {:error, "HTTP #{status}: #{String.slice(body, 0, 200)}"}
   end
 
   defp parse_openai_response({:error, reason}) do

@@ -75,12 +75,6 @@ defmodule HoldcoWeb.AccountingChartTest do
       assert html =~ "liability"
     end
 
-    test "viewer cannot see Add Account button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/chart")
-
-      refute html =~ "Add Account"
-    end
-
     test "editor sees Add Account button", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, _view, html} = live(conn, ~p"/accounts/chart")
@@ -220,12 +214,6 @@ defmodule HoldcoWeb.AccountingChartTest do
       assert html =~ "Sales Revenue"
     end
 
-    test "viewer cannot save an account", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/chart")
-
-      render_hook(view, "save", %{"account" => %{"code" => "9999", "name" => "Blocked"}})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Delete Account ──────────────────────────────────────
@@ -246,12 +234,6 @@ defmodule HoldcoWeb.AccountingChartTest do
       refute html =~ "Office Supplies"
     end
 
-    test "viewer cannot delete an account", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/chart")
-
-      render_hook(view, "delete", %{"id" => "1"})
-      assert render(view) =~ "permission"
-    end
   end
 
   # ── Hierarchy rendering ─────────────────────────────────

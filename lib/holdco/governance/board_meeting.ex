@@ -37,7 +37,7 @@ defmodule Holdco.Governance.BoardMeeting do
       :quorum_required, :attendees_count, :agenda, :minutes, :resolutions,
       :documents, :notes
     ])
-    |> validate_required([:company_id])
+    |> validate_required([:company_id, :scheduled_date])
     |> validate_inclusion(:meeting_type, @meeting_types)
     |> validate_inclusion(:status, @statuses)
     |> validate_number(:quorum_required, greater_than_or_equal_to: 0)

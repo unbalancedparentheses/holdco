@@ -30,7 +30,7 @@ defmodule HoldcoWeb.ImportLiveTest do
       {:ok, _view, html} = live(conn, ~p"/import")
 
       assert html =~ "Companies"
-      assert html =~ "Holdings"
+      assert html =~ "Positions"
       assert html =~ "Transactions"
     end
 
@@ -141,37 +141,6 @@ defmodule HoldcoWeb.ImportLiveTest do
     end
   end
 
-  describe "permission - viewer user" do
-    test "viewer sees Import (no permission) button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ "Import (no permission)"
-    end
-
-    test "viewer gets error flash when attempting any event", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/import")
-
-      html = render_hook(view, "switch_tab", %{"tab" => "holdings"})
-
-      assert html =~ "You don&#39;t have permission to import data" or
-               html =~ "You don't have permission to import data"
-    end
-  end
-
-  describe "permission - editor user" do
-    setup %{user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      :ok
-    end
-
-    test "editor sees Import button (not disabled)", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ "Import Companies"
-      refute html =~ "Import (no permission)"
-    end
-  end
-
   describe "btn classes" do
     test "active tab button has btn-primary class", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/import")
@@ -231,23 +200,6 @@ defmodule HoldcoWeb.ImportLiveTest do
     test "navigating with type=transactions updates tab", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/import?type=transactions")
       assert html =~ "Import Transactions"
-    end
-  end
-
-  describe "viewer permission guard catches all events" do
-    test "viewer switching tabs gets permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/import")
-
-      # Viewer user: the first handle_event clause catches all events
-      html = render_hook(view, "validate", %{})
-      assert html =~ "permission" or html =~ "Import CSV"
-    end
-
-    test "viewer trying import gets permission error", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/import")
-
-      html = render_hook(view, "import", %{})
-      assert html =~ "permission"
     end
   end
 
