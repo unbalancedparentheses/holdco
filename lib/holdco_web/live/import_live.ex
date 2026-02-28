@@ -5,6 +5,7 @@ defmodule HoldcoWeb.ImportLive do
 
   alias Holdco.{Corporate, Assets, Banking}
   alias Holdco.CSVParser
+  alias Holdco.Import.XlsxParser
 
   @impl true
   def mount(params, _session, socket) do
@@ -18,12 +19,12 @@ defmodule HoldcoWeb.ImportLive do
     {:ok,
      socket
      |> assign(
-       page_title: "Import CSV",
+       page_title: "Import CSV/Excel",
        active_tab: initial_tab,
        results: nil
      )
      |> allow_upload(:csv_file,
-       accept: ~w(.csv),
+       accept: ~w(.csv .xlsx .xls),
        max_entries: 1,
        max_file_size: 10_000_000
      )}
@@ -51,7 +52,7 @@ defmodule HoldcoWeb.ImportLive do
      socket
      |> assign(active_tab: tab, results: nil)
      |> allow_upload(:csv_file,
-       accept: ~w(.csv),
+       accept: ~w(.csv .xlsx .xls),
        max_entries: 1,
        max_file_size: 10_000_000
      )}
@@ -64,17 +65,40 @@ defmodule HoldcoWeb.ImportLive do
   def handle_event("import", _params, socket) do
     case uploaded_entries(socket, :csv_file) do
       {[], _} ->
-        {:noreply, put_flash(socket, :error, "Please select a CSV file")}
+        {:noreply, put_flash(socket, :error, "Please select a file")}
 
-      {[_entry], _} ->
+      {[entry], _} ->
         results =
           consume_uploaded_entries(socket, :csv_file, fn %{path: path}, _entry ->
-            csv_content = File.read!(path)
-            {:ok, process_csv(csv_content, socket.assigns.active_tab)}
+            case detect_file_type(entry.client_name) do
+              :xlsx ->
+                {:ok, process_xlsx(path, socket.assigns.active_tab)}
+
+              :csv ->
+                csv_content = File.read!(path)
+                {:ok, process_csv(csv_content, socket.assigns.active_tab)}
+            end
           end)
 
         result = List.first(results)
         {:noreply, assign(socket, results: result)}
+    end
+  end
+
+  defp detect_file_type(filename) do
+    case Path.extname(String.downcase(filename)) do
+      ext when ext in [".xlsx", ".xls"] -> :xlsx
+      _ -> :csv
+    end
+  end
+
+  defp process_xlsx(path, type) do
+    case XlsxParser.parse_file(path, skip_headers: true) do
+      {:ok, rows} ->
+        do_import(rows, type)
+
+      {:error, reason} ->
+        %{created: 0, errors: [{"Excel Parse Error", to_string(reason)}]}
     end
   end
 
@@ -260,8 +284,8 @@ defmodule HoldcoWeb.ImportLive do
     <div class="page-title">
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div>
-          <h1>Import CSV</h1>
-          <p class="deck">Upload a CSV file to bulk-import records</p>
+          <h1>Import CSV/Excel</h1>
+          <p class="deck">Upload a CSV or Excel file to bulk-import records</p>
         </div>
       </div>
       <hr class="page-title-rule" />
@@ -298,7 +322,7 @@ defmodule HoldcoWeb.ImportLive do
         </h3>
 
         <div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-wash, #f5f5f5); border-radius: 4px;">
-          <strong>Expected CSV columns:</strong>
+          <strong>Expected columns (CSV or Excel):</strong>
           <br />
           <%= case @active_tab do %>
             <% "companies" -> %>
@@ -324,7 +348,7 @@ defmodule HoldcoWeb.ImportLive do
 
         <form id="import-form" phx-submit="import" phx-change="validate">
           <div class="form-group">
-            <label class="form-label">CSV File</label>
+            <label class="form-label">CSV or Excel File</label>
             <.live_file_input upload={@uploads.csv_file} />
             <%= for entry <- @uploads.csv_file.entries do %>
               <div style="margin-top: 0.5rem; color: var(--text-muted, #666);">
@@ -403,7 +427,7 @@ defmodule HoldcoWeb.ImportLive do
   defp format_bytes(bytes), do: "#{Float.round(bytes / 1_048_576, 1)} MB"
 
   defp upload_error_message(:too_large), do: "File is too large (max 10 MB)"
-  defp upload_error_message(:not_accepted), do: "Only .csv files are accepted"
+  defp upload_error_message(:not_accepted), do: "Only .csv and .xlsx files are accepted"
   defp upload_error_message(:too_many_files), do: "Only one file at a time"
   defp upload_error_message(err), do: "Upload error: #{inspect(err)}"
 end

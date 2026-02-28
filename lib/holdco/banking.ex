@@ -63,6 +63,51 @@ defmodule Holdco.Banking do
     |> audit_and_broadcast("transactions", "delete")
   end
 
+  # Bulk Operations
+  def bulk_update_transactions(ids, attrs) when is_list(ids) do
+    results =
+      Enum.map(ids, fn id ->
+        transaction = get_transaction!(id)
+        update_transaction(transaction, attrs)
+      end)
+
+    {Enum.count(results, &match?({:ok, _}, &1)),
+     Enum.count(results, &match?({:error, _}, &1))}
+  end
+
+  def bulk_delete_transactions(ids) when is_list(ids) do
+    results =
+      Enum.map(ids, fn id ->
+        transaction = get_transaction!(id)
+        delete_transaction(transaction)
+      end)
+
+    {Enum.count(results, &match?({:ok, _}, &1)),
+     Enum.count(results, &match?({:error, _}, &1))}
+  end
+
+  def bulk_update_bank_accounts(ids, attrs) when is_list(ids) do
+    results =
+      Enum.map(ids, fn id ->
+        bank_account = get_bank_account!(id)
+        update_bank_account(bank_account, attrs)
+      end)
+
+    {Enum.count(results, &match?({:ok, _}, &1)),
+     Enum.count(results, &match?({:error, _}, &1))}
+  end
+
+  def bulk_delete_bank_accounts(ids) when is_list(ids) do
+    results =
+      Enum.map(ids, fn id ->
+        bank_account = get_bank_account!(id)
+        delete_bank_account(bank_account)
+      end)
+
+    {Enum.count(results, &match?({:ok, _}, &1)),
+     Enum.count(results, &match?({:error, _}, &1))}
+  end
+
   # Aggregations
   def total_balance do
     Repo.one(from ba in BankAccount, select: sum(ba.balance)) || 0.0

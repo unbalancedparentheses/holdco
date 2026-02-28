@@ -264,6 +264,29 @@ defmodule Holdco.Corporate do
     |> audit_and_broadcast("entity_permissions", "delete")
   end
 
+  # Bulk Operations
+  def bulk_update_companies(ids, attrs) when is_list(ids) do
+    results =
+      Enum.map(ids, fn id ->
+        company = get_company!(id)
+        update_company(company, attrs)
+      end)
+
+    {Enum.count(results, &match?({:ok, _}, &1)),
+     Enum.count(results, &match?({:error, _}, &1))}
+  end
+
+  def bulk_delete_companies(ids) when is_list(ids) do
+    results =
+      Enum.map(ids, fn id ->
+        company = get_company!(id)
+        delete_company(company)
+      end)
+
+    {Enum.count(results, &match?({:ok, _}, &1)),
+     Enum.count(results, &match?({:error, _}, &1))}
+  end
+
   # Change Company
   def change_company(%Company{} = company, attrs \\ %{}) do
     Company.changeset(company, attrs)

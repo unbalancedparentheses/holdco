@@ -45,6 +45,29 @@ defmodule Holdco.Assets do
     |> audit_and_broadcast("asset_holdings", "delete")
   end
 
+  # Bulk Operations
+  def bulk_update_holdings(ids, attrs) when is_list(ids) do
+    results =
+      Enum.map(ids, fn id ->
+        holding = get_holding!(id)
+        update_holding(holding, attrs)
+      end)
+
+    {Enum.count(results, &match?({:ok, _}, &1)),
+     Enum.count(results, &match?({:error, _}, &1))}
+  end
+
+  def bulk_delete_holdings(ids) when is_list(ids) do
+    results =
+      Enum.map(ids, fn id ->
+        holding = get_holding!(id)
+        delete_holding(holding)
+      end)
+
+    {Enum.count(results, &match?({:ok, _}, &1)),
+     Enum.count(results, &match?({:error, _}, &1))}
+  end
+
   # Custodian Accounts
   def list_custodian_accounts do
     from(ca in CustodianAccount, preload: [:asset_holding])
