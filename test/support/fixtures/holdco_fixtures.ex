@@ -1193,4 +1193,114 @@ defmodule Holdco.HoldcoFixtures do
 
     lc
   end
+
+  # ── Fund Management ──────────────────────────────────────
+
+  def capital_call_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, cc} =
+      Holdco.Fund.create_capital_call(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          call_number: System.unique_integer([:positive]),
+          call_date: "2025-01-15",
+          due_date: "2025-02-15",
+          total_amount: 500_000.0,
+          purpose: "investment",
+          status: "pending"
+        })
+      )
+
+    cc
+  end
+
+  def capital_call_line_fixture(attrs \\ %{}) do
+    call = Map.get_lazy(attrs, :capital_call, fn -> capital_call_fixture() end)
+
+    {:ok, line} =
+      Holdco.Fund.create_capital_call_line(
+        Enum.into(attrs, %{
+          capital_call_id: call.id,
+          investor_name: "Investor #{System.unique_integer([:positive])}",
+          commitment_amount: 1_000_000.0,
+          call_amount: 250_000.0
+        })
+      )
+
+    line
+  end
+
+  def distribution_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, dist} =
+      Holdco.Fund.create_distribution(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          distribution_number: System.unique_integer([:positive]),
+          distribution_date: "2025-06-15",
+          total_amount: 200_000.0,
+          distribution_type: "profit",
+          status: "pending"
+        })
+      )
+
+    dist
+  end
+
+  def distribution_line_fixture(attrs \\ %{}) do
+    dist = Map.get_lazy(attrs, :distribution, fn -> distribution_fixture() end)
+
+    {:ok, line} =
+      Holdco.Fund.create_distribution_line(
+        Enum.into(attrs, %{
+          distribution_id: dist.id,
+          investor_name: "Investor #{System.unique_integer([:positive])}",
+          ownership_pct: 25.0,
+          gross_amount: 50_000.0,
+          withholding_tax: 5_000.0,
+          net_amount: 45_000.0
+        })
+      )
+
+    line
+  end
+
+  def waterfall_tier_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, tier} =
+      Holdco.Fund.create_waterfall_tier(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          tier_order: attrs[:tier_order] || 1,
+          name: "Tier #{System.unique_integer([:positive])}",
+          tier_type: "return_of_capital",
+          split_lp_pct: 100.0,
+          split_gp_pct: 0.0
+        })
+      )
+
+    tier
+  end
+
+  def k1_report_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, k1} =
+      Holdco.Fund.create_k1_report(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          tax_year: 2025,
+          investor_name: "Investor #{System.unique_integer([:positive])}",
+          ordinary_income: 50_000.0,
+          long_term_capital_gains: 25_000.0,
+          total_distributions: 75_000.0,
+          status: "draft"
+        })
+      )
+
+    k1
+  end
 end
