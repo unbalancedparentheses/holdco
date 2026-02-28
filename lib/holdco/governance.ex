@@ -273,6 +273,30 @@ defmodule Holdco.Governance do
     |> audit_and_broadcast("investor_accesses", "delete")
   end
 
+  # Investor Portal Queries
+
+  def list_investor_accesses_for_user(user_id) do
+    now = DateTime.utc_now()
+
+    from(ia in InvestorAccess,
+      where: ia.user_id == ^user_id,
+      where: is_nil(ia.expires_at) or ia.expires_at > ^now,
+      preload: [:company, :user]
+    )
+    |> Repo.all()
+  end
+
+  def get_investor_access_for_user_and_company(user_id, company_id) do
+    now = DateTime.utc_now()
+
+    from(ia in InvestorAccess,
+      where: ia.user_id == ^user_id and ia.company_id == ^company_id,
+      where: is_nil(ia.expires_at) or ia.expires_at > ^now,
+      preload: [:company, :user]
+    )
+    |> Repo.one()
+  end
+
   # PubSub
   def subscribe, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "governance")
   defp broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "governance", message)

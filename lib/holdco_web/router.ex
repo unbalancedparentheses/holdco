@@ -182,6 +182,21 @@ defmodule HoldcoWeb.Router do
     end
   end
 
+  # Investor Portal (separate session with investor-specific hooks)
+  scope "/investor", HoldcoWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :investor_portal,
+      layout: {HoldcoWeb.Layouts, :app},
+      on_mount: [
+        {HoldcoWeb.UserAuth, :ensure_authenticated},
+        {HoldcoWeb.Live.Hooks, :current_path},
+        {HoldcoWeb.InvestorPortalLive.Hooks, :ensure_investor}
+      ] do
+      live "/", InvestorPortalLive.Index, :index
+    end
+  end
+
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:holdco, :dev_routes) do
     import Phoenix.LiveDashboard.Router
