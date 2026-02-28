@@ -962,4 +962,27 @@ defmodule Holdco.HoldcoFixtures do
 
     rt
   end
+
+  # ── Tasks ────────────────────────────────────────────
+
+  def task_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> nil end)
+    user = Map.get_lazy(attrs, :assignee, fn -> nil end)
+
+    base = %{
+      title: "Task #{System.unique_integer([:positive])}",
+      status: "open",
+      priority: "medium"
+    }
+
+    base = if company, do: Map.put(base, :company_id, company.id), else: base
+    base = if user, do: Map.put(base, :assignee_id, user.id), else: base
+
+    {:ok, task} =
+      Holdco.Collaboration.create_task(
+        Enum.into(attrs, base)
+      )
+
+    task
+  end
 end

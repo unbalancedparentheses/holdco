@@ -204,6 +204,9 @@ defmodule HoldcoWeb.Router do
       # Phase 2 — Scheduled Reports
       live "/scheduled-reports", ScheduledReportsLive.Index, :index
 
+      # Phase 2 — Collaboration
+      live "/tasks", TasksLive.Index, :index
+
     end
   end
 

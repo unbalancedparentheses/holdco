@@ -6,6 +6,7 @@ defmodule Holdco.Collaboration do
   alias Holdco.Collaboration.ContactInteraction
   alias Holdco.Collaboration.Project
   alias Holdco.Collaboration.ProjectMilestone
+  alias Holdco.Collaboration.Task
 
   def list_comments(entity_type, entity_id) do
     from(c in Comment,
@@ -248,6 +249,127 @@ defmodule Holdco.Collaboration do
   end
 
   def get_interaction!(id), do: Repo.get!(ContactInteraction, id)
+
+  # --- Tasks ---
+
+  def subscribe_tasks do
+    Phoenix.PubSub.subscribe(Holdco.PubSub, "tasks")
+  end
+
+  def list_tasks(opts \\ %{}) do
+    query = from(t in Task, order_by: [asc: t.due_date, desc: t.inserted_at], preload: [:assignee, :company])
+
+    query =
+      case Map.get(opts, :company_id) do
+        nil -> query
+        "" -> query
+        id -> from(t in query, where: t.company_id == ^id)
+      end
+
+    query =
+      case Map.get(opts, :status) do
+        nil -> query
+        "" -> query
+        status -> from(t in query, where: t.status == ^status)
+      end
+
+    query =
+      case Map.get(opts, :priority) do
+        nil -> query
+        "" -> query
+        priority -> from(t in query, where: t.priority == ^priority)
+      end
+
+    query =
+      case Map.get(opts, :assignee_id) do
+        nil -> query
+        "" -> query
+        assignee_id -> from(t in query, where: t.assignee_id == ^assignee_id)
+      end
+
+    Repo.all(query)
+  end
+
+  def get_task!(id) do
+    Task
+    |> Repo.get!(id)
+    |> Repo.preload([:assignee, :company])
+  end
+
+  def create_task(attrs) do
+    %Task{}
+    |> Task.changeset(attrs)
+    |> Repo.insert()
+    |> tap(fn
+      {:ok, task} ->
+        Holdco.Platform.log_action("create", "tasks", task.id)
+
+        Phoenix.PubSub.broadcast(
+          Holdco.PubSub,
+          "tasks",
+          {:task_created, task}
+        )
+
+      _ ->
+        :ok
+    end)
+  end
+
+  def update_task(%Task{} = task, attrs) do
+    task
+    |> Task.changeset(attrs)
+    |> Repo.update()
+    |> tap(fn
+      {:ok, task} ->
+        Holdco.Platform.log_action("update", "tasks", task.id)
+
+        Phoenix.PubSub.broadcast(
+          Holdco.PubSub,
+          "tasks",
+          {:task_updated, task}
+        )
+
+      _ ->
+        :ok
+    end)
+  end
+
+  def delete_task(%Task{} = task) do
+    Repo.delete(task)
+    |> tap(fn
+      {:ok, task} ->
+        Holdco.Platform.log_action("delete", "tasks", task.id)
+
+        Phoenix.PubSub.broadcast(
+          Holdco.PubSub,
+          "tasks",
+          {:task_deleted, task}
+        )
+
+      _ ->
+        :ok
+    end)
+  end
+
+  def list_tasks_for_user(assignee_id) do
+    from(t in Task,
+      where: t.assignee_id == ^assignee_id,
+      order_by: [asc: t.due_date, desc: t.inserted_at],
+      preload: [:assignee, :company]
+    )
+    |> Repo.all()
+  end
+
+  def list_overdue_tasks do
+    today = Date.utc_today() |> Date.to_string()
+
+    from(t in Task,
+      where: t.status in ["open", "in_progress"] and not is_nil(t.due_date) and t.due_date < ^today,
+      order_by: [asc: t.due_date],
+      preload: [:assignee, :company]
+    )
+    |> Repo.all()
+  end
 
   defp audit_and_broadcast(result, table, action) do
     case result do
