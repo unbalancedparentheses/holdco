@@ -944,4 +944,75 @@ defmodule Holdco.HoldcoFixtures do
 
     rt
   end
+
+  # ── Service Agreements ──────────────────────────────────
+
+  def service_agreement_fixture(attrs \\ %{}) do
+    provider = Map.get_lazy(attrs, :provider_company, fn -> company_fixture() end)
+    recipient = Map.get_lazy(attrs, :recipient_company, fn -> company_fixture() end)
+
+    {:ok, sa} =
+      Holdco.Finance.create_service_agreement(
+        Enum.into(attrs, %{
+          provider_company_id: provider.id,
+          recipient_company_id: recipient.id,
+          agreement_type: "management_fee",
+          description: "Management services agreement",
+          amount: 10_000.0,
+          currency: "USD",
+          frequency: "monthly",
+          start_date: "2024-01-01",
+          end_date: "2024-12-31",
+          status: "active",
+          transfer_pricing_method: "cost_plus",
+          markup_pct: 5.0
+        })
+      )
+
+    sa
+  end
+
+  # ── Goodwill ────────────────────────────────────────────
+
+  def goodwill_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, gw} =
+      Holdco.Finance.create_goodwill(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          acquisition_name: "Acquisition #{System.unique_integer([:positive])}",
+          acquisition_date: "2024-01-01",
+          original_amount: 1_000_000.0,
+          accumulated_impairment: 0.0,
+          carrying_value: 1_000_000.0,
+          reporting_unit: "North America",
+          status: "active"
+        })
+      )
+
+    gw
+  end
+
+  def impairment_test_fixture(attrs \\ %{}) do
+    goodwill = Map.get_lazy(attrs, :goodwill, fn -> goodwill_fixture() end)
+
+    {:ok, it} =
+      Holdco.Finance.create_impairment_test(
+        Enum.into(attrs, %{
+          goodwill_id: goodwill.id,
+          test_date: "2024-06-30",
+          fair_value: 900_000.0,
+          carrying_amount: 1_000_000.0,
+          impairment_amount: 100_000.0,
+          method: "income_approach",
+          discount_rate: 10.0,
+          growth_rate: 3.0,
+          result: "impairment_recognized"
+        })
+      )
+
+    it
+  end
+
 end

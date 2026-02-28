@@ -15,7 +15,10 @@ defmodule Holdco.Finance do
     Budget,
     Liability,
     Segment,
-    Lease
+    Lease,
+    ServiceAgreement,
+    Goodwill,
+    ImpairmentTest
   }
 
   # Financials
@@ -554,6 +557,205 @@ defmodule Holdco.Finance do
       order_by: a.code
     )
     |> Repo.all()
+  end
+
+
+  # Service Agreements
+  def list_service_agreements(company_id \\ nil) do
+    query =
+      from(sa in ServiceAgreement,
+        order_by: [desc: sa.inserted_at],
+        preload: [:provider_company, :recipient_company]
+      )
+
+    query =
+      if company_id do
+        where(query, [sa],
+          sa.provider_company_id == ^company_id or sa.recipient_company_id == ^company_id
+        )
+      else
+        query
+      end
+
+    Repo.all(query)
+  end
+
+  def get_service_agreement!(id) do
+    Repo.get!(ServiceAgreement, id)
+    |> Repo.preload([:provider_company, :recipient_company])
+  end
+
+  def create_service_agreement(attrs) do
+    %ServiceAgreement{}
+    |> ServiceAgreement.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("service_agreements", "create")
+  end
+
+  def update_service_agreement(%ServiceAgreement{} = sa, attrs) do
+    sa
+    |> ServiceAgreement.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("service_agreements", "update")
+  end
+
+  def delete_service_agreement(%ServiceAgreement{} = sa) do
+    Repo.delete(sa)
+    |> audit_and_broadcast("service_agreements", "delete")
+  end
+
+  def service_agreement_summary(company_id) do
+    agreements = list_service_agreements(company_id)
+
+    by_type =
+      agreements
+      |> Enum.group_by(& &1.agreement_type)
+      |> Enum.map(fn {type, items} ->
+        total = Enum.reduce(items, Decimal.new(0), fn sa, acc ->
+          Money.add(acc, Money.to_decimal(sa.amount))
+        end)
+        %{type: type, count: length(items), total: total}
+      end)
+      |> Enum.sort_by(& &1.type)
+
+    inflows =
+      agreements
+      |> Enum.filter(&(&1.recipient_company_id == company_id))
+      |> Enum.reduce(Decimal.new(0), fn sa, acc -> Money.add(acc, Money.to_decimal(sa.amount)) end)
+
+    outflows =
+      agreements
+      |> Enum.filter(&(&1.provider_company_id == company_id))
+      |> Enum.reduce(Decimal.new(0), fn sa, acc -> Money.add(acc, Money.to_decimal(sa.amount)) end)
+
+    %{
+      by_type: by_type,
+      total_inflows: inflows,
+      total_outflows: outflows,
+      net: Money.sub(inflows, outflows),
+      total_agreements: length(agreements)
+    }
+  end
+
+  # Goodwill
+  def list_goodwill(company_id \\ nil) do
+    query = from(g in Goodwill, order_by: [desc: g.acquisition_date], preload: [:company, :impairment_tests])
+    query = if company_id, do: where(query, [g], g.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_goodwill!(id), do: Repo.get!(Goodwill, id) |> Repo.preload([:company, :impairment_tests])
+
+  def create_goodwill(attrs) do
+    %Goodwill{}
+    |> Goodwill.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("goodwill", "create")
+  end
+
+  def update_goodwill(%Goodwill{} = g, attrs) do
+    g
+    |> Goodwill.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("goodwill", "update")
+  end
+
+  def delete_goodwill(%Goodwill{} = g) do
+    Repo.delete(g)
+    |> audit_and_broadcast("goodwill", "delete")
+  end
+
+  # Impairment Tests
+  def list_impairment_tests(goodwill_id) do
+    from(it in ImpairmentTest,
+      where: it.goodwill_id == ^goodwill_id,
+      order_by: [desc: it.test_date],
+      preload: [:goodwill]
+    )
+    |> Repo.all()
+  end
+
+  def get_impairment_test!(id), do: Repo.get!(ImpairmentTest, id) |> Repo.preload(:goodwill)
+
+  def create_impairment_test(attrs) do
+    %ImpairmentTest{}
+    |> ImpairmentTest.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("impairment_tests", "create")
+  end
+
+  def update_impairment_test(%ImpairmentTest{} = it, attrs) do
+    it
+    |> ImpairmentTest.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("impairment_tests", "update")
+  end
+
+  def delete_impairment_test(%ImpairmentTest{} = it) do
+    Repo.delete(it)
+    |> audit_and_broadcast("impairment_tests", "delete")
+  end
+
+  @doc """
+  Runs an impairment test for a goodwill record.
+  Compares fair_value vs carrying_amount, creates an impairment_test record,
+  and updates goodwill's accumulated_impairment + carrying_value if impaired.
+  """
+  def run_impairment_test(goodwill_id, test_params) do
+    goodwill = get_goodwill!(goodwill_id)
+    fair_value = Money.to_decimal(test_params[:fair_value] || test_params["fair_value"])
+    carrying_amount = Money.to_decimal(goodwill.carrying_value)
+
+    {impairment_amount, result} =
+      if Money.lt?(fair_value, carrying_amount) do
+        {Money.sub(carrying_amount, fair_value), "impairment_recognized"}
+      else
+        {Decimal.new(0), "no_impairment"}
+      end
+
+    test_date = test_params[:test_date] || test_params["test_date"] || Date.to_iso8601(Date.utc_today())
+    method = test_params[:method] || test_params["method"] || "income_approach"
+
+    Repo.transaction(fn ->
+      test_attrs = %{
+        goodwill_id: goodwill_id,
+        test_date: test_date,
+        fair_value: fair_value,
+        carrying_amount: carrying_amount,
+        impairment_amount: impairment_amount,
+        method: method,
+        discount_rate: test_params[:discount_rate] || test_params["discount_rate"],
+        growth_rate: test_params[:growth_rate] || test_params["growth_rate"],
+        assumptions: test_params[:assumptions] || test_params["assumptions"],
+        result: result,
+        notes: test_params[:notes] || test_params["notes"]
+      }
+
+      case create_impairment_test(test_attrs) do
+        {:ok, test} ->
+          new_accumulated = Money.add(Money.to_decimal(goodwill.accumulated_impairment), impairment_amount)
+          new_carrying = Money.sub(carrying_amount, impairment_amount)
+
+          new_status =
+            if not Money.gt?(new_carrying, Decimal.new(0)), do: "fully_impaired", else: goodwill.status
+
+          case update_goodwill(goodwill, %{
+            accumulated_impairment: new_accumulated,
+            carrying_value: new_carrying,
+            last_test_date: test_date,
+            status: new_status
+          }) do
+            {:ok, updated_goodwill} ->
+              %{test: test, goodwill: updated_goodwill}
+
+            {:error, changeset} ->
+              Repo.rollback({:goodwill_update_error, changeset})
+          end
+
+        {:error, changeset} ->
+          Repo.rollback({:test_create_error, changeset})
+      end
+    end)
   end
 
   # PubSub
