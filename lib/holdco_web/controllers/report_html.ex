@@ -221,7 +221,7 @@ defmodule HoldcoWeb.ReportHTML do
             <thead>
               <tr>
                 <th>Asset Type</th>
-                <th class="num">Holdings</th>
+                <th class="num">Positions</th>
                 <th class="num">Value (USD)</th>
                 <th class="num">% of Total</th>
               </tr>

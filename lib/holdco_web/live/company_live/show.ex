@@ -1033,7 +1033,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
   end
 
   defp tab_label("overview"), do: "Overview"
-  defp tab_label("holdings"), do: "Holdings"
+  defp tab_label("holdings"), do: "Positions"
   defp tab_label("bank_accounts"), do: "Bank Accounts"
   defp tab_label("transactions"), do: "Transactions"
   defp tab_label("documents"), do: "Documents"
@@ -1294,10 +1294,10 @@ defmodule HoldcoWeb.CompanyLive.Show do
     ~H"""
     <div class="section">
       <div class="section-head">
-        <h2>Holdings</h2>
+        <h2>Positions</h2>
         <%= if @can_write do %>
           <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="holding">
-            Add Holding
+            Add Position
           </button>
         <% end %>
       </div>
@@ -2778,7 +2778,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
     <div class="dialog-overlay" phx-click="close_form">
       <div class="dialog-panel" phx-click="noop">
         <div class="dialog-header">
-          <h3>Add Holding</h3>
+          <h3>Add Position</h3>
         </div>
         <div class="dialog-body">
           <form phx-submit="save_holding">

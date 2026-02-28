@@ -305,7 +305,7 @@ defmodule HoldcoWeb.ImportLive do
           phx-value-tab="holdings"
           class={"btn #{if @active_tab == "holdings", do: "btn-primary", else: "btn-secondary"}"}
         >
-          Holdings
+          Positions
         </button>
         <button
           phx-click="switch_tab"

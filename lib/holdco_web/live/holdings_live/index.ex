@@ -21,7 +21,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
 
     {:ok,
      assign(socket,
-       page_title: "Holdings",
+       page_title: "Positions",
        all_holdings: holdings,
        holdings: holdings,
        companies: companies,
@@ -81,7 +81,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     case Assets.create_holding(params) do
       {:ok, _} ->
         {:noreply,
-         reload(socket) |> put_flash(:info, "Holding added") |> assign(show_form: false)}
+         reload(socket) |> put_flash(:info, "Position added") |> assign(show_form: false)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to add holding")}
@@ -95,7 +95,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
       {:ok, _} ->
         {:noreply,
          reload(socket)
-         |> put_flash(:info, "Holding updated")
+         |> put_flash(:info, "Position updated")
          |> assign(show_form: false, editing_item: nil)}
 
       {:error, _} ->
@@ -106,7 +106,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
   def handle_event("delete", %{"id" => id}, socket) do
     holding = Assets.get_holding!(String.to_integer(id))
     Assets.delete_holding(holding)
-    {:noreply, reload(socket) |> put_flash(:info, "Holding deleted")}
+    {:noreply, reload(socket) |> put_flash(:info, "Position deleted")}
   end
 
   @impl true
@@ -171,7 +171,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     <div class="page-title">
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div>
-          <h1>Holdings</h1>
+          <h1>Positions</h1>
           <p class="deck">{length(@holdings)} positions across all entities</p>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -182,7 +182,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
             <.link navigate={~p"/import?type=holdings"} class="btn btn-secondary">
               Import CSV
             </.link>
-            <button class="btn btn-primary" phx-click="show_form">Add Holding</button>
+            <button class="btn btn-primary" phx-click="show_form">Add Position</button>
           <% end %>
         </div>
       </div>
@@ -276,7 +276,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
 
     <div class="section">
       <div class="section-head">
-        <h2>All Holdings</h2>
+        <h2>All Positions</h2>
       </div>
       <div class="panel">
         <table>
@@ -331,8 +331,8 @@ defmodule HoldcoWeb.HoldingsLive.Index do
         </table>
         <%= if @holdings == [] do %>
           <div class="empty-state">
-            <p>No holdings yet.</p>
-            <p style="color: var(--muted); font-size: 0.9rem;">Holdings track portfolio positions across companies — stocks, crypto, real estate, and more.</p>
+            <p>No positions yet.</p>
+            <p style="color: var(--muted); font-size: 0.9rem;">Positions track portfolio assets across companies — stocks, crypto, real estate, and more.</p>
             <%= if @can_write do %>
               <div style="margin-top: 0.75rem;">
                 <button class="btn btn-primary btn-sm" phx-click="show_form">Add your first holding</button>
@@ -349,7 +349,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
       <div class="dialog-overlay" phx-click="close_form">
         <div class="dialog-panel" phx-click="noop">
           <div class="dialog-header">
-            <h3>{if @show_form == :edit, do: "Edit Holding", else: "Add Holding"}</h3>
+            <h3>{if @show_form == :edit, do: "Edit Position", else: "Add Position"}</h3>
           </div>
           <div class="dialog-body">
             <form phx-submit={if @show_form == :edit, do: "update", else: "save"}>
@@ -391,7 +391,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
                 <input type="text" name="holding[currency]" class="form-input" value={if @editing_item, do: @editing_item.currency, else: "USD"} />
               </div>
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary">{if @show_form == :edit, do: "Save Changes", else: "Add Holding"}</button>
+                <button type="submit" class="btn btn-primary">{if @show_form == :edit, do: "Save Changes", else: "Add Position"}</button>
                 <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
               </div>
             </form>

@@ -120,7 +120,7 @@ defmodule HoldcoWeb.InvestorPortalLive.Index do
   end
 
   defp tab_label("financials"), do: "Financials"
-  defp tab_label("holdings"), do: "Holdings"
+  defp tab_label("holdings"), do: "Positions"
   defp tab_label("cap_table"), do: "Cap Table"
   defp tab_label("documents"), do: "Documents"
 
@@ -245,7 +245,7 @@ defmodule HoldcoWeb.InvestorPortalLive.Index do
     ~H"""
     <div class="section">
       <div class="section-head">
-        <h2>Holdings</h2>
+        <h2>Positions</h2>
       </div>
       <div class="panel">
         <table>

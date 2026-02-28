@@ -14,7 +14,7 @@ defmodule HoldcoWeb.DashboardLive do
     end
 
     nav = Portfolio.calculate_nav()
-    companies = Corporate.list_companies()
+    companies = Corporate.list_companies() |> build_company_tree()
     recent_transactions = Banking.list_transactions(%{limit: 10})
     recent_audit = Platform.list_audit_logs(%{limit: 20})
     snapshots = Assets.list_portfolio_snapshots()
@@ -113,7 +113,7 @@ defmodule HoldcoWeb.DashboardLive do
       <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
         <.link navigate={~p"/companies/new"} class="btn btn-primary">+ Company</.link>
         <.link navigate={~p"/transactions"} class="btn btn-secondary">+ Transaction</.link>
-        <.link navigate={~p"/holdings"} class="btn btn-secondary">+ Holding</.link>
+        <.link navigate={~p"/holdings"} class="btn btn-secondary">+ Position</.link>
         <.link navigate={~p"/import"} class="btn btn-secondary">Import CSV</.link>
       </div>
     <% end %>
@@ -221,7 +221,7 @@ defmodule HoldcoWeb.DashboardLive do
               <%= for company <- @companies do %>
                 <tr>
                   <td class={if company.parent_id, do: "indent"}>
-                    <.link navigate={~p"/companies/#{company.id}"} class="td-link td-name">
+                    <%= if company.parent_id do %><span style="color: var(--color-muted); margin-right: 0.25rem;">&mdash;</span><% end %><.link navigate={~p"/companies/#{company.id}"} class="td-link td-name">
                       {company.name}
                     </.link>
                   </td>
@@ -434,6 +434,16 @@ defmodule HoldcoWeb.DashboardLive do
   defp audit_link("bank_accounts", id), do: ~p"/bank-accounts/#{id}"
   defp audit_link("transactions", id), do: ~p"/transactions/#{id}"
   defp audit_link(_, id), do: ~p"/audit-log?table_name=&record=#{id}"
+
+  defp build_company_tree(companies) do
+    # Put parent companies (no parent_id) first, then children grouped under their parent
+    {roots, children} = Enum.split_with(companies, &is_nil(&1.parent_id))
+    by_parent = Enum.group_by(children, & &1.parent_id)
+
+    Enum.flat_map(roots, fn root ->
+      [root | Map.get(by_parent, root.id, [])]
+    end)
+  end
 
   defp nav_chart_data(snapshots) do
     sorted = Enum.sort_by(snapshots, & &1.date)

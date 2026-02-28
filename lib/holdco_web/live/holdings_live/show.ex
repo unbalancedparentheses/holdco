@@ -62,7 +62,7 @@ defmodule HoldcoWeb.HoldingsLive.Show do
             <span class="tag tag-ink">{@holding.asset_type}</span>
           </p>
         </div>
-        <.link navigate={~p"/holdings"} class="btn btn-secondary">Back to Holdings</.link>
+        <.link navigate={~p"/holdings"} class="btn btn-secondary">Back to Positions</.link>
       </div>
       <hr class="page-title-rule" />
     </div>

@@ -210,7 +210,7 @@ defmodule HoldcoWeb.TaxOptimizerLive.Index do
             <div class="metric-value">${format_number(@optimization_result.total_portfolio_value)}</div>
           </div>
           <div class="metric-cell">
-            <div class="metric-label">Holdings</div>
+            <div class="metric-label">Positions</div>
             <div class="metric-value">{@optimization_result.holdings_count}</div>
           </div>
         </div>

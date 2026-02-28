@@ -148,7 +148,7 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
               <tr>
                 <th>Asset Type</th>
                 <th class="th-num">Value (USD)</th>
-                <th class="th-num">Holdings</th>
+                <th class="th-num">Positions</th>
                 <th class="th-num">% of Portfolio</th>
               </tr>
             </thead>
