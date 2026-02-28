@@ -78,7 +78,7 @@ config :holdco, Oban,
   engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.PG,
   repo: Holdco.Repo,
-  queues: [default: 10, prices: 5, snapshots: 2],
+  queues: [default: 10, prices: 5, snapshots: 2, bank_feeds: 3],
   plugins: [
     {Oban.Plugins.Cron,
      crontab: [
@@ -87,7 +87,8 @@ config :holdco, Oban,
        {"0 6 * * *", Holdco.Workers.TaxReminderWorker},
        {"0 4 * * *", Holdco.Workers.BackupWorker},
        {"0 5 * * 0", Holdco.Workers.SanctionsCheckWorker},
-       {"0 7 * * 1", Holdco.Workers.EmailDigestWorker}
+       {"0 7 * * 1", Holdco.Workers.EmailDigestWorker},
+       {"0 */4 * * *", Holdco.Workers.BankFeedSyncWorker}
      ]}
   ]
 
