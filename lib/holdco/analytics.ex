@@ -3,7 +3,7 @@ defmodule Holdco.Analytics do
   alias Holdco.Repo
   alias Holdco.Money
 
-  alias Holdco.Analytics.{Kpi, KpiSnapshot, ReportTemplate, ScheduledReport, StressTest, LiquidityCoverage, Anomaly, Benchmark, BenchmarkComparison, CounterpartyExposure, LoanCovenant}
+  alias Holdco.Analytics.{Kpi, KpiSnapshot, ReportTemplate, ScheduledReport, StressTest, LiquidityCoverage, Anomaly, Benchmark, BenchmarkComparison, CounterpartyExposure, LoanCovenant, DefiPosition, OnChainRecord, Airdrop, CustomDashboard, BiConnector, BiExportLog}
 
   # KPIs
   def list_kpis(company_id \\ nil) do
@@ -1144,6 +1144,197 @@ defmodule Holdco.Analytics do
     end)
   end
 
+
+  # DeFi Positions
+  def list_defi_positions(company_id \\ nil) do
+    query = from(d in DefiPosition, order_by: [desc: d.inserted_at], preload: [:company])
+    query = if company_id, do: where(query, [d], d.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_defi_position!(id), do: Repo.get!(DefiPosition, id) |> Repo.preload(:company)
+
+  def create_defi_position(attrs) do
+    %DefiPosition{}
+    |> DefiPosition.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("defi_positions", "create")
+  end
+
+  def update_defi_position(%DefiPosition{} = pos, attrs) do
+    pos
+    |> DefiPosition.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("defi_positions", "update")
+  end
+
+  def delete_defi_position(%DefiPosition{} = pos) do
+    Repo.delete(pos)
+    |> audit_and_broadcast("defi_positions", "delete")
+  end
+
+  def total_defi_value(company_id) do
+    from(d in DefiPosition,
+      where: d.company_id == ^company_id and d.status == "active",
+      select: sum(d.current_value)
+    )
+    |> Repo.one() || Decimal.new(0)
+  end
+
+  def defi_by_chain(company_id) do
+    from(d in DefiPosition,
+      where: d.company_id == ^company_id and d.status == "active",
+      group_by: d.chain,
+      select: {d.chain, sum(d.current_value), count(d.id)}
+    )
+    |> Repo.all()
+  end
+
+  def defi_by_protocol(company_id) do
+    from(d in DefiPosition,
+      where: d.company_id == ^company_id and d.status == "active",
+      group_by: d.protocol_name,
+      select: {d.protocol_name, sum(d.current_value), count(d.id)}
+    )
+    |> Repo.all()
+  end
+
+  # On-Chain Records
+  def list_on_chain_records(company_id \\ nil) do
+    query = from(r in OnChainRecord, order_by: [desc: r.inserted_at], preload: [:company])
+    query = if company_id, do: where(query, [r], r.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_on_chain_record!(id), do: Repo.get!(OnChainRecord, id) |> Repo.preload(:company)
+
+  def create_on_chain_record(attrs) do
+    %OnChainRecord{}
+    |> OnChainRecord.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("on_chain_records", "create")
+  end
+
+  def update_on_chain_record(%OnChainRecord{} = record, attrs) do
+    record
+    |> OnChainRecord.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("on_chain_records", "update")
+  end
+
+  def delete_on_chain_record(%OnChainRecord{} = record) do
+    Repo.delete(record)
+    |> audit_and_broadcast("on_chain_records", "delete")
+  end
+
+  def unverified_records(company_id) do
+    from(r in OnChainRecord,
+      where: r.company_id == ^company_id and r.verification_status == "pending",
+      order_by: [desc: r.inserted_at],
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def verification_summary(company_id) do
+    from(r in OnChainRecord,
+      where: r.company_id == ^company_id,
+      group_by: r.verification_status,
+      select: {r.verification_status, count(r.id)}
+    )
+    |> Repo.all()
+    |> Enum.into(%{})
+  end
+
+  # Airdrops
+  def list_airdrops(company_id \\ nil) do
+    query = from(a in Airdrop, order_by: [desc: a.received_date], preload: [:company])
+    query = if company_id, do: where(query, [a], a.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_airdrop!(id), do: Repo.get!(Airdrop, id) |> Repo.preload(:company)
+
+  def create_airdrop(attrs) do
+    %Airdrop{}
+    |> Airdrop.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("airdrops", "create")
+  end
+
+  def update_airdrop(%Airdrop{} = airdrop, attrs) do
+    airdrop
+    |> Airdrop.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("airdrops", "update")
+  end
+
+  def delete_airdrop(%Airdrop{} = airdrop) do
+    Repo.delete(airdrop)
+    |> audit_and_broadcast("airdrops", "delete")
+  end
+
+  def unclaimed_airdrops(company_id) do
+    from(a in Airdrop,
+      where: a.company_id == ^company_id and a.claimed == false and a.eligible == true,
+      order_by: [desc: a.received_date],
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def airdrop_value_summary(company_id) do
+    from(a in Airdrop,
+      where: a.company_id == ^company_id,
+      select: %{
+        total_value_at_receipt: sum(a.value_at_receipt),
+        total_current_value: sum(a.current_value),
+        total_count: count(a.id),
+        claimed_count: sum(fragment("CASE WHEN ? = true THEN 1 ELSE 0 END", a.claimed))
+      }
+    )
+    |> Repo.one()
+  end
+
+
+  # ── Custom Dashboards ──────────────────────────────────────────
+
+  def list_custom_dashboards(user_id) do
+    from(d in CustomDashboard, where: d.user_id == ^user_id, order_by: [desc: d.updated_at])
+    |> Repo.all()
+  end
+
+  def get_custom_dashboard!(id), do: Repo.get!(CustomDashboard, id)
+
+  def create_custom_dashboard(attrs) do
+    %CustomDashboard{}
+    |> CustomDashboard.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("custom_dashboards", "create")
+  end
+
+  def update_custom_dashboard(%CustomDashboard{} = dashboard, attrs) do
+    dashboard
+    |> CustomDashboard.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("custom_dashboards", "update")
+  end
+
+  def delete_custom_dashboard(%CustomDashboard{} = dashboard) do
+    Repo.delete(dashboard)
+    |> audit_and_broadcast("custom_dashboards", "delete")
+  end
+
+  def default_dashboard_for_user(user_id) do
+    from(d in CustomDashboard, where: d.user_id == ^user_id and d.is_default == true, limit: 1)
+    |> Repo.one()
+  end
+
+  def shared_dashboards do
+    from(d in CustomDashboard, where: d.is_shared == true, order_by: [desc: d.updated_at])
+    |> Repo.all()
+  end
+
   # PubSub
   def subscribe, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "analytics")
   defp broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "analytics", message)
@@ -1158,5 +1349,58 @@ defmodule Holdco.Analytics do
       error ->
         error
     end
+  end
+
+  # ── BI Connectors ──────────────────────────────────────
+
+  def list_bi_connectors, do: Repo.all(from(c in BiConnector, order_by: [desc: c.inserted_at], preload: [:export_logs]))
+  def get_bi_connector!(id), do: Repo.get!(BiConnector, id) |> Repo.preload(:export_logs)
+
+  def create_bi_connector(attrs) do
+    %BiConnector{}
+    |> BiConnector.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("bi_connectors", "create")
+  end
+
+  def update_bi_connector(%BiConnector{} = connector, attrs) do
+    connector
+    |> BiConnector.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("bi_connectors", "update")
+  end
+
+  def delete_bi_connector(%BiConnector{} = connector) do
+    Repo.delete(connector)
+    |> audit_and_broadcast("bi_connectors", "delete")
+  end
+
+  def active_connectors do
+    from(c in BiConnector, where: c.is_active == true, order_by: [desc: c.inserted_at])
+    |> Repo.all()
+  end
+
+  def list_bi_export_logs(connector_id) do
+    from(l in BiExportLog,
+      where: l.connector_id == ^connector_id,
+      order_by: [desc: l.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def create_bi_export_log(attrs) do
+    %BiExportLog{}
+    |> BiExportLog.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("bi_export_logs", "create")
+  end
+
+  def latest_export_for_connector(connector_id) do
+    from(l in BiExportLog,
+      where: l.connector_id == ^connector_id,
+      order_by: [desc: l.inserted_at, desc: l.id],
+      limit: 1
+    )
+    |> Repo.one()
   end
 end

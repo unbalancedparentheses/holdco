@@ -14,7 +14,11 @@ defmodule Holdco.Governance do
     InvestorAccess,
     ConflictOfInterest,
     ShareholderCommunication,
-    EthicsReport
+    EthicsReport,
+    FamilyCharter,
+    FamilyMember,
+    EstatePlan,
+    SuccessionPlan
   }
 
   # Board Meetings
@@ -530,5 +534,156 @@ defmodule Holdco.Governance do
       |> Repo.all()
 
     %{by_status: by_status, by_severity: by_severity, by_type: by_type}
+  end
+
+  # ── Family Charters ────────────────────────────────────
+
+  def list_family_charters do
+    from(fc in FamilyCharter, order_by: [desc: fc.inserted_at])
+    |> Repo.all()
+  end
+
+  def get_family_charter!(id),
+    do: Repo.get!(FamilyCharter, id) |> Repo.preload(:family_members)
+
+  def create_family_charter(attrs) do
+    %FamilyCharter{}
+    |> FamilyCharter.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("family_charters", "create")
+  end
+
+  def update_family_charter(%FamilyCharter{} = fc, attrs) do
+    fc
+    |> FamilyCharter.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("family_charters", "update")
+  end
+
+  # ── Family Members ─────────────────────────────────────
+
+  def list_family_members(charter_id \\ nil) do
+    query = from(fm in FamilyMember, order_by: [asc: fm.generation, asc: fm.full_name], preload: [:family_charter])
+    query = if charter_id, do: where(query, [fm], fm.family_charter_id == ^charter_id), else: query
+    Repo.all(query)
+  end
+
+  def get_family_member!(id), do: Repo.get!(FamilyMember, id) |> Repo.preload(:family_charter)
+
+  def create_family_member(attrs) do
+    %FamilyMember{}
+    |> FamilyMember.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("family_members", "create")
+  end
+
+  def update_family_member(%FamilyMember{} = fm, attrs) do
+    fm
+    |> FamilyMember.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("family_members", "update")
+  end
+
+  def delete_family_member(%FamilyMember{} = fm) do
+    Repo.delete(fm)
+    |> audit_and_broadcast("family_members", "delete")
+  end
+
+  def voting_members(charter_id) do
+    from(fm in FamilyMember,
+      where: fm.family_charter_id == ^charter_id,
+      where: fm.voting_rights == true,
+      order_by: [asc: fm.generation, asc: fm.full_name]
+    )
+    |> Repo.all()
+  end
+
+  def members_by_generation(charter_id) do
+    from(fm in FamilyMember,
+      where: fm.family_charter_id == ^charter_id,
+      order_by: [asc: fm.generation, asc: fm.full_name]
+    )
+    |> Repo.all()
+    |> Enum.group_by(& &1.generation)
+  end
+
+  # ── Estate Plans ───────────────────────────────────────
+
+  def list_estate_plans do
+    from(ep in EstatePlan, order_by: [desc: ep.inserted_at], preload: [:family_charter])
+    |> Repo.all()
+  end
+
+  def get_estate_plan!(id), do: Repo.get!(EstatePlan, id) |> Repo.preload(:family_charter)
+
+  def create_estate_plan(attrs) do
+    %EstatePlan{}
+    |> EstatePlan.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("estate_plans", "create")
+  end
+
+  def update_estate_plan(%EstatePlan{} = ep, attrs) do
+    ep
+    |> EstatePlan.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("estate_plans", "update")
+  end
+
+  def delete_estate_plan(%EstatePlan{} = ep) do
+    Repo.delete(ep)
+    |> audit_and_broadcast("estate_plans", "delete")
+  end
+
+  def plans_due_for_review do
+    today = Date.utc_today()
+
+    from(ep in EstatePlan,
+      where: not is_nil(ep.next_review_date),
+      where: ep.next_review_date <= ^today,
+      where: ep.status not in ["revoked", "superseded"],
+      order_by: [asc: ep.next_review_date],
+      preload: [:family_charter]
+    )
+    |> Repo.all()
+  end
+
+  # ── Succession Plans ───────────────────────────────────
+
+  def list_succession_plans(company_id \\ nil) do
+    query = from(sp in SuccessionPlan, order_by: [desc: sp.inserted_at], preload: [:company])
+    query = if company_id, do: where(query, [sp], sp.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_succession_plan!(id), do: Repo.get!(SuccessionPlan, id) |> Repo.preload(:company)
+
+  def create_succession_plan(attrs) do
+    %SuccessionPlan{}
+    |> SuccessionPlan.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("succession_plans", "create")
+  end
+
+  def update_succession_plan(%SuccessionPlan{} = sp, attrs) do
+    sp
+    |> SuccessionPlan.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("succession_plans", "update")
+  end
+
+  def delete_succession_plan(%SuccessionPlan{} = sp) do
+    Repo.delete(sp)
+    |> audit_and_broadcast("succession_plans", "delete")
+  end
+
+  def active_succession_plans(company_id) do
+    from(sp in SuccessionPlan,
+      where: sp.company_id == ^company_id,
+      where: sp.status == "active",
+      order_by: [asc: sp.position_title],
+      preload: [:company]
+    )
+    |> Repo.all()
   end
 end

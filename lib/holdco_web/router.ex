@@ -304,6 +304,30 @@ defmodule HoldcoWeb.Router do
       live "/litigation", LitigationLive.Index, :index
       live "/bank-guarantees", BankGuaranteeLive.Index, :index
 
+      # Phase 8 — Trust, Charitable Giving, Family Governance, Estate Planning
+      live "/trusts", TrustLive.Index, :index
+      live "/charitable-giving", CharitableGivingLive.Index, :index
+      live "/family-governance", FamilyGovernanceLive.Index, :index
+      live "/estate-planning", EstatePlanningLive.Index, :index
+
+      # Batch 11 — SSO, Security Keys, Data Retention, Custom Dashboards
+      live "/sso-config", SsoConfigLive.Index, :index
+      live "/security-keys", SecurityKeyLive.Index, :index
+      live "/data-retention", DataRetentionLive.Index, :index
+      live "/custom-dashboards", CustomDashboardLive.Index, :index
+
+      # Phase 8 — DeFi, On-Chain, Data Room, Airdrops
+      live "/defi-positions", DefiPositionLive.Index, :index
+      live "/on-chain", OnChainLive.Index, :index
+      live "/data-room", DataRoomLive.Index, :index
+      live "/airdrops", AirdropLive.Index, :index
+
+
+      # Notification Channels, Document Intelligence, Regulatory Changes, Collaboration
+      live "/settings/notification-channels", NotificationChannelsLive.Index, :index
+      live "/document-intelligence", DocumentIntelligenceLive.Index, :index
+      live "/regulatory-changes", RegulatoryChangesLive.Index, :index
+      live "/collaboration", CollaborationLive.Index, :index
 
     end
   end

@@ -23,6 +23,7 @@ defmodule Holdco.Compliance do
     BcpPlan,
     InsuranceClaim,
     Litigation,
+    RegulatoryChange,
   }
 
   # Tax Deadlines
@@ -1000,4 +1001,48 @@ defmodule Holdco.Compliance do
     from(l in query, select: sum(l.estimated_exposure)) |> Repo.one() || Decimal.new(0)
   end
 
+
+  # ── Regulatory Changes ──────────────────────────────────
+
+  def list_regulatory_changes do
+    from(rc in RegulatoryChange, order_by: [desc: rc.inserted_at])
+    |> Repo.all()
+  end
+
+  def get_regulatory_change!(id), do: Repo.get!(RegulatoryChange, id)
+
+  def create_regulatory_change(attrs) do
+    %RegulatoryChange{}
+    |> RegulatoryChange.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("regulatory_changes", "create")
+  end
+
+  def update_regulatory_change(%RegulatoryChange{} = rc, attrs) do
+    rc
+    |> RegulatoryChange.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("regulatory_changes", "update")
+  end
+
+  def delete_regulatory_change(%RegulatoryChange{} = rc) do
+    Repo.delete(rc)
+    |> audit_and_broadcast("regulatory_changes", "delete")
+  end
+
+  def pending_regulatory_changes do
+    from(rc in RegulatoryChange,
+      where: rc.status in ["monitoring", "assessment"],
+      order_by: [asc: rc.effective_date]
+    )
+    |> Repo.all()
+  end
+
+  def high_impact_changes do
+    from(rc in RegulatoryChange,
+      where: rc.impact_assessment in ["high", "critical"],
+      order_by: [desc: rc.inserted_at]
+    )
+    |> Repo.all()
+  end
 end

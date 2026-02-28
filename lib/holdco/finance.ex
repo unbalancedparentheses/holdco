@@ -22,7 +22,10 @@ defmodule Holdco.Finance do
     Goodwill,
     ImpairmentTest,
     CompensationRecord,
-    BankGuarantee
+    BankGuarantee,
+    TrustAccount,
+    TrustTransaction,
+    CharitableGift
   }
 
   alias Holdco.Fund.{AccountingBook, BookAdjustment}
@@ -1171,4 +1174,137 @@ defmodule Holdco.Finance do
   defp to_decimal(f) when is_float(f), do: Decimal.from_float(f)
   defp to_decimal(i) when is_integer(i), do: Decimal.new(i)
   defp to_decimal(nil), do: Decimal.new(0)
+
+
+  # ── Trust Accounts ─────────────────────────────────────
+
+  def list_trust_accounts(company_id \\ nil) do
+    query = from(ta in TrustAccount, order_by: [desc: ta.inserted_at], preload: [:company])
+    query = if company_id, do: where(query, [ta], ta.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_trust_account!(id),
+    do: Repo.get!(TrustAccount, id) |> Repo.preload([:company, :trust_transactions])
+
+  def create_trust_account(attrs) do
+    %TrustAccount{}
+    |> TrustAccount.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("trust_accounts", "create")
+  end
+
+  def update_trust_account(%TrustAccount{} = ta, attrs) do
+    ta
+    |> TrustAccount.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("trust_accounts", "update")
+  end
+
+  def delete_trust_account(%TrustAccount{} = ta) do
+    Repo.delete(ta)
+    |> audit_and_broadcast("trust_accounts", "delete")
+  end
+
+  # ── Trust Transactions ─────────────────────────────────
+
+  def list_trust_transactions(trust_account_id \\ nil) do
+    query = from(tt in TrustTransaction, order_by: [desc: tt.transaction_date], preload: [:trust_account])
+    query = if trust_account_id, do: where(query, [tt], tt.trust_account_id == ^trust_account_id), else: query
+    Repo.all(query)
+  end
+
+  def create_trust_transaction(attrs) do
+    %TrustTransaction{}
+    |> TrustTransaction.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("trust_transactions", "create")
+  end
+
+  def trust_balance(trust_account_id) do
+    contributions =
+      from(tt in TrustTransaction,
+        where: tt.trust_account_id == ^trust_account_id,
+        where: tt.transaction_type in ["contribution", "income"],
+        select: coalesce(sum(tt.amount), 0)
+      )
+      |> Repo.one()
+
+    outflows =
+      from(tt in TrustTransaction,
+        where: tt.trust_account_id == ^trust_account_id,
+        where: tt.transaction_type in ["distribution", "expense", "fee", "tax_payment"],
+        select: coalesce(sum(tt.amount), 0)
+      )
+      |> Repo.one()
+
+    Decimal.sub(contributions, outflows)
+  end
+
+  def trust_income_summary(trust_account_id) do
+    from(tt in TrustTransaction,
+      where: tt.trust_account_id == ^trust_account_id,
+      group_by: tt.transaction_type,
+      select: %{transaction_type: tt.transaction_type, total: sum(tt.amount)}
+    )
+    |> Repo.all()
+  end
+
+  # ── Charitable Gifts ───────────────────────────────────
+
+  def list_charitable_gifts(company_id \\ nil) do
+    query = from(cg in CharitableGift, order_by: [desc: cg.gift_date], preload: [:company])
+    query = if company_id, do: where(query, [cg], cg.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_charitable_gift!(id), do: Repo.get!(CharitableGift, id) |> Repo.preload(:company)
+
+  def create_charitable_gift(attrs) do
+    %CharitableGift{}
+    |> CharitableGift.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("charitable_gifts", "create")
+  end
+
+  def update_charitable_gift(%CharitableGift{} = cg, attrs) do
+    cg
+    |> CharitableGift.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("charitable_gifts", "update")
+  end
+
+  def delete_charitable_gift(%CharitableGift{} = cg) do
+    Repo.delete(cg)
+    |> audit_and_broadcast("charitable_gifts", "delete")
+  end
+
+  def gifts_by_year(company_id, year) do
+    from(cg in CharitableGift,
+      where: cg.company_id == ^company_id,
+      where: cg.tax_year == ^year,
+      order_by: [desc: cg.gift_date],
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
+
+  def total_giving(company_id) do
+    from(cg in CharitableGift,
+      where: cg.company_id == ^company_id,
+      select: coalesce(sum(cg.amount), 0)
+    )
+    |> Repo.one()
+  end
+
+  def unfulfilled_pledges(company_id) do
+    from(cg in CharitableGift,
+      where: cg.company_id == ^company_id,
+      where: cg.gift_type == "pledge",
+      where: cg.pledge_fulfilled == false,
+      order_by: [desc: cg.gift_date],
+      preload: [:company]
+    )
+    |> Repo.all()
+  end
 end

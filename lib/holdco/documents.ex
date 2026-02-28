@@ -1,7 +1,7 @@
 defmodule Holdco.Documents do
   import Ecto.Query
   alias Holdco.Repo
-  alias Holdco.Documents.{Document, DocumentVersion, DocumentUpload, SignatureWorkflow}
+  alias Holdco.Documents.{Document, DocumentVersion, DocumentUpload, SignatureWorkflow, DataRoom, DataRoomDocument, Extraction}
 
   # Documents
   def list_documents(company_id \\ nil) do
@@ -161,6 +161,102 @@ defmodule Holdco.Documents do
       end
 
     update_signature_workflow(workflow, %{signers: updated_signers, status: new_status})
+  end
+
+
+  # Data Rooms
+  def list_data_rooms(company_id \\ nil) do
+    query = from(dr in DataRoom, order_by: [desc: dr.inserted_at], preload: [:company, :created_by])
+    query = if company_id, do: where(query, [dr], dr.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_data_room!(id) do
+    Repo.get!(DataRoom, id) |> Repo.preload([:company, :created_by, data_room_documents: [:document]])
+  end
+
+  def create_data_room(attrs) do
+    %DataRoom{}
+    |> DataRoom.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("data_rooms", "create")
+  end
+
+  def update_data_room(%DataRoom{} = room, attrs) do
+    room
+    |> DataRoom.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("data_rooms", "update")
+  end
+
+  def delete_data_room(%DataRoom{} = room) do
+    Repo.delete(room)
+    |> audit_and_broadcast("data_rooms", "delete")
+  end
+
+  def add_document_to_room(attrs) do
+    %DataRoomDocument{}
+    |> DataRoomDocument.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("data_room_documents", "create")
+  end
+
+  def remove_document_from_room(%DataRoomDocument{} = drd) do
+    Repo.delete(drd)
+    |> audit_and_broadcast("data_room_documents", "delete")
+  end
+
+  def list_room_documents(data_room_id) do
+    from(drd in DataRoomDocument,
+      where: drd.data_room_id == ^data_room_id,
+      order_by: [asc: drd.sort_order],
+      preload: [:document, :added_by]
+    )
+    |> Repo.all()
+  end
+
+  def get_data_room_document!(id) do
+    Repo.get!(DataRoomDocument, id) |> Repo.preload([:document, :added_by])
+  end
+
+  # ── Extractions (Document Intelligence) ─────────────────────────
+
+  def list_extractions(document_id \\ nil) do
+    query = from(e in Extraction, order_by: [desc: e.inserted_at], preload: [:document, :reviewed_by])
+    query = if document_id, do: where(query, [e], e.document_id == ^document_id), else: query
+    Repo.all(query)
+  end
+
+  def get_extraction!(id), do: Repo.get!(Extraction, id) |> Repo.preload([:document, :reviewed_by])
+
+  def create_extraction(attrs) do
+    %Extraction{}
+    |> Extraction.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("extractions", "create")
+  end
+
+  def update_extraction(%Extraction{} = extraction, attrs) do
+    extraction
+    |> Extraction.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("extractions", "update")
+  end
+
+  def mark_extraction_reviewed(%Extraction{} = extraction, user_id) do
+    extraction
+    |> Extraction.changeset(%{reviewed: true, reviewed_by_id: user_id})
+    |> Repo.update()
+    |> audit_and_broadcast("extractions", "update")
+  end
+
+  def pending_extractions do
+    from(e in Extraction,
+      where: e.status in ["pending", "processing"],
+      order_by: [asc: e.inserted_at],
+      preload: [:document, :reviewed_by]
+    )
+    |> Repo.all()
   end
 
   # PubSub

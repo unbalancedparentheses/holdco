@@ -4,6 +4,7 @@ defmodule Holdco.Notifications do
   alias Holdco.Notifications.Notification
   alias Holdco.Notifications.NotificationChannel
   alias Holdco.Notifications.NotificationDelivery
+  alias Holdco.Notifications.NotificationLog
 
   # ── Notifications (existing) ────────────────────────────────────
 
@@ -149,6 +150,111 @@ defmodule Holdco.Notifications do
     |> Repo.all()
   end
 
+  # ── Notification Channels (CRUD with audit) ─────────────────────
+
+  def list_notification_channels(user_id) do
+    from(c in NotificationChannel,
+      where: c.user_id == ^user_id,
+      order_by: [asc: c.name, desc: c.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def get_notification_channel!(id), do: Repo.get!(NotificationChannel, id)
+
+  def create_notification_channel(attrs) do
+    %NotificationChannel{}
+    |> NotificationChannel.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("notification_channels", "create")
+  end
+
+  def update_notification_channel(%NotificationChannel{} = channel, attrs) do
+    channel
+    |> NotificationChannel.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("notification_channels", "update")
+  end
+
+  def delete_notification_channel(%NotificationChannel{} = channel) do
+    Repo.delete(channel)
+    |> audit_and_broadcast("notification_channels", "delete")
+  end
+
+  # ── Notification Logs ───────────────────────────────────────────
+
+  def list_notification_logs(channel_id) do
+    from(l in NotificationLog,
+      where: l.channel_id == ^channel_id,
+      order_by: [desc: l.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def create_notification_log(attrs) do
+    %NotificationLog{}
+    |> NotificationLog.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def dispatch_notification(event_type, message, opts \\ []) do
+    user_id = Keyword.get(opts, :user_id)
+
+    channels =
+      if user_id do
+        list_active_channels_for_user(user_id, event_type)
+      else
+        from(c in NotificationChannel,
+          where: c.is_active == true
+        )
+        |> Repo.all()
+      end
+
+    Enum.map(channels, fn channel ->
+      provider_mod = Holdco.Notifications.Dispatcher.get_provider(channel.provider)
+
+      log_attrs = %{
+        channel_id: channel.id,
+        event_type: event_type,
+        message: message,
+        status: "pending"
+      }
+
+      {:ok, log} = create_notification_log(log_attrs)
+
+      if provider_mod do
+        notification = %{title: event_type, body: message}
+
+        case provider_mod.send_notification(channel, notification) do
+          {:ok, _} ->
+            now = DateTime.utc_now() |> DateTime.truncate(:second)
+            update_channel(channel, %{last_sent_at: now, failure_count: 0})
+
+            Repo.update!(
+              NotificationLog.changeset(log, %{status: "sent", sent_at: now})
+            )
+
+            {:ok, log}
+
+          {:error, error_msg} ->
+            update_channel(channel, %{failure_count: (channel.failure_count || 0) + 1})
+
+            Repo.update!(
+              NotificationLog.changeset(log, %{status: "failed", error_message: to_string(error_msg)})
+            )
+
+            {:error, error_msg}
+        end
+      else
+        Repo.update!(
+          NotificationLog.changeset(log, %{status: "failed", error_message: "Unknown provider: #{channel.provider}"})
+        )
+
+        {:error, :unknown_provider}
+      end
+    end)
+  end
+
   # ── Deliveries ──────────────────────────────────────────────────
 
   def list_deliveries(notification_id) do
@@ -210,5 +316,17 @@ defmodule Holdco.Notifications do
 
   defp broadcast(user_id, message) do
     Phoenix.PubSub.broadcast(Holdco.PubSub, "notifications:#{user_id}", message)
+  end
+
+  defp audit_and_broadcast(result, table, action) do
+    case result do
+      {:ok, record} ->
+        Holdco.Platform.log_action(action, table, record.id)
+        Phoenix.PubSub.broadcast(Holdco.PubSub, "notifications", {String.to_atom("#{table}_#{action}d"), record})
+        {:ok, record}
+
+      error ->
+        error
+    end
   end
 end

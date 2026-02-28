@@ -2186,4 +2186,563 @@ defmodule Holdco.HoldcoFixtures do
 
     bg
   end
+
+  # ── DeFi Positions ─────────────────────────────────────
+
+  def defi_position_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, position} =
+      Holdco.Analytics.create_defi_position(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          protocol_name: "Aave",
+          chain: "ethereum",
+          position_type: "lending",
+          asset_pair: "ETH/USDC",
+          deposited_amount: "10000.00",
+          current_value: "10500.00",
+          unrealized_pnl: "500.00",
+          apy_current: "5.25",
+          currency: "USD",
+          wallet_address: "0x#{:crypto.strong_rand_bytes(20) |> Base.encode16(case: :lower)}",
+          status: "active",
+          entry_date: "2025-01-01"
+        })
+      )
+
+    position
+  end
+
+  # ── On-Chain Records ───────────────────────────────────
+
+  def on_chain_record_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, record} =
+      Holdco.Analytics.create_on_chain_record(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          chain: "ethereum",
+          tx_hash: "0x#{:crypto.strong_rand_bytes(32) |> Base.encode16(case: :lower)}",
+          block_number: Enum.random(1_000_000..20_000_000),
+          from_address: "0x#{:crypto.strong_rand_bytes(20) |> Base.encode16(case: :lower)}",
+          to_address: "0x#{:crypto.strong_rand_bytes(20) |> Base.encode16(case: :lower)}",
+          amount: "1.5",
+          currency: "ETH",
+          verification_status: "pending"
+        })
+      )
+
+    record
+  end
+
+  # ── Data Rooms ─────────────────────────────────────────
+
+  def data_room_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, room} =
+      Holdco.Documents.create_data_room(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          name: "Data Room #{System.unique_integer([:positive])}",
+          description: "Test data room",
+          access_level: "restricted",
+          status: "active",
+          watermark_enabled: true,
+          download_allowed: true
+        })
+      )
+
+    room
+  end
+
+  def data_room_document_fixture(attrs \\ %{}) do
+    data_room = Map.get_lazy(attrs, :data_room, fn -> data_room_fixture() end)
+    document = Map.get_lazy(attrs, :document, fn -> document_fixture() end)
+
+    {:ok, drd} =
+      Holdco.Documents.add_document_to_room(
+        Enum.into(attrs, %{
+          data_room_id: data_room.id,
+          document_id: document.id,
+          section_name: "General",
+          sort_order: 0
+        })
+      )
+
+    drd
+  end
+
+  # ── Airdrops ───────────────────────────────────────────
+
+  def airdrop_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, airdrop} =
+      Holdco.Analytics.create_airdrop(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          event_type: "airdrop",
+          token_name: "UNI",
+          chain: "ethereum",
+          amount: "400.0",
+          value_at_receipt: "2000.00",
+          current_value: "2400.00",
+          currency: "USD",
+          wallet_address: "0x#{:crypto.strong_rand_bytes(20) |> Base.encode16(case: :lower)}",
+          received_date: "2025-06-15",
+          claimed: false,
+          eligible: true,
+          tax_treated: false
+        })
+      )
+
+    airdrop
+  end
+
+  # ── SSO Configs ──────────────────────────────────────────
+
+  def sso_config_fixture(attrs \\ %{}) do
+    {:ok, config} =
+      Holdco.Platform.create_sso_config(
+        Enum.into(attrs, %{
+          name: "SSO #{System.unique_integer([:positive])}",
+          provider_type: "saml"
+        })
+      )
+
+    config
+  end
+
+  # ── Security Keys ──────────────────────────────────────────
+
+  def security_key_fixture(attrs \\ %{}) do
+    user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
+
+    {:ok, key} =
+      Holdco.Platform.register_security_key(
+        Enum.into(attrs, %{
+          user_id: user.id,
+          name: "Key #{System.unique_integer([:positive])}",
+          credential_id: "cred_#{System.unique_integer([:positive])}",
+          public_key: "pk_#{System.unique_integer([:positive])}"
+        })
+      )
+
+    key
+  end
+
+  # ── Data Retention Policies ──────────────────────────────────────────
+
+  def data_retention_policy_fixture(attrs \\ %{}) do
+    {:ok, policy} =
+      Holdco.Platform.create_data_retention_policy(
+        Enum.into(attrs, %{
+          name: "Policy #{System.unique_integer([:positive])}",
+          data_category: "personal_data",
+          retention_period_days: 365,
+          legal_basis: "consent",
+          action_on_expiry: "delete"
+        })
+      )
+
+    policy
+  end
+
+  # ── Data Deletion Requests ──────────────────────────────────────────
+
+  def data_deletion_request_fixture(attrs \\ %{}) do
+    {:ok, request} =
+      Holdco.Platform.create_data_deletion_request(
+        Enum.into(attrs, %{
+          requested_by_email: "user#{System.unique_integer([:positive])}@example.com",
+          request_type: "erasure"
+        })
+      )
+
+    request
+  end
+
+  # ── Custom Dashboards ──────────────────────────────────────────
+
+  def custom_dashboard_fixture(attrs \\ %{}) do
+    user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
+
+    {:ok, dashboard} =
+      Holdco.Analytics.create_custom_dashboard(
+        Enum.into(attrs, %{
+          user_id: user.id,
+          name: "Dashboard #{System.unique_integer([:positive])}"
+        })
+      )
+
+    dashboard
+  end
+
+  # ── Plugins ──────────────────────────────────────────
+
+  def plugin_fixture(attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, plugin} =
+      Holdco.Platform.install_plugin(
+        Enum.into(attrs, %{
+          name: "Plugin #{n}",
+          slug: "plugin-#{n}",
+          description: "Test plugin #{n}",
+          version: "1.0.0",
+          author: "Test Author",
+          plugin_type: "integration",
+          status: "installed"
+        })
+      )
+
+    plugin
+  end
+
+  def plugin_hook_fixture(attrs \\ %{}) do
+    plugin = Map.get_lazy(attrs, :plugin, fn -> plugin_fixture() end)
+
+    {:ok, hook} =
+      Holdco.Platform.create_plugin_hook(
+        Enum.into(attrs, %{
+          plugin_id: plugin.id,
+          hook_point: "after_save",
+          handler_function: "MyModule.handle",
+          priority: 50,
+          is_active: true
+        })
+      )
+
+    hook
+  end
+
+  # ── BI Connectors ────────────────────────────────────
+
+  def bi_connector_fixture(attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, connector} =
+      Holdco.Analytics.create_bi_connector(
+        Enum.into(attrs, %{
+          name: "Connector #{n}",
+          connector_type: "power_bi",
+          dataset_name: "dataset_#{n}",
+          refresh_frequency: "daily",
+          format: "json",
+          is_active: true
+        })
+      )
+
+    connector
+  end
+
+  def bi_export_log_fixture(attrs \\ %{}) do
+    connector = Map.get_lazy(attrs, :connector, fn -> bi_connector_fixture() end)
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    {:ok, log} =
+      Holdco.Analytics.create_bi_export_log(
+        Enum.into(attrs, %{
+          connector_id: connector.id,
+          started_at: now,
+          completed_at: now,
+          rows_exported: 100,
+          tables_exported: ["companies", "holdings"],
+          status: "success",
+          file_size_bytes: 1024
+        })
+      )
+
+    log
+  end
+
+  # ── White Label Config ───────────────────────────────
+
+  def white_label_config_fixture(attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, config} =
+      Holdco.Platform.create_white_label_config(
+        Enum.into(attrs, %{
+          tenant_name: "Tenant #{n}",
+          primary_color: "#3B82F6",
+          secondary_color: "#10B981",
+          accent_color: "#F59E0B",
+          is_active: false
+        })
+      )
+
+    config
+  end
+
+  # ── Webhook Endpoints ────────────────────────────────
+
+  def webhook_endpoint_fixture(attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, endpoint} =
+      Holdco.Platform.create_webhook_endpoint(
+        Enum.into(attrs, %{
+          name: "Endpoint #{n}",
+          url: "https://example.com/webhook/#{n}",
+          secret_key: "secret_#{n}",
+          events: ["create", "update"],
+          is_active: true,
+          max_retries: 3
+        })
+      )
+
+    endpoint
+  end
+
+  def webhook_delivery_fixture(attrs \\ %{}) do
+    endpoint = Map.get_lazy(attrs, :endpoint, fn -> webhook_endpoint_fixture() end)
+
+    {:ok, delivery} =
+      Holdco.Platform.create_webhook_delivery(
+        Enum.into(attrs, %{
+          endpoint_id: endpoint.id,
+          event_type: "create",
+          payload: %{"test" => true},
+          status: "pending",
+          attempts: 0
+        })
+      )
+
+    delivery
+  end
+
+  # ── Notification Logs ────────────────────────────────────────
+
+  def notification_log_fixture(attrs \\ %{}) do
+    channel = Map.get_lazy(attrs, :channel, fn -> notification_channel_fixture() end)
+
+    {:ok, log} =
+      Holdco.Notifications.create_notification_log(
+        Enum.into(attrs, %{
+          channel_id: channel.id,
+          event_type: "test_event",
+          message: "Test notification message",
+          status: "pending"
+        })
+      )
+
+    log
+  end
+
+  # ── Extractions (Document Intelligence) ─────────────────────
+
+  def extraction_fixture(attrs \\ %{}) do
+    doc = Map.get_lazy(attrs, :document, fn -> document_fixture() end)
+
+    {:ok, extraction} =
+      Holdco.Documents.create_extraction(
+        Enum.into(attrs, %{
+          document_id: doc.id,
+          extraction_type: "invoice",
+          status: "completed",
+          extracted_data: %{"total" => "1000.00", "vendor" => "Test Corp"},
+          confidence_score: "0.95",
+          model_used: "gpt-4"
+        })
+      )
+
+    extraction
+  end
+
+  # ── Regulatory Changes ──────────────────────────────────────
+
+  def regulatory_change_fixture(attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, change} =
+      Holdco.Compliance.create_regulatory_change(
+        Enum.into(attrs, %{
+          title: "Regulation #{n}",
+          jurisdiction: "US",
+          change_type: "new_regulation",
+          impact_assessment: "medium",
+          status: "monitoring",
+          description: "New regulation regarding #{n}"
+        })
+      )
+
+    change
+  end
+
+  # ── Collaboration Sessions ─────────────────────────────────
+
+  def collaboration_session_fixture(attrs \\ %{}) do
+    user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
+
+    {:ok, session} =
+      Holdco.Platform.create_session(
+        Enum.into(attrs, %{
+          entity_type: "company",
+          entity_id: 1,
+          user_id: user.id
+        })
+      )
+
+    session
+  end
+
+  # ── Trust Accounts ───────────────────────────────────
+
+  def trust_account_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+    n = System.unique_integer([:positive])
+
+    {:ok, ta} =
+      Holdco.Finance.create_trust_account(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          trust_name: "Trust #{n}",
+          trust_type: "revocable",
+          trustee_name: "Trustee #{n}",
+          grantor_name: "Grantor #{n}",
+          jurisdiction: "Delaware",
+          date_established: "2024-01-01",
+          corpus_value: "1000000.00",
+          currency: "USD",
+          distribution_schedule: "quarterly",
+          status: "active"
+        })
+      )
+
+    ta
+  end
+
+  def trust_transaction_fixture(attrs \\ %{}) do
+    trust_account = Map.get_lazy(attrs, :trust_account, fn -> trust_account_fixture() end)
+    n = System.unique_integer([:positive])
+
+    {:ok, tt} =
+      Holdco.Finance.create_trust_transaction(
+        Enum.into(attrs, %{
+          trust_account_id: trust_account.id,
+          transaction_type: "contribution",
+          amount: "50000.00",
+          currency: "USD",
+          description: "Transaction #{n}",
+          transaction_date: "2024-06-01",
+          category: "principal"
+        })
+      )
+
+    tt
+  end
+
+  # ── Charitable Gifts ─────────────────────────────────
+
+  def charitable_gift_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+    n = System.unique_integer([:positive])
+
+    {:ok, cg} =
+      Holdco.Finance.create_charitable_gift(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          recipient_name: "Charity #{n}",
+          recipient_type: "501c3",
+          amount: "10000.00",
+          currency: "USD",
+          gift_type: "cash",
+          gift_date: "2024-06-01",
+          tax_year: 2024,
+          tax_deductible: true
+        })
+      )
+
+    cg
+  end
+
+  # ── Family Charters ─────────────────────────────────
+
+  def family_charter_fixture(attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, fc} =
+      Holdco.Governance.create_family_charter(
+        Enum.into(attrs, %{
+          family_name: "Family #{n}",
+          version: "1.0",
+          status: "draft",
+          mission_statement: "Preserve and grow family wealth for future generations",
+          values: ["integrity", "stewardship", "education"],
+          meeting_schedule: "Quarterly"
+        })
+      )
+
+    fc
+  end
+
+  # ── Family Members ──────────────────────────────────
+
+  def family_member_fixture(attrs \\ %{}) do
+    charter = Map.get_lazy(attrs, :family_charter, fn -> family_charter_fixture() end)
+    n = System.unique_integer([:positive])
+
+    {:ok, fm} =
+      Holdco.Governance.create_family_member(
+        Enum.into(attrs, %{
+          family_charter_id: charter.id,
+          full_name: "Member #{n}",
+          relationship: "Child",
+          generation: 2,
+          role_in_family_office: "member",
+          voting_rights: false,
+          board_eligible: false,
+          employment_status: "not_employed"
+        })
+      )
+
+    fm
+  end
+
+  # ── Estate Plans ────────────────────────────────────
+
+  def estate_plan_fixture(attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, ep} =
+      Holdco.Governance.create_estate_plan(
+        Enum.into(attrs, %{
+          plan_name: "Estate Plan #{n}",
+          plan_type: "will",
+          principal_name: "Principal #{n}",
+          attorney_name: "Attorney #{n}",
+          executor_name: "Executor #{n}",
+          status: "draft",
+          estimated_estate_value: "5000000.00",
+          currency: "USD"
+        })
+      )
+
+    ep
+  end
+
+  # ── Succession Plans ────────────────────────────────
+
+  def succession_plan_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+    n = System.unique_integer([:positive])
+
+    {:ok, sp} =
+      Holdco.Governance.create_succession_plan(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          position_title: "CEO #{n}",
+          current_holder: "Holder #{n}",
+          successor_candidates: [%{"name" => "Candidate A", "readiness" => "ready", "development_plan" => "None needed"}],
+          timeline: "long_term",
+          status: "active"
+        })
+      )
+
+    sp
+  end
 end

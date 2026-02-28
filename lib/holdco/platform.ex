@@ -14,7 +14,17 @@ defmodule Holdco.Platform do
     BackupConfig,
     BackupLog,
     AlertRule,
-    Alert
+    SsoConfig,
+    SecurityKey,
+    DataRetentionPolicy,
+    DataDeletionRequest,
+    Alert,
+    Plugin,
+    PluginHook,
+    WhiteLabelConfig,
+    WebhookEndpoint,
+    WebhookDelivery,
+    CollaborationSession
   }
 
   # Audit Log
@@ -629,6 +639,148 @@ defmodule Holdco.Platform do
     end
   end
 
+
+  # ── SSO Configs ──────────────────────────────────────────
+
+  def list_sso_configs, do: Repo.all(from s in SsoConfig, order_by: s.name)
+  def get_sso_config!(id), do: Repo.get!(SsoConfig, id)
+
+  def create_sso_config(attrs) do
+    %SsoConfig{}
+    |> SsoConfig.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("sso_configs", "create")
+  end
+
+  def update_sso_config(%SsoConfig{} = config, attrs) do
+    config
+    |> SsoConfig.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("sso_configs", "update")
+  end
+
+  def delete_sso_config(%SsoConfig{} = config) do
+    Repo.delete(config)
+    |> audit_and_broadcast("sso_configs", "delete")
+  end
+
+  def active_sso_configs do
+    from(s in SsoConfig, where: s.is_active == true, order_by: s.name)
+    |> Repo.all()
+  end
+
+  def get_sso_config_by_provider(provider_type) do
+    Repo.get_by(SsoConfig, provider_type: provider_type, is_active: true)
+  end
+
+  # ── Security Keys ──────────────────────────────────────────
+
+  def list_security_keys(user_id) do
+    from(sk in SecurityKey, where: sk.user_id == ^user_id, order_by: [desc: sk.inserted_at])
+    |> Repo.all()
+  end
+
+  def get_security_key!(id), do: Repo.get!(SecurityKey, id)
+
+  def register_security_key(attrs) do
+    %SecurityKey{}
+    |> SecurityKey.changeset(Map.put_new(attrs, :registered_at, DateTime.utc_now() |> DateTime.truncate(:second)))
+    |> Repo.insert()
+    |> audit_and_broadcast("security_keys", "create")
+  end
+
+  def update_security_key(%SecurityKey{} = key, attrs) do
+    key
+    |> SecurityKey.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("security_keys", "update")
+  end
+
+  def delete_security_key(%SecurityKey{} = key) do
+    Repo.delete(key)
+    |> audit_and_broadcast("security_keys", "delete")
+  end
+
+  def active_keys_for_user(user_id) do
+    from(sk in SecurityKey, where: sk.user_id == ^user_id and sk.is_active == true)
+    |> Repo.all()
+  end
+
+  def increment_sign_count(%SecurityKey{} = key) do
+    key
+    |> SecurityKey.changeset(%{
+      sign_count: (key.sign_count || 0) + 1,
+      last_used_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
+    |> Repo.update()
+    |> audit_and_broadcast("security_keys", "update")
+  end
+
+  # ── Data Retention Policies ──────────────────────────────────────────
+
+  def list_data_retention_policies do
+    from(p in DataRetentionPolicy, order_by: p.name)
+    |> Repo.all()
+  end
+
+  def get_data_retention_policy!(id), do: Repo.get!(DataRetentionPolicy, id)
+
+  def create_data_retention_policy(attrs) do
+    %DataRetentionPolicy{}
+    |> DataRetentionPolicy.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("data_retention_policies", "create")
+  end
+
+  def update_data_retention_policy(%DataRetentionPolicy{} = policy, attrs) do
+    policy
+    |> DataRetentionPolicy.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("data_retention_policies", "update")
+  end
+
+  def delete_data_retention_policy(%DataRetentionPolicy{} = policy) do
+    Repo.delete(policy)
+    |> audit_and_broadcast("data_retention_policies", "delete")
+  end
+
+  def active_policies do
+    from(p in DataRetentionPolicy, where: p.is_active == true, order_by: p.name)
+    |> Repo.all()
+  end
+
+  # ── Data Deletion Requests ──────────────────────────────────────────
+
+  def list_data_deletion_requests do
+    from(r in DataDeletionRequest, order_by: [desc: r.inserted_at])
+    |> Repo.all()
+  end
+
+  def get_data_deletion_request!(id), do: Repo.get!(DataDeletionRequest, id)
+
+  def create_data_deletion_request(attrs) do
+    %DataDeletionRequest{}
+    |> DataDeletionRequest.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("data_deletion_requests", "create")
+  end
+
+  def update_data_deletion_request(%DataDeletionRequest{} = request, attrs) do
+    request
+    |> DataDeletionRequest.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("data_deletion_requests", "update")
+  end
+
+  def process_deletion_request(%DataDeletionRequest{} = request, attrs) do
+    request
+    |> DataDeletionRequest.changeset(Map.merge(attrs, %{
+      processed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    }))
+    |> Repo.update()
+    |> audit_and_broadcast("data_deletion_requests", "update")
+  end
+
   # PubSub
   def subscribe(topic), do: Phoenix.PubSub.subscribe(Holdco.PubSub, topic)
   defp broadcast(topic, message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, topic, message)
@@ -643,5 +795,213 @@ defmodule Holdco.Platform do
       error ->
         error
     end
+  end
+
+  # ── Plugins ──────────────────────────────────────────
+
+  def list_plugins, do: Repo.all(from(p in Plugin, order_by: [desc: p.inserted_at], preload: [:hooks]))
+  def get_plugin!(id), do: Repo.get!(Plugin, id) |> Repo.preload(:hooks)
+
+  def install_plugin(attrs) do
+    attrs = Map.put(attrs, :installed_at, DateTime.utc_now() |> DateTime.truncate(:second))
+
+    %Plugin{}
+    |> Plugin.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("plugins", "install")
+  end
+
+  def update_plugin(%Plugin{} = plugin, attrs) do
+    plugin
+    |> Plugin.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("plugins", "update")
+  end
+
+  def activate_plugin(%Plugin{} = plugin) do
+    plugin
+    |> Plugin.changeset(%{status: "active", last_activated_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+    |> Repo.update()
+    |> audit_and_broadcast("plugins", "activate")
+  end
+
+  def deactivate_plugin(%Plugin{} = plugin) do
+    plugin
+    |> Plugin.changeset(%{status: "disabled"})
+    |> Repo.update()
+    |> audit_and_broadcast("plugins", "deactivate")
+  end
+
+  def uninstall_plugin(%Plugin{} = plugin) do
+    Repo.delete(plugin)
+    |> audit_and_broadcast("plugins", "uninstall")
+  end
+
+  def list_plugin_hooks(plugin_id) do
+    from(h in PluginHook, where: h.plugin_id == ^plugin_id, order_by: h.priority)
+    |> Repo.all()
+  end
+
+  def create_plugin_hook(attrs) do
+    %PluginHook{}
+    |> PluginHook.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("plugin_hooks", "create")
+  end
+
+  def delete_plugin_hook(%PluginHook{} = hook) do
+    Repo.delete(hook)
+    |> audit_and_broadcast("plugin_hooks", "delete")
+  end
+
+  def hooks_for_point(hook_point) do
+    from(h in PluginHook,
+      where: h.hook_point == ^hook_point and h.is_active == true,
+      order_by: h.priority,
+      preload: [:plugin]
+    )
+    |> Repo.all()
+  end
+
+  # ── White-Label Config ──────────────────────────────────
+
+  def get_white_label_config do
+    Repo.one(from(w in WhiteLabelConfig, limit: 1, order_by: [desc: w.inserted_at]))
+  end
+
+  def create_white_label_config(attrs) do
+    %WhiteLabelConfig{}
+    |> WhiteLabelConfig.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("white_label_configs", "create")
+  end
+
+  def update_white_label_config(%WhiteLabelConfig{} = config, attrs) do
+    config
+    |> WhiteLabelConfig.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("white_label_configs", "update")
+  end
+
+  def reset_white_label_config do
+    case get_white_label_config() do
+      nil -> {:ok, nil}
+      config -> Repo.delete(config) |> audit_and_broadcast("white_label_configs", "delete")
+    end
+  end
+
+  # ── Webhook Endpoints ──────────────────────────────────
+
+  def list_webhook_endpoints, do: Repo.all(from(w in WebhookEndpoint, order_by: [desc: w.inserted_at]))
+  def get_webhook_endpoint!(id), do: Repo.get!(WebhookEndpoint, id)
+
+  def create_webhook_endpoint(attrs) do
+    %WebhookEndpoint{}
+    |> WebhookEndpoint.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("webhook_endpoints", "create")
+  end
+
+  def update_webhook_endpoint(%WebhookEndpoint{} = endpoint, attrs) do
+    endpoint
+    |> WebhookEndpoint.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("webhook_endpoints", "update")
+  end
+
+  def delete_webhook_endpoint(%WebhookEndpoint{} = endpoint) do
+    Repo.delete(endpoint)
+    |> audit_and_broadcast("webhook_endpoints", "delete")
+  end
+
+  def active_endpoints_for_event(event_type) do
+    from(w in WebhookEndpoint, where: w.is_active == true)
+    |> Repo.all()
+    |> Enum.filter(fn endpoint ->
+      endpoint.events == [] or event_type in endpoint.events
+    end)
+  end
+
+  def list_webhook_deliveries(endpoint_id) do
+    from(d in WebhookDelivery,
+      where: d.endpoint_id == ^endpoint_id,
+      order_by: [desc: d.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def create_webhook_delivery(attrs) do
+    %WebhookDelivery{}
+    |> WebhookDelivery.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("webhook_deliveries", "create")
+  end
+
+  def update_webhook_delivery(%WebhookDelivery{} = delivery, attrs) do
+    delivery
+    |> WebhookDelivery.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("webhook_deliveries", "update")
+  end
+
+  def pending_deliveries do
+    from(d in WebhookDelivery,
+      where: d.status in ["pending", "retrying"],
+      order_by: [asc: d.inserted_at],
+      preload: [:endpoint]
+    )
+    |> Repo.all()
+  end
+
+  # ── Collaboration Sessions ──────────────────────────────
+
+  def list_active_sessions(entity_type, entity_id) do
+    from(cs in CollaborationSession,
+      where: cs.entity_type == ^entity_type and cs.entity_id == ^entity_id and cs.is_active == true,
+      order_by: [desc: cs.last_active_at],
+      preload: [:user]
+    )
+    |> Repo.all()
+  end
+
+  def list_all_active_sessions do
+    from(cs in CollaborationSession,
+      where: cs.is_active == true,
+      order_by: [desc: cs.last_active_at],
+      preload: [:user]
+    )
+    |> Repo.all()
+  end
+
+  def get_collaboration_session!(id), do: Repo.get!(CollaborationSession, id) |> Repo.preload(:user)
+
+  def create_session(attrs) do
+    %CollaborationSession{}
+    |> CollaborationSession.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("collaboration_sessions", "create")
+  end
+
+  def update_session(%CollaborationSession{} = session, attrs) do
+    session
+    |> CollaborationSession.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("collaboration_sessions", "update")
+  end
+
+  def end_session(%CollaborationSession{} = session) do
+    session
+    |> CollaborationSession.changeset(%{is_active: false})
+    |> Repo.update()
+    |> audit_and_broadcast("collaboration_sessions", "update")
+  end
+
+  def active_users_on_entity(entity_type, entity_id) do
+    from(cs in CollaborationSession,
+      where: cs.entity_type == ^entity_type and cs.entity_id == ^entity_id and cs.is_active == true,
+      preload: [:user]
+    )
+    |> Repo.all()
+    |> Enum.map(& &1.user)
   end
 end
