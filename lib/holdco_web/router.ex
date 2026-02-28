@@ -219,6 +219,10 @@ defmodule HoldcoWeb.Router do
       # Phase 2 — Alerts
       live "/alerts", AlertsLive.Index, :index
 
+      # Phase 2 — Stress Testing & Liquidity
+      live "/stress-test", StressTestLive.Index, :index
+      live "/liquidity", LiquidityLive.Index, :index
+
     end
   end
 
