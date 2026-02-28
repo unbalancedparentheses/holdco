@@ -168,6 +168,9 @@ defmodule HoldcoWeb.Router do
       live "/revaluation", RevaluationLive.Index, :index
       live "/budgets/variance", BudgetVarianceLive.Index, :index
       live "/waterfall", WaterfallLive.Index, :index
+      live "/capital-calls", CapitalCallsLive.Index, :index
+      live "/distributions", DistributionsLive.Index, :index
+      live "/k1-reports", K1Live.Index, :index
       live "/consolidated", ConsolidatedLive.Index, :index
       live "/leases", LeaseLive.Index, :index
       live "/compare", EntityComparisonLive.Index, :index
