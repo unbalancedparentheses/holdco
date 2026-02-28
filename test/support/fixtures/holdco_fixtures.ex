@@ -2214,29 +2214,6 @@ defmodule Holdco.HoldcoFixtures do
     position
   end
 
-  # ── On-Chain Records ───────────────────────────────────
-
-  def on_chain_record_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, record} =
-      Holdco.Analytics.create_on_chain_record(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          chain: "ethereum",
-          tx_hash: "0x#{:crypto.strong_rand_bytes(32) |> Base.encode16(case: :lower)}",
-          block_number: Enum.random(1_000_000..20_000_000),
-          from_address: "0x#{:crypto.strong_rand_bytes(20) |> Base.encode16(case: :lower)}",
-          to_address: "0x#{:crypto.strong_rand_bytes(20) |> Base.encode16(case: :lower)}",
-          amount: "1.5",
-          currency: "ETH",
-          verification_status: "pending"
-        })
-      )
-
-    record
-  end
-
   # ── Data Rooms ─────────────────────────────────────────
 
   def data_room_fixture(attrs \\ %{}) do

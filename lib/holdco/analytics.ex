@@ -3,7 +3,7 @@ defmodule Holdco.Analytics do
   alias Holdco.Repo
   alias Holdco.Money
 
-  alias Holdco.Analytics.{Kpi, KpiSnapshot, ReportTemplate, ScheduledReport, StressTest, LiquidityCoverage, Anomaly, Benchmark, BenchmarkComparison, CounterpartyExposure, LoanCovenant, DefiPosition, OnChainRecord, Airdrop, CustomDashboard, BiConnector, BiExportLog, HealthScore}
+  alias Holdco.Analytics.{Kpi, KpiSnapshot, ReportTemplate, ScheduledReport, StressTest, LiquidityCoverage, Anomaly, Benchmark, BenchmarkComparison, CounterpartyExposure, LoanCovenant, DefiPosition, Airdrop, CustomDashboard, BiConnector, BiExportLog, HealthScore}
 
   # KPIs
   def list_kpis(company_id \\ nil) do
@@ -1197,53 +1197,6 @@ defmodule Holdco.Analytics do
       select: {d.protocol_name, sum(d.current_value), count(d.id)}
     )
     |> Repo.all()
-  end
-
-  # On-Chain Records
-  def list_on_chain_records(company_id \\ nil) do
-    query = from(r in OnChainRecord, order_by: [desc: r.inserted_at], preload: [:company])
-    query = if company_id, do: where(query, [r], r.company_id == ^company_id), else: query
-    Repo.all(query)
-  end
-
-  def get_on_chain_record!(id), do: Repo.get!(OnChainRecord, id) |> Repo.preload(:company)
-
-  def create_on_chain_record(attrs) do
-    %OnChainRecord{}
-    |> OnChainRecord.changeset(attrs)
-    |> Repo.insert()
-    |> audit_and_broadcast("on_chain_records", "create")
-  end
-
-  def update_on_chain_record(%OnChainRecord{} = record, attrs) do
-    record
-    |> OnChainRecord.changeset(attrs)
-    |> Repo.update()
-    |> audit_and_broadcast("on_chain_records", "update")
-  end
-
-  def delete_on_chain_record(%OnChainRecord{} = record) do
-    Repo.delete(record)
-    |> audit_and_broadcast("on_chain_records", "delete")
-  end
-
-  def unverified_records(company_id) do
-    from(r in OnChainRecord,
-      where: r.company_id == ^company_id and r.verification_status == "pending",
-      order_by: [desc: r.inserted_at],
-      preload: [:company]
-    )
-    |> Repo.all()
-  end
-
-  def verification_summary(company_id) do
-    from(r in OnChainRecord,
-      where: r.company_id == ^company_id,
-      group_by: r.verification_status,
-      select: {r.verification_status, count(r.id)}
-    )
-    |> Repo.all()
-    |> Enum.into(%{})
   end
 
   # Airdrops

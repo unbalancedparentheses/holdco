@@ -318,7 +318,6 @@ defmodule HoldcoWeb.Router do
 
       # Phase 8 — DeFi, On-Chain, Data Room, Airdrops
       live "/defi-positions", DefiPositionLive.Index, :index
-      live "/on-chain", OnChainLive.Index, :index
       live "/data-room", DataRoomLive.Index, :index
       live "/airdrops", AirdropLive.Index, :index
 
