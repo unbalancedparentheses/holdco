@@ -740,6 +740,49 @@ defmodule Holdco.HoldcoFixtures do
     n
   end
 
+  def notification_channel_fixture(attrs \\ %{}) do
+    user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
+
+    {:ok, channel} =
+      Holdco.Notifications.create_channel(
+        Enum.into(attrs, %{
+          user_id: user.id,
+          provider: "slack",
+          is_active: true,
+          config: %{"webhook_url" => "https://hooks.slack.com/services/T00/B00/XXX"},
+          event_types: ["alert", "system"]
+        })
+      )
+
+    channel
+  end
+
+  def notification_delivery_fixture(attrs \\ %{}) do
+    user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
+
+    notification =
+      Map.get_lazy(attrs, :notification, fn ->
+        notification_fixture(%{user: user})
+      end)
+
+    channel =
+      Map.get_lazy(attrs, :channel, fn ->
+        notification_channel_fixture(%{user: user})
+      end)
+
+    {:ok, delivery} =
+      Holdco.Notifications.create_delivery(
+        Enum.into(attrs, %{
+          notification_id: notification.id,
+          channel_id: channel.id,
+          provider: channel.provider,
+          status: "pending"
+        })
+      )
+
+    delivery
+  end
+
   # ── Collaboration ──────────────────────────────────────
 
   def comment_fixture(attrs \\ %{}) do

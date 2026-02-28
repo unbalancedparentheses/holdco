@@ -170,6 +170,7 @@ defmodule HoldcoWeb.Router do
       live "/import", ImportLive, :index
       live "/bulk-edit", BulkEditLive.Index, :index
       live "/notifications", NotificationsLive, :index
+      live "/settings/notifications", NotificationSettingsLive.Index, :index
       live "/search", SearchLive, :index
       live "/contacts", ContactLive.Index, :index
       live "/projects", ProjectLive.Index, :index
