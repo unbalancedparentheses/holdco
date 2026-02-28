@@ -23,6 +23,8 @@ defmodule Holdco.Finance do
     ImpairmentTest
   }
 
+  alias Holdco.Fund.{AccountingBook, BookAdjustment}
+
   # Financials
   def list_financials(company_id \\ nil) do
     query = from(f in Financial, order_by: [desc: f.period], preload: [:company])
@@ -929,4 +931,131 @@ defmodule Holdco.Finance do
         error
     end
   end
+
+  # ── Accounting Books ───────────────────────────────────
+
+  def list_accounting_books(company_id \\ nil) do
+    query = from(b in AccountingBook, order_by: [asc: b.name], preload: [:company])
+    query = if company_id, do: where(query, [b], b.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_accounting_book!(id), do: Repo.get!(AccountingBook, id) |> Repo.preload([:company, :adjustments])
+
+  def create_accounting_book(attrs) do
+    %AccountingBook{}
+    |> AccountingBook.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("accounting_books", "create")
+  end
+
+  def update_accounting_book(%AccountingBook{} = book, attrs) do
+    book
+    |> AccountingBook.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("accounting_books", "update")
+  end
+
+  def delete_accounting_book(%AccountingBook{} = book) do
+    Repo.delete(book)
+    |> audit_and_broadcast("accounting_books", "delete")
+  end
+
+  # ── Book Adjustments ───────────────────────────────────
+
+  def list_book_adjustments(book_id) do
+    from(a in BookAdjustment,
+      where: a.book_id == ^book_id,
+      order_by: [desc: a.effective_date],
+      preload: [:debit_account, :credit_account, :journal_entry]
+    )
+    |> Repo.all()
+  end
+
+  def get_book_adjustment!(id), do: Repo.get!(BookAdjustment, id) |> Repo.preload([:accounting_book, :debit_account, :credit_account, :journal_entry])
+
+  def create_book_adjustment(attrs) do
+    %BookAdjustment{}
+    |> BookAdjustment.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("book_adjustments", "create")
+  end
+
+  def update_book_adjustment(%BookAdjustment{} = adjustment, attrs) do
+    adjustment
+    |> BookAdjustment.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("book_adjustments", "update")
+  end
+
+  def delete_book_adjustment(%BookAdjustment{} = adjustment) do
+    Repo.delete(adjustment)
+    |> audit_and_broadcast("book_adjustments", "delete")
+  end
+
+  @doc """
+  Computes a trial balance for a specific accounting book by taking the base
+  trial balance and applying all adjustments for that book up to the given date.
+
+  Returns a list of account maps with adjusted debit/credit/balance values.
+  """
+  def book_trial_balance(book_id, date) do
+    book = get_accounting_book!(book_id)
+
+    # Get the base trial balance for the book's company
+    base_tb = trial_balance(book.company_id)
+
+    # Get all adjustments for this book up to the given date
+    adjustments =
+      from(a in BookAdjustment,
+        where: a.book_id == ^book_id and a.effective_date <= ^date,
+        preload: [:debit_account, :credit_account]
+      )
+      |> Repo.all()
+
+    # Build adjustment maps: account_id -> {debit_delta, credit_delta}
+    adj_map =
+      Enum.reduce(adjustments, %{}, fn adj, acc ->
+        amount = adj.amount || Decimal.new(0)
+
+        acc =
+          if adj.debit_account_id do
+            Map.update(acc, adj.debit_account_id, {amount, Decimal.new(0)}, fn {d, c} ->
+              {Decimal.add(d, amount), c}
+            end)
+          else
+            acc
+          end
+
+        if adj.credit_account_id do
+          Map.update(acc, adj.credit_account_id, {Decimal.new(0), amount}, fn {d, c} ->
+            {d, Decimal.add(c, amount)}
+          end)
+        else
+          acc
+        end
+      end)
+
+    # Apply adjustments to each account in the base trial balance
+    Enum.map(base_tb, fn acct ->
+      {debit_adj, credit_adj} = Map.get(adj_map, acct.id, {Decimal.new(0), Decimal.new(0)})
+
+      adjusted_debit = Decimal.add(to_decimal(acct.total_debit), debit_adj)
+      adjusted_credit = Decimal.add(to_decimal(acct.total_credit), credit_adj)
+      adjusted_balance = Decimal.sub(adjusted_debit, adjusted_credit)
+
+      Map.merge(acct, %{
+        total_debit: adjusted_debit,
+        total_credit: adjusted_credit,
+        balance: adjusted_balance,
+        debit_adjustment: debit_adj,
+        credit_adjustment: credit_adj
+      })
+    end)
+  end
+
+  defp to_decimal(%Decimal{} = d), do: d
+  defp to_decimal(f) when is_float(f), do: Decimal.from_float(f)
+  defp to_decimal(i) when is_integer(i), do: Decimal.new(i)
+  defp to_decimal(nil), do: Decimal.new(0)
 end

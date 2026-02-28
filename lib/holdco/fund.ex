@@ -8,7 +8,7 @@ defmodule Holdco.Fund do
   alias Holdco.Repo
   alias Holdco.Money
 
-  alias Holdco.Fund.{CapitalCall, CapitalCallLine, Distribution, DistributionLine, WaterfallTier, K1Report, FundNav, InvestorStatement, FundFee, DividendPolicy}
+  alias Holdco.Fund.{CapitalCall, CapitalCallLine, Distribution, DistributionLine, WaterfallTier, K1Report, FundNav, InvestorStatement, FundFee, DividendPolicy, FundraisingPipeline, Prospect}
 
   # ── Capital Calls ──────────────────────────────────────
 
@@ -954,4 +954,111 @@ defmodule Holdco.Fund do
   defp lte_zero?(decimal) do
     Decimal.compare(decimal, Decimal.new(0)) in [:lt, :eq]
   end
+
+  # ── Fundraising Pipelines ──────────────────────────────
+
+  def list_fundraising_pipelines(company_id \\ nil) do
+    query = from(p in FundraisingPipeline, order_by: [desc: p.inserted_at], preload: [:company, :prospects])
+    query = if company_id, do: where(query, [p], p.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_fundraising_pipeline!(id), do: Repo.get!(FundraisingPipeline, id) |> Repo.preload([:company, :prospects])
+
+  def create_fundraising_pipeline(attrs) do
+    %FundraisingPipeline{}
+    |> FundraisingPipeline.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("fundraising_pipelines", "create")
+  end
+
+  def update_fundraising_pipeline(%FundraisingPipeline{} = pipeline, attrs) do
+    pipeline
+    |> FundraisingPipeline.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("fundraising_pipelines", "update")
+  end
+
+  def delete_fundraising_pipeline(%FundraisingPipeline{} = pipeline) do
+    Repo.delete(pipeline)
+    |> audit_and_broadcast("fundraising_pipelines", "delete")
+  end
+
+  # ── Prospects ──────────────────────────────────────────
+
+  def list_prospects(pipeline_id) do
+    from(p in Prospect, where: p.pipeline_id == ^pipeline_id, order_by: [desc: p.inserted_at])
+    |> Repo.all()
+  end
+
+  def get_prospect!(id), do: Repo.get!(Prospect, id) |> Repo.preload(:fundraising_pipeline)
+
+  def create_prospect(attrs) do
+    %Prospect{}
+    |> Prospect.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("prospects", "create")
+  end
+
+  def update_prospect(%Prospect{} = prospect, attrs) do
+    prospect
+    |> Prospect.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("prospects", "update")
+  end
+
+  def delete_prospect(%Prospect{} = prospect) do
+    Repo.delete(prospect)
+    |> audit_and_broadcast("prospects", "delete")
+  end
+
+  @doc """
+  Aggregates committed vs target for a pipeline.
+  Returns a map with total_committed, total_target, committed_count, and progress_pct.
+  """
+  def pipeline_summary(pipeline_id) do
+    pipeline = get_fundraising_pipeline!(pipeline_id)
+
+    committed_prospects =
+      from(p in Prospect,
+        where: p.pipeline_id == ^pipeline_id and p.status == "committed",
+        select: %{
+          total_committed: coalesce(sum(p.commitment_amount), 0),
+          committed_count: count(p.id)
+        }
+      )
+      |> Repo.one()
+
+    total_committed = committed_prospects.total_committed || Decimal.new(0)
+    target = pipeline.target_amount || Decimal.new(0)
+
+    progress_pct =
+      if Decimal.gt?(target, 0) do
+        total_committed
+        |> Decimal.div(target)
+        |> Decimal.mult(100)
+        |> Decimal.round(2)
+      else
+        Decimal.new(0)
+      end
+
+    prospect_counts =
+      from(p in Prospect,
+        where: p.pipeline_id == ^pipeline_id,
+        group_by: p.status,
+        select: {p.status, count(p.id)}
+      )
+      |> Repo.all()
+      |> Map.new()
+
+    %{
+      pipeline: pipeline,
+      total_committed: total_committed,
+      target_amount: target,
+      committed_count: committed_prospects.committed_count,
+      progress_pct: progress_pct,
+      prospect_counts: prospect_counts
+    }
+  end
+
 end

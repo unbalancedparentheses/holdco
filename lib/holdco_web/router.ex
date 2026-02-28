@@ -260,6 +260,10 @@ defmodule HoldcoWeb.Router do
       live "/withholding-reclaims", WithholdingReclaimLive.Index, :index
       live "/repatriation", RepatriationLive.Index, :index
 
+      # Fundraising & Multi-Book
+      live "/fundraising", FundraisingLive.Index, :index
+      live "/multi-book", MultiBookLive.Index, :index
+
     end
   end
 

@@ -1566,4 +1566,75 @@ defmodule Holdco.HoldcoFixtures do
 
     plan
   end
+
+  # ── Fundraising Pipeline ───────────────────────────────
+
+  def fundraising_pipeline_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, pipeline} =
+      Holdco.Fund.create_fundraising_pipeline(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          fund_name: "Fund #{System.unique_integer([:positive])}",
+          target_amount: 10_000_000.0,
+          currency: "USD",
+          status: "prospecting"
+        })
+      )
+
+    pipeline
+  end
+
+  def prospect_fixture(attrs \\ %{}) do
+    pipeline = Map.get_lazy(attrs, :pipeline, fn -> fundraising_pipeline_fixture() end)
+
+    {:ok, prospect} =
+      Holdco.Fund.create_prospect(
+        Enum.into(attrs, %{
+          pipeline_id: pipeline.id,
+          investor_name: "Investor #{System.unique_integer([:positive])}",
+          contact_email: "investor#{System.unique_integer([:positive])}@example.com",
+          commitment_amount: 500_000.0,
+          status: "identified"
+        })
+      )
+
+    prospect
+  end
+
+  # ── Accounting Books ───────────────────────────────────
+
+  def accounting_book_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, book} =
+      Holdco.Finance.create_accounting_book(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          name: "Book #{System.unique_integer([:positive])}",
+          book_type: "ifrs",
+          base_currency: "USD"
+        })
+      )
+
+    book
+  end
+
+  def book_adjustment_fixture(attrs \\ %{}) do
+    book = Map.get_lazy(attrs, :book, fn -> accounting_book_fixture() end)
+
+    {:ok, adjustment} =
+      Holdco.Finance.create_book_adjustment(
+        Enum.into(attrs, %{
+          book_id: book.id,
+          adjustment_type: "reclassification",
+          amount: 1000.0,
+          effective_date: "2026-01-15",
+          description: "Test adjustment"
+        })
+      )
+
+    adjustment
+  end
 end
