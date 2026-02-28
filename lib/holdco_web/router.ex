@@ -329,6 +329,12 @@ defmodule HoldcoWeb.Router do
       live "/regulatory-changes", RegulatoryChangesLive.Index, :index
       live "/collaboration", CollaborationLive.Index, :index
 
+      # Platform Extensibility — Plugins, BI Connectors, White-label, Webhooks
+      live "/plugins", PluginLive.Index, :index
+      live "/bi-connectors", BiConnectorLive.Index, :index
+      live "/white-label", WhiteLabelLive.Index, :index
+      live "/webhooks", WebhookEndpointLive.Index, :index
+
     end
   end
 
