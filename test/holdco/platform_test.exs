@@ -1,5 +1,6 @@
 defmodule Holdco.PlatformTest do
-  use Holdco.DataCase, async: true
+  # sync: PubSub broadcast tests receive messages from concurrent async tests
+  use Holdco.DataCase, async: false
 
   import Holdco.HoldcoFixtures
 
