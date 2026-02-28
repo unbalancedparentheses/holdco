@@ -217,7 +217,8 @@ test.describe('Settings Page', () => {
 
     // Fill in the webhook form inside the dialog
     await page.locator('.dialog-panel input[name="webhook[url]"]').fill('https://hooks.example.com/e2e-test');
-    await page.locator('.dialog-panel input[name="webhook[events]"]').fill('company.created,transaction.created');
+    // Events are checkboxes named webhook_events[], check at least one
+    await page.locator('.dialog-panel input[name="webhook_events[]"][value="create"]').check();
     await page.locator('.dialog-panel input[name="webhook[secret]"]').fill('e2e_webhook_secret_123');
     await page.locator('.dialog-panel textarea[name="webhook[notes]"]').fill('Created by E2E test suite');
 

@@ -390,10 +390,9 @@ test.describe('QuickBooks Integration', () => {
     const isDisconnected = await body.locator('.badge-expense', { hasText: 'Disconnected' }).count();
 
     if (isDisconnected > 0) {
-      // Should show a "Connect to QuickBooks" link
-      const connectLink = page.locator('a[href="/auth/quickbooks/connect"]');
-      await expect(connectLink).toBeVisible();
-      await expect(connectLink).toContainText('Connect to QuickBooks');
+      // Per-company integrations table shows a "Manage" link for each company
+      const manageLink = page.locator('a.btn-primary', { hasText: 'Manage' }).first();
+      await expect(manageLink).toBeVisible();
     }
   });
 
@@ -422,7 +421,7 @@ test.describe('QuickBooks Integration', () => {
     await page.goto('/accounts/integrations');
 
     await expect(page.locator('body')).toContainText(
-      'Sync your chart of accounts and journal entries from QuickBooks Online'
+      'Overview of external accounting integrations across all companies'
     );
   });
 });

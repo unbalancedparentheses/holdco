@@ -58,16 +58,15 @@ test.describe('Holdings List (/holdings)', () => {
     // Click Asset header to sort
     const assetHeader = page.locator('th[phx-value-field="asset"]');
     await expect(assetHeader).toBeVisible();
-    await assetHeader.click();
 
-    // Default sort is asc, clicking again should toggle to desc
+    // Default sort is already ascending by asset, so clicking toggles to desc
+    await assetHeader.click();
     await expect(assetHeader).toContainText('Asset');
-    // Should see the sort indicator
-    await expect(assetHeader).toContainText('\u2191');
-
-    // Click again for desc
-    await assetHeader.click();
     await expect(assetHeader).toContainText('\u2193');
+
+    // Click again to toggle back to asc
+    await assetHeader.click();
+    await expect(assetHeader).toContainText('\u2191');
   });
 
   test('sort by ticker column', async ({ page }) => {
