@@ -1,5 +1,5 @@
 defmodule HoldcoWeb.UserSessionControllerTest do
-  use HoldcoWeb.ConnCase
+  use HoldcoWeb.ConnCase, async: true
 
   import Holdco.AccountsFixtures
   alias Holdco.Accounts

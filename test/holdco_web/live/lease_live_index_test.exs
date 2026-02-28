@@ -1,5 +1,5 @@
 defmodule HoldcoWeb.LeaseLiveIndexTest do
-  use HoldcoWeb.ConnCase
+  use HoldcoWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import Holdco.HoldcoFixtures

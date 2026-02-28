@@ -1,5 +1,5 @@
 defmodule Holdco.CSVParserTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   # Holdco.CSVParser is defined via NimbleCSV.define in lib/holdco_web/live/import_live.ex
   # It uses comma separator and double-quote escape

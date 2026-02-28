@@ -1,5 +1,5 @@
 defmodule Holdco.ScenariosTest do
-  use Holdco.DataCase
+  use Holdco.DataCase, async: true
 
   import Holdco.HoldcoFixtures
 

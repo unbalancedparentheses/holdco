@@ -1,5 +1,5 @@
 defmodule HoldcoWeb.HealthControllerTest do
-  use HoldcoWeb.ConnCase
+  use HoldcoWeb.ConnCase, async: true
 
   test "GET /health returns 200", %{conn: conn} do
     conn = get(conn, "/health")

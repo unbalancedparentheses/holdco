@@ -1,5 +1,5 @@
 defmodule Holdco.Governance.InvestorAccessTest do
-  use Holdco.DataCase
+  use Holdco.DataCase, async: true
 
   alias Holdco.Governance.InvestorAccess
 

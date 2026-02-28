@@ -1,5 +1,5 @@
 defmodule HoldcoWeb.PageControllerTest do
-  use HoldcoWeb.ConnCase
+  use HoldcoWeb.ConnCase, async: true
 
   describe "PageController.home/2" do
     test "renders the home template with Welcome to Holdco", %{conn: conn} do

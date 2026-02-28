@@ -1,5 +1,5 @@
 defmodule HoldcoWeb.XbrlControllerTest do
-  use HoldcoWeb.ConnCase
+  use HoldcoWeb.ConnCase, async: true
 
   import Holdco.HoldcoFixtures
 

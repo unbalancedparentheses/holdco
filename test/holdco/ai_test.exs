@@ -1,5 +1,5 @@
 defmodule Holdco.AITest do
-  use Holdco.DataCase
+  use Holdco.DataCase, async: true
 
   import Holdco.AccountsFixtures
 

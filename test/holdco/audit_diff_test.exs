@@ -1,5 +1,5 @@
 defmodule Holdco.AuditDiffTest do
-  use Holdco.DataCase
+  use Holdco.DataCase, async: true
 
   alias Holdco.AuditDiff
 

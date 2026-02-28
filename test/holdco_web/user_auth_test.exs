@@ -1,5 +1,5 @@
 defmodule HoldcoWeb.UserAuthTest do
-  use HoldcoWeb.ConnCase
+  use HoldcoWeb.ConnCase, async: true
 
   alias Holdco.Accounts
   alias Holdco.Accounts.Scope

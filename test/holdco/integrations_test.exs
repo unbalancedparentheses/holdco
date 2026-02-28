@@ -1,5 +1,5 @@
 defmodule Holdco.IntegrationsTest do
-  use Holdco.DataCase
+  use Holdco.DataCase, async: true
 
   import Holdco.HoldcoFixtures
 

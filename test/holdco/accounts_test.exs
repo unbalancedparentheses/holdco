@@ -1,5 +1,5 @@
 defmodule Holdco.AccountsTest do
-  use Holdco.DataCase
+  use Holdco.DataCase, async: true
 
   alias Holdco.Accounts
 

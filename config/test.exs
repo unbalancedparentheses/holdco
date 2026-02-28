@@ -29,7 +29,7 @@ else
     hostname: "localhost",
     database: "holdco_test#{System.get_env("MIX_TEST_PARTITION")}",
     pool: Ecto.Adapters.SQL.Sandbox,
-    pool_size: 10
+    pool_size: 20
 
   config :holdco, HoldcoWeb.Endpoint,
     http: [ip: {127, 0, 0, 1}, port: 4002],
