@@ -1,7 +1,7 @@
 defmodule Holdco.Documents do
   import Ecto.Query
   alias Holdco.Repo
-  alias Holdco.Documents.{Document, DocumentVersion, DocumentUpload}
+  alias Holdco.Documents.{Document, DocumentVersion, DocumentUpload, SignatureWorkflow}
 
   # Documents
   def list_documents(company_id \\ nil) do
@@ -92,6 +92,75 @@ defmodule Holdco.Documents do
   def delete_document_upload(%DocumentUpload{} = du) do
     Repo.delete(du)
     |> audit_and_broadcast("document_uploads", "delete")
+  end
+
+  # Signature Workflows
+  def list_signature_workflows(company_id \\ nil) do
+    query = from(sw in SignatureWorkflow,
+      order_by: [desc: sw.inserted_at],
+      preload: [:company, :document]
+    )
+    query = if company_id, do: where(query, [sw], sw.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_signature_workflow!(id) do
+    Repo.get!(SignatureWorkflow, id)
+    |> Repo.preload([:company, :document])
+  end
+
+  def create_signature_workflow(attrs) do
+    %SignatureWorkflow{}
+    |> SignatureWorkflow.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("signature_workflows", "create")
+  end
+
+  def update_signature_workflow(%SignatureWorkflow{} = sw, attrs) do
+    sw
+    |> SignatureWorkflow.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("signature_workflows", "update")
+  end
+
+  def delete_signature_workflow(%SignatureWorkflow{} = sw) do
+    Repo.delete(sw)
+    |> audit_and_broadcast("signature_workflows", "delete")
+  end
+
+  def pending_signatures do
+    from(sw in SignatureWorkflow,
+      where: sw.status in ["pending_signatures", "partially_signed"],
+      order_by: [asc: sw.expiry_date],
+      preload: [:company, :document]
+    )
+    |> Repo.all()
+  end
+
+  def sign_document(workflow_id, signer_email) do
+    workflow = get_signature_workflow!(workflow_id)
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    updated_signers =
+      Enum.map(workflow.signers, fn signer ->
+        if signer["email"] == signer_email and signer["status"] != "signed" do
+          Map.merge(signer, %{"status" => "signed", "signed_at" => DateTime.to_iso8601(now)})
+        else
+          signer
+        end
+      end)
+
+    all_signed = Enum.all?(updated_signers, fn s -> s["status"] == "signed" end)
+    any_signed = Enum.any?(updated_signers, fn s -> s["status"] == "signed" end)
+
+    new_status =
+      cond do
+        all_signed -> "completed"
+        any_signed -> "partially_signed"
+        true -> workflow.status
+      end
+
+    update_signature_workflow(workflow, %{signers: updated_signers, status: new_status})
   end
 
   # PubSub
