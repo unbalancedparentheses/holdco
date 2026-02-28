@@ -179,6 +179,10 @@ defmodule HoldcoWeb.Router do
       live "/management-reports", ManagementReportsLive.Index, :index
       live "/audit-diffs", AuditDiffLive.Index, :index
 
+      # Phase 1 — Anomaly Detection & Benchmarks
+      live "/anomalies", AnomalyLive.Index, :index
+      live "/benchmarks", BenchmarkLive.Index, :index
+
     end
   end
 

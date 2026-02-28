@@ -944,4 +944,59 @@ defmodule Holdco.HoldcoFixtures do
 
     rt
   end
+
+  # ── Anomalies ────────────────────────────────────────
+
+  def anomaly_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, anomaly} =
+      Holdco.Analytics.create_anomaly(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          entity_type: "transaction",
+          anomaly_type: "outlier",
+          severity: "medium",
+          description: "Test anomaly #{System.unique_integer([:positive])}",
+          detected_value: 1000.0,
+          status: "open"
+        })
+      )
+
+    anomaly
+  end
+
+  # ── Benchmarks ───────────────────────────────────────
+
+  def benchmark_fixture(attrs \\ %{}) do
+    {:ok, benchmark} =
+      Holdco.Analytics.create_benchmark(
+        Enum.into(attrs, %{
+          name: "Benchmark #{System.unique_integer([:positive])}",
+          benchmark_type: "index",
+          ticker: "SPY",
+          is_active: true
+        })
+      )
+
+    benchmark
+  end
+
+  def benchmark_comparison_fixture(attrs \\ %{}) do
+    benchmark = Map.get_lazy(attrs, :benchmark, fn -> benchmark_fixture() end)
+
+    {:ok, comparison} =
+      Holdco.Analytics.create_benchmark_comparison(
+        Enum.into(attrs, %{
+          benchmark_id: benchmark.id,
+          period_start: "2024-01-01",
+          period_end: "2024-12-31",
+          portfolio_return: 12.5,
+          benchmark_return: 10.0,
+          alpha: 2.5
+        })
+      )
+
+    comparison
+  end
 end
