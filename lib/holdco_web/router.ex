@@ -235,6 +235,11 @@ defmodule HoldcoWeb.Router do
       live "/anomalies", AnomalyLive.Index, :index
       live "/benchmarks", BenchmarkLive.Index, :index
 
+      # Phase 4 — Fund Management
+      live "/fund-nav", FundNavLive.Index, :index
+      live "/investor-statements", InvestorStatementsLive.Index, :index
+      live "/fund-fees", FundFeesLive.Index, :index
+
     end
   end
 
