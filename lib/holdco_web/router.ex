@@ -255,6 +255,11 @@ defmodule HoldcoWeb.Router do
       live "/service-agreements", ServiceAgreementLive.Index, :index
       live "/goodwill", GoodwillLive.Index, :index
 
+      # Phase 4 — Tax Management
+      live "/tax-optimizer", TaxOptimizerLive.Index, :index
+      live "/withholding-reclaims", WithholdingReclaimLive.Index, :index
+      live "/repatriation", RepatriationLive.Index, :index
+
     end
   end
 
