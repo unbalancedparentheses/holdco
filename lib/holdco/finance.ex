@@ -15,7 +15,9 @@ defmodule Holdco.Finance do
     Budget,
     Liability,
     Segment,
-    Lease
+    Lease,
+    PeriodLock,
+    RecurringTransaction
   }
 
   # Financials
@@ -84,10 +86,17 @@ defmodule Holdco.Finance do
   def get_journal_entry!(id), do: Repo.get!(JournalEntry, id) |> Repo.preload(lines: :account)
 
   def create_journal_entry(attrs) do
-    %JournalEntry{}
-    |> JournalEntry.changeset(attrs)
-    |> Repo.insert()
-    |> audit_and_broadcast("journal_entries", "create")
+    company_id = attrs[:company_id] || attrs["company_id"]
+    date = attrs[:date] || attrs["date"]
+
+    if company_id && date && is_period_locked?(company_id, date) do
+      {:error, :period_locked}
+    else
+      %JournalEntry{}
+      |> JournalEntry.changeset(attrs)
+      |> Repo.insert()
+      |> audit_and_broadcast("journal_entries", "create")
+    end
   end
 
   @doc """
@@ -96,6 +105,17 @@ defmodule Holdco.Finance do
   Returns {:ok, entry_with_lines} or {:error, reason}.
   """
   def create_journal_entry_with_lines(entry_attrs, lines_attrs) when is_list(lines_attrs) do
+    company_id = entry_attrs[:company_id] || entry_attrs["company_id"]
+    date = entry_attrs[:date] || entry_attrs["date"]
+
+    if company_id && date && is_period_locked?(company_id, date) do
+      {:error, :period_locked}
+    else
+      create_journal_entry_with_lines_inner(entry_attrs, lines_attrs)
+    end
+  end
+
+  defp create_journal_entry_with_lines_inner(entry_attrs, lines_attrs) do
     total_debit = Enum.reduce(lines_attrs, Decimal.new(0), fn l, acc -> Money.add(acc, parse_line_amount(l, "debit")) end)
     total_credit = Enum.reduce(lines_attrs, Decimal.new(0), fn l, acc -> Money.add(acc, parse_line_amount(l, "credit")) end)
 
@@ -137,15 +157,23 @@ defmodule Holdco.Finance do
   end
 
   def update_journal_entry(%JournalEntry{} = je, attrs) do
-    je
-    |> JournalEntry.changeset(attrs)
-    |> Repo.update()
-    |> audit_and_broadcast("journal_entries", "update")
+    if je.company_id && je.date && is_period_locked?(je.company_id, je.date) do
+      {:error, :period_locked}
+    else
+      je
+      |> JournalEntry.changeset(attrs)
+      |> Repo.update()
+      |> audit_and_broadcast("journal_entries", "update")
+    end
   end
 
   def delete_journal_entry(%JournalEntry{} = je) do
-    Repo.delete(je)
-    |> audit_and_broadcast("journal_entries", "delete")
+    if je.company_id && je.date && is_period_locked?(je.company_id, je.date) do
+      {:error, :period_locked}
+    else
+      Repo.delete(je)
+      |> audit_and_broadcast("journal_entries", "delete")
+    end
   end
 
   # Journal Lines
@@ -554,6 +582,135 @@ defmodule Holdco.Finance do
       order_by: a.code
     )
     |> Repo.all()
+  end
+
+  # Period Locks
+  def list_period_locks(company_id \\ nil) do
+    query = from(pl in PeriodLock, order_by: [desc: pl.period_start], preload: [:company])
+    query = if company_id, do: where(query, [pl], pl.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_period_lock!(id), do: Repo.get!(PeriodLock, id) |> Repo.preload(:company)
+
+  def lock_period(company_id, period_start, period_end, period_type, user_id) do
+    %PeriodLock{}
+    |> PeriodLock.changeset(%{
+      company_id: company_id,
+      period_start: period_start,
+      period_end: period_end,
+      period_type: period_type,
+      status: "locked",
+      locked_at: DateTime.utc_now() |> DateTime.truncate(:second),
+      locked_by_id: user_id
+    })
+    |> Repo.insert()
+    |> audit_and_broadcast("period_locks", "create")
+  end
+
+  def unlock_period(period_lock_id, user_id, reason) do
+    lock = get_period_lock!(period_lock_id)
+
+    lock
+    |> PeriodLock.changeset(%{
+      status: "unlocked",
+      unlocked_at: DateTime.utc_now() |> DateTime.truncate(:second),
+      unlocked_by_id: user_id,
+      unlock_reason: reason
+    })
+    |> Repo.update()
+    |> audit_and_broadcast("period_locks", "update")
+  end
+
+  def delete_period_lock(%PeriodLock{} = pl) do
+    Repo.delete(pl)
+    |> audit_and_broadcast("period_locks", "delete")
+  end
+
+  def is_period_locked?(company_id, date) do
+    date = if is_binary(date), do: Date.from_iso8601!(date), else: date
+
+    from(pl in PeriodLock,
+      where:
+        pl.company_id == ^company_id and
+          pl.status == "locked" and
+          pl.period_start <= ^date and
+          pl.period_end >= ^date
+    )
+    |> Repo.exists?()
+  end
+
+  # Recurring Transactions
+  def list_recurring_transactions(company_id \\ nil) do
+    query =
+      from(rt in RecurringTransaction,
+        order_by: [desc: rt.next_run_date],
+        preload: [:company, :debit_account, :credit_account]
+      )
+
+    query = if company_id, do: where(query, [rt], rt.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_recurring_transaction!(id) do
+    Repo.get!(RecurringTransaction, id)
+    |> Repo.preload([:company, :debit_account, :credit_account])
+  end
+
+  def create_recurring_transaction(attrs) do
+    %RecurringTransaction{}
+    |> RecurringTransaction.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("recurring_transactions", "create")
+  end
+
+  def update_recurring_transaction(%RecurringTransaction{} = rt, attrs) do
+    rt
+    |> RecurringTransaction.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("recurring_transactions", "update")
+  end
+
+  def delete_recurring_transaction(%RecurringTransaction{} = rt) do
+    Repo.delete(rt)
+    |> audit_and_broadcast("recurring_transactions", "delete")
+  end
+
+  def list_due_recurring_transactions do
+    today = Date.utc_today() |> Date.to_iso8601()
+
+    from(rt in RecurringTransaction,
+      where: rt.is_active == true and rt.next_run_date <= ^today,
+      preload: [:company, :debit_account, :credit_account]
+    )
+    |> Repo.all()
+  end
+
+  def advance_next_run_date(%RecurringTransaction{} = rt) do
+    current = Date.from_iso8601!(rt.next_run_date)
+
+    next =
+      case rt.frequency do
+        "daily" -> Date.add(current, 1)
+        "weekly" -> Date.add(current, 7)
+        "monthly" -> Date.add(current, 30)
+        "quarterly" -> Date.add(current, 91)
+        "yearly" -> Date.add(current, 365)
+      end
+
+    is_active =
+      if rt.end_date && rt.end_date != "" do
+        end_date = Date.from_iso8601!(rt.end_date)
+        Date.compare(next, end_date) != :gt
+      else
+        true
+      end
+
+    update_recurring_transaction(rt, %{
+      next_run_date: Date.to_iso8601(next),
+      last_run_date: Date.to_iso8601(current),
+      is_active: is_active
+    })
   end
 
   # PubSub

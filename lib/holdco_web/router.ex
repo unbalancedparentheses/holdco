@@ -179,6 +179,10 @@ defmodule HoldcoWeb.Router do
       live "/management-reports", ManagementReportsLive.Index, :index
       live "/audit-diffs", AuditDiffLive.Index, :index
 
+      # Phase 1 — Period Close & Recurring
+      live "/period-locks", PeriodLockLive.Index, :index
+      live "/recurring-transactions", RecurringTransactionsLive.Index, :index
+
     end
   end
 
