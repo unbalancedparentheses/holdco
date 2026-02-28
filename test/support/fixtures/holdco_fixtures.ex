@@ -914,6 +914,52 @@ defmodule Holdco.HoldcoFixtures do
     project
   end
 
+
+  # ── Transfer Pricing Studies ────────────────────────────
+
+  def transfer_pricing_study_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, tps} =
+      Holdco.Compliance.create_transfer_pricing_study(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          study_name: "TP Study #{System.unique_integer([:positive])}",
+          fiscal_year: 2025,
+          related_party_name: "Related Corp #{System.unique_integer([:positive])}"
+        })
+      )
+
+    tps
+  end
+
+  # ── Partnership Bases ───────────────────────────────────
+
+  def partnership_basis_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, pb} =
+      Holdco.Fund.create_partnership_basis(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          partner_name: "Partner #{System.unique_integer([:positive])}",
+          tax_year: 2025,
+          beginning_basis: 100_000.0,
+          capital_contributions: 50_000.0,
+          share_of_income: 25_000.0,
+          share_of_losses: 5_000.0,
+          distributions_received: 10_000.0,
+          special_allocations: 2_000.0,
+          section_754_adjustments: 1_000.0,
+          ending_basis: 163_000.0,
+          at_risk_amount: 150_000.0,
+          passive_activity_amount: 20_000.0
+        })
+      )
+
+    pb
+  end
+
   # ── Depreciation ────────────────────────────────────────
 
   def fixed_asset_fixture(attrs \\ %{}) do

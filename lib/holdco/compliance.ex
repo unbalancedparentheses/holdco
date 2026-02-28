@@ -15,7 +15,8 @@ defmodule Holdco.Compliance do
     EsgScore,
     SanctionsList,
     SanctionsEntry,
-    SanctionsCheck
+    SanctionsCheck,
+    TransferPricingStudy
   }
 
   # Tax Deadlines
@@ -389,6 +390,60 @@ defmodule Holdco.Compliance do
   def delete_sanctions_check(%SanctionsCheck{} = sc) do
     Repo.delete(sc)
     |> audit_and_broadcast("sanctions_checks", "delete")
+  end
+
+
+  # Transfer Pricing Studies
+  def list_transfer_pricing_studies(company_id \\ nil) do
+    query = from(tps in TransferPricingStudy, order_by: [desc: tps.fiscal_year], preload: [:company])
+    query = if company_id, do: where(query, [tps], tps.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_transfer_pricing_study!(id), do: Repo.get!(TransferPricingStudy, id) |> Repo.preload(:company)
+
+  def create_transfer_pricing_study(attrs) do
+    %TransferPricingStudy{}
+    |> TransferPricingStudy.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("transfer_pricing_studies", "create")
+  end
+
+  def update_transfer_pricing_study(%TransferPricingStudy{} = tps, attrs) do
+    tps
+    |> TransferPricingStudy.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("transfer_pricing_studies", "update")
+  end
+
+  def delete_transfer_pricing_study(%TransferPricingStudy{} = tps) do
+    Repo.delete(tps)
+    |> audit_and_broadcast("transfer_pricing_studies", "delete")
+  end
+
+  def transfer_pricing_summary(company_id \\ nil) do
+    query = from(tps in TransferPricingStudy)
+    query = if company_id, do: where(query, [tps], tps.company_id == ^company_id), else: query
+
+    by_method =
+      from(tps in query,
+        group_by: tps.method,
+        select: %{method: tps.method, count: count(tps.id), total_amount: sum(tps.transaction_amount)}
+      )
+      |> Repo.all()
+
+    needing_adjustment =
+      from(tps in query,
+        where: tps.adjustment_needed > 0,
+        select: %{count: count(tps.id), total_adjustment: sum(tps.adjustment_needed)}
+      )
+      |> Repo.one()
+
+    %{
+      by_method: by_method,
+      needing_adjustment_count: needing_adjustment.count || 0,
+      total_adjustment_amount: needing_adjustment.total_adjustment || Decimal.new(0)
+    }
   end
 
   # PubSub
