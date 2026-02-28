@@ -96,6 +96,12 @@ if config_env() == :prod do
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
 
+  # Xero OAuth2
+  config :holdco, Holdco.Integrations.Xero,
+    client_id: System.get_env("XERO_CLIENT_ID"),
+    client_secret: System.get_env("XERO_CLIENT_SECRET"),
+    redirect_uri: System.get_env("XERO_REDIRECT_URI") || "http://localhost:4000/auth/xero/callback"
+
   # ## Configuring the mailer
   #
   # In production you need to configure the mailer to use a different adapter.
