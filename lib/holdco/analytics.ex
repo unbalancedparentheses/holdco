@@ -3,7 +3,7 @@ defmodule Holdco.Analytics do
   alias Holdco.Repo
   alias Holdco.Money
 
-  alias Holdco.Analytics.{Kpi, KpiSnapshot, ReportTemplate}
+  alias Holdco.Analytics.{Kpi, KpiSnapshot, ReportTemplate, StressTest, LiquidityCoverage}
 
   # KPIs
   def list_kpis(company_id \\ nil) do
@@ -134,6 +134,252 @@ defmodule Holdco.Analytics do
           })
       end
     end)
+  end
+
+  # ── Stress Tests ─────────────────────────────────────
+
+  def list_stress_tests(company_id \\ nil) do
+    query = from(st in StressTest, order_by: [desc: st.inserted_at], preload: [:company, :created_by])
+    query = if company_id, do: where(query, [st], st.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_stress_test!(id), do: Repo.get!(StressTest, id) |> Repo.preload([:company, :created_by])
+
+  def create_stress_test(attrs) do
+    %StressTest{}
+    |> StressTest.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("stress_tests", "create")
+  end
+
+  def update_stress_test(%StressTest{} = st, attrs) do
+    st
+    |> StressTest.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("stress_tests", "update")
+  end
+
+  def delete_stress_test(%StressTest{} = st) do
+    Repo.delete(st)
+    |> audit_and_broadcast("stress_tests", "delete")
+  end
+
+  @doc """
+  Execute a stress test: apply shocks to the current portfolio and compute
+  original NAV, stressed NAV, dollar impact, percentage impact, and per-holding detail.
+  """
+  def run_stress_test(%StressTest{} = stress_test) do
+    # Mark as running
+    {:ok, stress_test} = update_stress_test(stress_test, %{status: "running"})
+
+    try do
+      nav_data = Holdco.Portfolio.calculate_nav()
+      holdings = Holdco.Assets.list_holdings()
+      original_nav = nav_data.nav
+      shocks = stress_test.shocks || %{}
+
+      per_holding =
+        Enum.map(holdings, fn holding ->
+          current_value = Holdco.Portfolio.holding_value(holding)
+          shock_pct = find_applicable_shock(holding, shocks)
+          stressed_value = Money.add(current_value, Money.mult(current_value, shock_pct))
+          impact = Money.sub(stressed_value, current_value)
+
+          %{
+            "holding_id" => holding.id,
+            "asset" => holding.asset,
+            "ticker" => holding.ticker,
+            "asset_type" => holding.asset_type,
+            "currency" => holding.currency,
+            "original_value" => Decimal.to_string(current_value),
+            "stressed_value" => Decimal.to_string(stressed_value),
+            "impact" => Decimal.to_string(impact),
+            "shock_applied" => Decimal.to_string(Money.to_decimal(shock_pct))
+          }
+        end)
+
+      total_impact =
+        Enum.reduce(per_holding, Decimal.new(0), fn h, acc ->
+          Money.add(acc, Money.to_decimal(h["impact"]))
+        end)
+
+      stressed_nav = Money.add(original_nav, total_impact)
+
+      impact_pct =
+        if Money.zero?(original_nav),
+          do: Decimal.new(0),
+          else: Money.mult(Money.div(total_impact, original_nav), 100)
+
+      results = %{
+        "original_nav" => Decimal.to_string(original_nav),
+        "stressed_nav" => Decimal.to_string(stressed_nav),
+        "impact" => Decimal.to_string(total_impact),
+        "impact_pct" => Decimal.to_string(impact_pct),
+        "per_holding" => per_holding
+      }
+
+      update_stress_test(stress_test, %{
+        status: "completed",
+        results: results,
+        run_at: DateTime.truncate(DateTime.utc_now(), :second)
+      })
+    rescue
+      e ->
+        update_stress_test(stress_test, %{status: "failed", results: %{"error" => Exception.message(e)}})
+    end
+  end
+
+  # Find the most specific applicable shock for a holding.
+  # Priority: ticker match > asset_type match > FX-pair match
+  defp find_applicable_shock(holding, shocks) do
+    ticker = holding.ticker || ""
+    asset_type = holding.asset_type || ""
+    currency = holding.currency || "USD"
+
+    cond do
+      # Direct ticker match (e.g. "BTC" => -0.40)
+      Map.has_key?(shocks, ticker) and ticker != "" ->
+        Money.to_decimal(shocks[ticker])
+
+      # Asset type match (e.g. "equity" => -0.20, "crypto" => -0.40)
+      Map.has_key?(shocks, asset_type) ->
+        Money.to_decimal(shocks[asset_type])
+
+      # FX pair match (e.g. "EUR/USD" => -0.10 applies to EUR-denominated holdings)
+      true ->
+        fx_key = "#{currency}/USD"
+
+        if Map.has_key?(shocks, fx_key) do
+          Money.to_decimal(shocks[fx_key])
+        else
+          Decimal.new(0)
+        end
+    end
+  end
+
+  @doc "Return a list of predefined stress test scenario templates."
+  def predefined_scenarios do
+    [
+      %{name: "Crypto Crash", shocks: %{"crypto" => -0.40}},
+      %{name: "Equity Bear Market", shocks: %{"equity" => -0.20}},
+      %{name: "USD Strengthening", shocks: %{"EUR/USD" => -0.10, "GBP/USD" => -0.10, "BRL/USD" => -0.15}},
+      %{name: "Global Recession", shocks: %{"equity" => -0.30, "crypto" => -0.50, "real_estate" => -0.15}},
+      %{name: "Interest Rate Shock", shocks: %{"fixed_income" => -0.08, "real_estate" => -0.10}}
+    ]
+  end
+
+  # ── Liquidity Coverage ─────────────────────────────────
+
+  def list_liquidity_coverages(company_id \\ nil) do
+    query = from(lc in LiquidityCoverage, order_by: [desc: lc.calculation_date], preload: [:company])
+    query = if company_id, do: where(query, [lc], lc.company_id == ^company_id), else: query
+    Repo.all(query)
+  end
+
+  def get_liquidity_coverage!(id), do: Repo.get!(LiquidityCoverage, id) |> Repo.preload([:company])
+
+  def create_liquidity_coverage(attrs) do
+    %LiquidityCoverage{}
+    |> LiquidityCoverage.changeset(attrs)
+    |> Repo.insert()
+    |> audit_and_broadcast("liquidity_coverages", "create")
+  end
+
+  def update_liquidity_coverage(%LiquidityCoverage{} = lc, attrs) do
+    lc
+    |> LiquidityCoverage.changeset(attrs)
+    |> Repo.update()
+    |> audit_and_broadcast("liquidity_coverages", "update")
+  end
+
+  def delete_liquidity_coverage(%LiquidityCoverage{} = lc) do
+    Repo.delete(lc)
+    |> audit_and_broadcast("liquidity_coverages", "delete")
+  end
+
+  @doc """
+  Calculate the Liquidity Coverage Ratio for a company.
+
+  HQLA Levels:
+    - Level 1: Cash (bank account balances) -- 0% haircut
+    - Level 2A: Government/agency bonds (asset_type "fixed_income" or "government_bond") -- 15% haircut
+    - Level 2B: Corporate bonds (asset_type "corporate_bond") -- 50% haircut
+
+  Net cash outflows estimated as 25% of active liabilities maturing within 30 days
+  (simplified: use total active liabilities as a proxy).
+
+  LCR = (total_hqla / net_cash_outflows_30d) * 100
+  Status: >= 100 adequate, 80..100 warning, < 80 critical
+  """
+  def calculate_lcr(company_id) do
+    bank_accounts = Holdco.Banking.list_bank_accounts(%{company_id: company_id})
+    holdings = Holdco.Assets.list_holdings(%{company_id: company_id})
+    liabilities = Holdco.Finance.list_liabilities(company_id)
+
+    # Level 1 HQLA: cash balances (no haircut)
+    hqla_level1 =
+      Enum.reduce(bank_accounts, Decimal.new(0), fn ba, acc ->
+        Money.add(acc, Holdco.Portfolio.to_usd(ba.balance, ba.currency))
+      end)
+
+    # Level 2A: government/agency bonds with 15% haircut
+    level2a_holdings =
+      Enum.filter(holdings, fn h -> h.asset_type in ~w(fixed_income government_bond) end)
+
+    hqla_level2a_gross =
+      Enum.reduce(level2a_holdings, Decimal.new(0), fn h, acc ->
+        Money.add(acc, Holdco.Portfolio.holding_value(h))
+      end)
+
+    hqla_level2a = Money.mult(hqla_level2a_gross, Decimal.from_float(0.85))
+
+    # Level 2B: corporate bonds with 50% haircut
+    level2b_holdings =
+      Enum.filter(holdings, fn h -> h.asset_type in ~w(corporate_bond) end)
+
+    hqla_level2b_gross =
+      Enum.reduce(level2b_holdings, Decimal.new(0), fn h, acc ->
+        Money.add(acc, Holdco.Portfolio.holding_value(h))
+      end)
+
+    hqla_level2b = Money.mult(hqla_level2b_gross, Decimal.from_float(0.50))
+
+    total_hqla = Money.add(hqla_level1, Money.add(hqla_level2a, hqla_level2b))
+
+    # Estimate 30-day net cash outflows: 25% of total active liabilities
+    total_active_liabilities =
+      liabilities
+      |> Enum.filter(fn l -> l.status == "active" end)
+      |> Enum.reduce(Decimal.new(0), fn l, acc ->
+        Money.add(acc, Holdco.Portfolio.to_usd(l.principal, l.currency))
+      end)
+
+    net_cash_outflows_30d = Money.mult(total_active_liabilities, Decimal.from_float(0.25))
+
+    lcr_ratio =
+      if Money.zero?(net_cash_outflows_30d),
+        do: Decimal.new(999),
+        else: Money.mult(Money.div(total_hqla, net_cash_outflows_30d), 100)
+
+    status =
+      cond do
+        Money.gte?(lcr_ratio, 100) -> "adequate"
+        Money.gte?(lcr_ratio, 80) -> "warning"
+        true -> "critical"
+      end
+
+    create_liquidity_coverage(%{
+      company_id: company_id,
+      calculation_date: Date.utc_today(),
+      hqla_level1: hqla_level1,
+      hqla_level2a: hqla_level2a,
+      hqla_level2b: hqla_level2b,
+      total_hqla: total_hqla,
+      net_cash_outflows_30d: net_cash_outflows_30d,
+      lcr_ratio: lcr_ratio,
+      status: status
+    })
   end
 
   # PubSub

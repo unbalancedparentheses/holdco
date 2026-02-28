@@ -944,4 +944,34 @@ defmodule Holdco.HoldcoFixtures do
 
     rt
   end
+
+  def stress_test_fixture(attrs \\ %{}) do
+    {:ok, st} =
+      Holdco.Analytics.create_stress_test(
+        Enum.into(attrs, %{
+          name: "Stress Test #{System.unique_integer([:positive])}",
+          shocks: %{"equity" => -0.20}
+        })
+      )
+
+    st
+  end
+
+  def liquidity_coverage_fixture(attrs \\ %{}) do
+    {:ok, lc} =
+      Holdco.Analytics.create_liquidity_coverage(
+        Enum.into(attrs, %{
+          calculation_date: Date.utc_today(),
+          hqla_level1: 500_000.0,
+          hqla_level2a: 100_000.0,
+          hqla_level2b: 50_000.0,
+          total_hqla: 650_000.0,
+          net_cash_outflows_30d: 400_000.0,
+          lcr_ratio: 162.5,
+          status: "adequate"
+        })
+      )
+
+    lc
+  end
 end
