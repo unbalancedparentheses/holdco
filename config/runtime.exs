@@ -104,6 +104,12 @@ if config_env() == :prod do
     access_key_id: System.get_env("S3_ACCESS_KEY_ID"),
     secret_access_key: System.get_env("S3_SECRET_ACCESS_KEY")
 
+  # Xero OAuth2
+  config :holdco, Holdco.Integrations.Xero,
+    client_id: System.get_env("XERO_CLIENT_ID"),
+    client_secret: System.get_env("XERO_CLIENT_SECRET"),
+    redirect_uri: System.get_env("XERO_REDIRECT_URI") || "http://localhost:4000/auth/xero/callback"
+
   # ## Configuring the mailer
   #
   # In production you need to configure the mailer to use a different adapter.

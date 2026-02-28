@@ -64,6 +64,14 @@ defmodule HoldcoWeb.Router do
     get "/callback", QuickbooksController, :callback
   end
 
+  # Xero OAuth (authenticated)
+  scope "/auth/xero", HoldcoWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    get "/connect", XeroController, :connect
+    get "/callback", XeroController, :callback
+  end
+
   # Printable Reports (authenticated)
   scope "/reports", HoldcoWeb do
     pipe_through [:browser, :require_authenticated_user]
