@@ -10,14 +10,14 @@ defmodule HoldcoWeb.ImportLiveTest do
     test "renders import page", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/import")
 
-      assert html =~ "Import CSV"
+      assert html =~ "Import CSV/Excel"
     end
 
     test "renders page title and deck text", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/import")
 
       assert html =~ "page-title"
-      assert html =~ "Upload a CSV file to bulk-import records"
+      assert html =~ "Upload a CSV or Excel file to bulk-import records"
     end
 
     test "renders page-title-rule", %{conn: conn} do
@@ -43,7 +43,7 @@ defmodule HoldcoWeb.ImportLiveTest do
     test "shows expected CSV columns for companies", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/import")
 
-      assert html =~ "Expected CSV columns"
+      assert html =~ "Expected columns (CSV or Excel)"
       assert html =~ "Name, Country, Entity Type, Category, Ownership %"
     end
 
@@ -51,7 +51,7 @@ defmodule HoldcoWeb.ImportLiveTest do
       {:ok, _view, html} = live(conn, ~p"/import")
 
       assert html =~ "import-form"
-      assert html =~ "CSV File"
+      assert html =~ "CSV or Excel File"
     end
 
     test "shows companies example row", %{conn: conn} do
@@ -192,7 +192,7 @@ defmodule HoldcoWeb.ImportLiveTest do
       {:ok, view, _html} = live(conn, ~p"/import")
 
       html = render_hook(view, "validate", %{})
-      assert html =~ "Import CSV"
+      assert html =~ "Import CSV/Excel"
     end
   end
 
@@ -210,7 +210,7 @@ defmodule HoldcoWeb.ImportLiveTest do
         |> form("#import-form")
         |> render_submit()
 
-      assert html =~ "Please select a CSV file"
+      assert html =~ "Please select a file"
     end
   end
 
@@ -221,7 +221,7 @@ defmodule HoldcoWeb.ImportLiveTest do
     end
 
     test "navigating with type=holdings updates tab via handle_params", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/import")
+      {:ok, _view, _html} = live(conn, ~p"/import")
 
       # Navigate to holdings type
       {:ok, _view, html} = live(conn, ~p"/import?type=holdings")
@@ -820,5 +820,268 @@ defmodule HoldcoWeb.ImportLiveTest do
       assert html =~ "Import Results"
       assert html =~ "1 created"
     end
+  end
+
+  describe "XLSX file upload and import (editor)" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "upload accepts .xlsx extension", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/import")
+
+      # The upload config should accept .xlsx
+      assert html =~ ".xlsx"
+    end
+
+    test "upload accepts .xls extension", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/import")
+
+      assert html =~ ".xls"
+    end
+
+    test "xlsx file type is detected by extension", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      # Create a minimal xlsx file in memory for upload
+      xlsx_content = create_test_xlsx([
+        ["Name", "Country", "Entity Type", "Category", "Ownership"],
+        ["XlsxImportCo", "US", "LLC", "Operating", "100"]
+      ])
+
+      xlsx_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "companies.xlsx",
+            content: xlsx_content,
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          }
+        ])
+
+      render_upload(xlsx_file, "companies.xlsx")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "1 created"
+    end
+
+    test "malformed xlsx shows error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      xlsx_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "bad.xlsx",
+            content: "not a valid xlsx file",
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          }
+        ])
+
+      render_upload(xlsx_file, "bad.xlsx")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "Excel Parse Error"
+    end
+
+    test "xlsx with multiple data rows imports all", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      xlsx_content = create_test_xlsx([
+        ["Name", "Country", "Entity Type", "Category", "Ownership"],
+        ["XlsxCoA", "US", "LLC", "Operating", "100"],
+        ["XlsxCoB", "UK", "Ltd", "Holding", "50"]
+      ])
+
+      xlsx_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "multi.xlsx",
+            content: xlsx_content,
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          }
+        ])
+
+      render_upload(xlsx_file, "multi.xlsx")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "2 created"
+    end
+
+    test "xlsx holdings import works", %{conn: conn} do
+      company = company_fixture(%{name: "XlsxHoldCo"})
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
+
+      xlsx_content = create_test_xlsx([
+        ["Asset", "Ticker", "Type", "Quantity", "Currency", "Company"],
+        ["Google", "GOOG", "stock", "50", "USD", company.name]
+      ])
+
+      xlsx_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "holdings.xlsx",
+            content: xlsx_content,
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          }
+        ])
+
+      render_upload(xlsx_file, "holdings.xlsx")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "1 created"
+    end
+
+    test "xlsx transactions import works", %{conn: conn} do
+      company = company_fixture(%{name: "XlsxTxCo"})
+      {:ok, view, _html} = live(conn, ~p"/import")
+
+      view |> element(~s(button[phx-value-tab="transactions"])) |> render_click()
+
+      xlsx_content = create_test_xlsx([
+        ["Date", "Description", "Amount", "Currency", "Category", "Company"],
+        ["2025-03-15", "Office supplies", "250", "USD", "expense", company.name]
+      ])
+
+      xlsx_file =
+        file_input(view, "#import-form", :csv_file, [
+          %{
+            name: "transactions.xlsx",
+            content: xlsx_content,
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          }
+        ])
+
+      render_upload(xlsx_file, "transactions.xlsx")
+
+      html =
+        view
+        |> form("#import-form")
+        |> render_submit()
+
+      assert html =~ "Import Results"
+      assert html =~ "1 created"
+    end
+  end
+
+  # Helper to create a minimal XLSX file as binary for upload
+  defp create_test_xlsx(rows) do
+    all_values = List.flatten(rows) |> Enum.uniq()
+    ss_index = all_values |> Enum.with_index() |> Map.new()
+
+    shared_strings_xml = build_shared_strings_xml(all_values)
+    sheet_xml = build_sheet_xml(rows, ss_index)
+
+    content_types_xml =
+      ~s(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>) <>
+        ~s(<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">) <>
+        ~s(<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>) <>
+        ~s(<Default Extension="xml" ContentType="application/xml"/>) <>
+        ~s(<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>) <>
+        ~s(<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>) <>
+        ~s(<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>) <>
+        ~s(</Types>)
+
+    rels_xml =
+      ~s(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>) <>
+        ~s(<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">) <>
+        ~s(<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>) <>
+        ~s(</Relationships>)
+
+    workbook_xml =
+      ~s(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>) <>
+        ~s(<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">) <>
+        ~s(<sheets><sheet name="Sheet1" sheetId="1" r:id="rId1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/></sheets>) <>
+        ~s(</workbook>)
+
+    workbook_rels_xml =
+      ~s(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>) <>
+        ~s(<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">) <>
+        ~s(<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>) <>
+        ~s(<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>) <>
+        ~s(</Relationships>)
+
+    files = [
+      {~c"[Content_Types].xml", content_types_xml},
+      {~c"_rels/.rels", rels_xml},
+      {~c"xl/workbook.xml", workbook_xml},
+      {~c"xl/_rels/workbook.xml.rels", workbook_rels_xml},
+      {~c"xl/sharedStrings.xml", shared_strings_xml},
+      {~c"xl/worksheets/sheet1.xml", sheet_xml}
+    ]
+
+    {:ok, {_, zip_binary}} = :zip.create(~c"mem.xlsx", files, [:memory])
+    zip_binary
+  end
+
+  defp build_shared_strings_xml(values) do
+    si_elements =
+      values
+      |> Enum.map(fn val -> "<si><t>#{xml_escape(val)}</t></si>" end)
+      |> Enum.join("")
+
+    ~s(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>) <>
+      ~s(<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="#{length(values)}" uniqueCount="#{length(values)}">) <>
+      si_elements <>
+      ~s(</sst>)
+  end
+
+  defp build_sheet_xml(rows, ss_index) do
+    row_elements =
+      rows
+      |> Enum.with_index(1)
+      |> Enum.map(fn {row, row_idx} ->
+        cells =
+          row
+          |> Enum.with_index()
+          |> Enum.map(fn {val, col_idx} ->
+            col_letter = col_index_to_letter(col_idx)
+            ref = "#{col_letter}#{row_idx}"
+            idx = Map.get(ss_index, val, 0)
+            ~s(<c r="#{ref}" t="s"><v>#{idx}</v></c>)
+          end)
+          |> Enum.join("")
+
+        ~s(<row r="#{row_idx}">#{cells}</row>)
+      end)
+      |> Enum.join("")
+
+    ~s(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>) <>
+      ~s(<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">) <>
+      ~s(<sheetData>#{row_elements}</sheetData>) <>
+      ~s(</worksheet>)
+  end
+
+  defp col_index_to_letter(idx) when idx < 26, do: <<(?A + idx)>>
+  defp col_index_to_letter(idx), do: <<(?A + div(idx, 26) - 1), (?A + rem(idx, 26))>>
+
+  defp xml_escape(str) do
+    str
+    |> String.replace("&", "&amp;")
+    |> String.replace("<", "&lt;")
+    |> String.replace(">", "&gt;")
+    |> String.replace("\"", "&quot;")
+    |> String.replace("'", "&apos;")
   end
 end
