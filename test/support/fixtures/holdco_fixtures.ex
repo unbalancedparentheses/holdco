@@ -944,4 +944,71 @@ defmodule Holdco.HoldcoFixtures do
 
     rt
   end
+
+  # ── Fund ─────────────────────────────────────────────
+
+  def fund_nav_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, nav} =
+      Holdco.Fund.create_fund_nav(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          nav_date: attrs[:nav_date] || Date.utc_today(),
+          total_assets: 1_000_000.0,
+          total_liabilities: 200_000.0,
+          net_asset_value: 800_000.0,
+          nav_per_unit: 100.0,
+          units_outstanding: 8_000.0,
+          currency: "USD"
+        })
+      )
+
+    nav
+  end
+
+  def investor_statement_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, stmt} =
+      Holdco.Fund.create_investor_statement(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          investor_name: "Investor #{System.unique_integer([:positive])}",
+          period_start: ~D[2024-01-01],
+          period_end: ~D[2024-12-31],
+          beginning_balance: 100_000.0,
+          contributions: 50_000.0,
+          distributions: 10_000.0,
+          ending_balance: 140_000.0,
+          ownership_pct: 25.0,
+          moic: 1.4,
+          status: "draft"
+        })
+      )
+
+    stmt
+  end
+
+  def fund_fee_fixture(attrs \\ %{}) do
+    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
+
+    {:ok, fee} =
+      Holdco.Fund.create_fund_fee(
+        Enum.into(attrs, %{
+          company_id: company.id,
+          fee_type: "management",
+          description: "Annual management fee",
+          amount: 20_000.0,
+          currency: "USD",
+          period_start: ~D[2024-01-01],
+          period_end: ~D[2024-12-31],
+          basis: "nav",
+          rate_pct: 2.0,
+          status: "accrued"
+        })
+      )
+
+    fee
+  end
 end
