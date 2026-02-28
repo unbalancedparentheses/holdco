@@ -41,7 +41,6 @@ defmodule HoldcoWeb.SearchLive do
     {"Portfolio", [
       {"/holdings", "Positions"}, {"/transactions", "Transactions"}, {"/bank-accounts", "Bank Accounts"},
       {"/financials", "Financials"}, {"/scenarios", "Scenarios"}, {"/defi-positions", "DeFi Positions"},
-      {"/on-chain", "On-Chain"}
     ]},
     {"Fund Management", [
       {"/capital-calls", "Capital Calls"}, {"/distributions", "Distributions"}, {"/fund-nav", "Fund NAV"},

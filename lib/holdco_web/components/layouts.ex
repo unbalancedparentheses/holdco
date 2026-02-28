@@ -88,7 +88,7 @@ defmodule HoldcoWeb.Layouts do
       <div class="nav-inner">
         <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
         <% cur = @current_path || "" %>
-        <% portfolio_paths = ~w(/holdings /transactions /bank-accounts /financials /scenarios /defi-positions /on-chain) %>
+        <% portfolio_paths = ~w(/holdings /transactions /bank-accounts /financials /scenarios /defi-positions) %>
         <% portfolio_active = Enum.any?(portfolio_paths, fn p -> cur == p or String.starts_with?(cur, p <> "/") end) %>
         <% fund_paths = ~w(/capital-calls /distributions /waterfall /k1-reports /fund-nav /investor-statements /fund-fees /dividend-policies /fundraising /partnership-basis) %>
         <% fund_active = Enum.any?(fund_paths, fn p -> cur == p or String.starts_with?(cur, p <> "/") end) %>
@@ -115,7 +115,6 @@ defmodule HoldcoWeb.Layouts do
               <.link navigate={~p"/financials"} class={if cur == "/financials", do: "active"}>Financials</.link>
               <.link navigate={~p"/scenarios"} class={if String.starts_with?(cur, "/scenarios"), do: "active"}>Scenarios</.link>
               <.link navigate={~p"/defi-positions"} class={if cur == "/defi-positions", do: "active"}>DeFi Positions</.link>
-              <.link navigate={~p"/on-chain"} class={if cur == "/on-chain", do: "active"}>On-Chain</.link>
             </div>
           </div>
 
