@@ -57,7 +57,6 @@
             <.link navigate={~p"/bank-accounts"} class={if String.starts_with?(cur, "/bank-accounts"), do: "active"}>Bank Accounts</.link>
             <.link navigate={~p"/financials"} class={if cur == "/financials", do: "active"}>Financials</.link>
             <.link navigate={~p"/scenarios"} class={if String.starts_with?(cur, "/scenarios"), do: "active"}>Scenarios</.link>
-            <span class="nav-dropdown-divider">Crypto</span>
             <.link navigate={~p"/defi-positions"} class={if cur == "/defi-positions", do: "active"}>DeFi Positions</.link>
             <.link navigate={~p"/on-chain"} class={if cur == "/on-chain", do: "active"}>On-Chain</.link>
           </div>
