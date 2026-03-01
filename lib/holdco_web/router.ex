@@ -167,12 +167,7 @@ defmodule HoldcoWeb.Router do
       live "/accounts/journal", AccountingLive.Journal, :index
       live "/accounts/reports", AccountingLive.Reports, :index
       live "/accounts/integrations", AccountingLive.Integrations, :index
-      live "/governance", GovernanceLive.Index, :index
-      live "/compliance", ComplianceLive.Index, :index
       live "/approvals", ApprovalsLive.Index, :index
-      live "/scenarios", ScenarioLive.Index, :index
-      live "/scenarios/new", ScenarioLive.Index, :new
-      live "/scenarios/:id", ScenarioLive.Show, :show
       live "/import", ImportLive, :index
       live "/notifications", NotificationsLive, :index
       live "/settings/notifications", NotificationSettingsLive.Index, :index
@@ -196,9 +191,6 @@ defmodule HoldcoWeb.Router do
       live "/consolidated", ConsolidatedLive.Index, :index
       live "/compare", EntityComparisonLive.Index, :index
 
-      # Phase 1 — Risk & Covenants
-      live "/counterparty-risk", CounterpartyRiskLive.Index, :index
-      live "/covenants", CovenantLive.Index, :index
 
       # Phase 1 — Reports & Analytics
       live "/tax/capital-gains", CapitalGainsLive.Index, :index
@@ -217,25 +209,17 @@ defmodule HoldcoWeb.Router do
       # Phase 2 — Alerts
       live "/alerts", AlertsLive.Index, :index
 
-      # Phase 2 — Stress Testing & Liquidity
+      # Phase 2 — Stress Testing
       live "/stress-test", StressTestLive.Index, :index
-      live "/liquidity", LiquidityLive.Index, :index
 
-      # Phase 2 — Anomaly Detection & Benchmarks
+      # Phase 2 — Anomaly Detection
       live "/anomalies", AnomalyLive.Index, :index
-      live "/benchmarks", BenchmarkLive.Index, :index
 
       # Tax
       live "/tax-provisions", TaxProvisionLive.Index, :index
       live "/deferred-taxes", DeferredTaxLive.Index, :index
       live "/transfer-pricing", TransferPricingLive.Index, :index
 
-      # Governance & Corporate
-      live "/board-meetings", BoardMeetingLive.Index, :index
-      live "/corporate-actions", CorporateActionLive.Index, :index
-      live "/registers", RegisterLive.Index, :index
-      live "/share-classes", ShareClassLive.Index, :index
-      live "/related-party-transactions", RelatedPartyLive.Index, :index
 
       # Contracts
       live "/contracts", ContractLive.Index, :index

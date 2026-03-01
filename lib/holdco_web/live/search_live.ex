@@ -39,15 +39,14 @@ defmodule HoldcoWeb.SearchLive do
 
   @pages [
     {"Portfolio", [
-      {"/holdings", "Positions"}, {"/transactions", "Transactions"}, {"/bank-accounts", "Bank Accounts"},
-      {"/financials", "Financials"}, {"/scenarios", "Scenarios"}, {"/defi-positions", "DeFi Positions"}
+      {"/holdings", "Positions"}, {"/transactions", "Transactions"},
+      {"/bank-accounts", "Bank Accounts"}, {"/financials", "Financials"},
+      {"/defi-positions", "DeFi Positions"}
     ]},
     {"Corporate", [
-      {"/governance", "Governance"}, {"/compliance", "Compliance"}, {"/documents", "Documents"},
-      {"/calendar", "Calendar"}, {"/org-chart", "Org Chart"}, {"/board-meetings", "Board Meetings"},
-      {"/contacts", "Contacts"}, {"/corporate-actions", "Corporate Actions"},
-      {"/registers", "Registers"}, {"/share-classes", "Share Classes"},
-      {"/related-party-transactions", "Related Party Txns"}
+      {"/documents", "Documents"}, {"/contacts", "Contacts"},
+      {"/calendar", "Calendar"}, {"/org-chart", "Org Chart"},
+      {"/contracts", "Contracts"}
     ]},
     {"Accounting", [
       {"/accounts/chart", "Chart of Accounts"}, {"/accounts/journal", "Journal Entries"},
@@ -61,15 +60,14 @@ defmodule HoldcoWeb.SearchLive do
       {"/transfer-pricing", "Transfer Pricing"}, {"/tax/capital-gains", "Capital Gains"},
       {"/tax-calendar", "Tax Calendar"}
     ]},
-    {"Risk & Analytics", [
-      {"/risk/concentration", "Concentration"}, {"/counterparty-risk", "Counterparty"},
-      {"/covenants", "Covenants"}, {"/stress-test", "Stress Testing"}, {"/liquidity", "Liquidity"},
-      {"/debt-maturity", "Debt Maturity"}, {"/cash-forecast", "Cash Forecast"},
-      {"/anomalies", "Anomalies"}, {"/benchmarks", "Benchmarks"}
+    {"Risk & Analysis", [
+      {"/risk/concentration", "Concentration"}, {"/stress-test", "Stress Testing"},
+      {"/cash-forecast", "Cash Forecast"}, {"/debt-maturity", "Debt Maturity"},
+      {"/anomalies", "Anomalies"}
     ]},
     {"Reports", [
-      {"/reports", "Overview"}, {"/kpis", "KPIs"}, {"/compare", "Entity Comparison"},
-      {"/scheduled-reports", "Scheduled Reports"}, {"/contracts", "Contracts"}
+      {"/reports", "Overview"}, {"/kpis", "KPIs"},
+      {"/compare", "Entity Comparison"}, {"/scheduled-reports", "Scheduled Reports"}
     ]},
     {"Admin", [
       {"/settings", "Settings"}, {"/settings/notifications", "Notification Settings"},

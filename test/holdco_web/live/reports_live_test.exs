@@ -55,13 +55,6 @@ defmodule HoldcoWeb.ReportsLiveTest do
       assert html =~ "/reports/compliance"
     end
 
-    test "shows Scenarios card", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/reports")
-
-      assert html =~ "Scenarios"
-      assert html =~ "what-if scenarios"
-    end
-
     test "shows Audit Package card", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/reports")
 

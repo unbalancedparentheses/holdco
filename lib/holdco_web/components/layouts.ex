@@ -89,12 +89,12 @@ defmodule HoldcoWeb.Layouts do
         <.link navigate={~p"/"} class="nav-brand">Holdco</.link>
         <% cur = @current_path || "" %>
         <% active? = fn paths -> Enum.any?(paths, fn p -> cur == p or String.starts_with?(cur, p <> "/") end) end %>
-        <% portfolio_paths = ~w(/holdings /transactions /bank-accounts /financials /scenarios /defi-positions) %>
-        <% corp_paths = ~w(/governance /compliance /documents /board-meetings /corporate-actions /registers /share-classes /related-party-transactions /contacts /calendar /org-chart) %>
+        <% portfolio_paths = ~w(/holdings /transactions /bank-accounts /financials /defi-positions) %>
+        <% corp_paths = ~w(/documents /contacts /calendar /org-chart /contracts) %>
         <% accounting_paths = ~w(/accounts/chart /accounts/journal /accounts/reports /accounts/integrations /budgets/variance /consolidated /period-locks /recurring-transactions /bank-reconciliation) %>
         <% tax_paths = ~w(/tax-provisions /deferred-taxes /transfer-pricing /tax/capital-gains /tax-calendar) %>
-        <% risk_paths = ~w(/risk/concentration /debt-maturity /cash-forecast /counterparty-risk /covenants /stress-test /liquidity /anomalies /benchmarks) %>
-        <% reports_paths = ~w(/reports /kpis /compare /scheduled-reports /contracts) %>
+        <% risk_paths = ~w(/risk/concentration /debt-maturity /cash-forecast /stress-test /anomalies) %>
+        <% reports_paths = ~w(/reports /kpis /compare /scheduled-reports) %>
         <% admin_paths = ~w(/settings /settings/notifications /audit-log /alerts /approvals /notifications /import) %>
         <div class="nav-links">
           <.link navigate={~p"/"} class={if cur == "/", do: "active"}>Overview</.link>
@@ -107,7 +107,6 @@ defmodule HoldcoWeb.Layouts do
               <.link navigate={~p"/transactions"} class={if String.starts_with?(cur, "/transactions"), do: "active"}>Transactions</.link>
               <.link navigate={~p"/bank-accounts"} class={if String.starts_with?(cur, "/bank-accounts"), do: "active"}>Bank Accounts</.link>
               <.link navigate={~p"/financials"} class={if cur == "/financials", do: "active"}>Financials</.link>
-              <.link navigate={~p"/scenarios"} class={if String.starts_with?(cur, "/scenarios"), do: "active"}>Scenarios</.link>
               <.link navigate={~p"/defi-positions"} class={if cur == "/defi-positions", do: "active"}>DeFi Positions</.link>
             </div>
           </div>
@@ -115,17 +114,11 @@ defmodule HoldcoWeb.Layouts do
           <div class="nav-dropdown">
             <button class={"nav-dropdown-toggle #{if active?.(corp_paths), do: "more-active"}"}>Corporate &#9662;</button>
             <div class="nav-dropdown-menu">
-              <.link navigate={~p"/governance"} class={if cur == "/governance", do: "active"}>Governance</.link>
-              <.link navigate={~p"/compliance"} class={if cur == "/compliance", do: "active"}>Compliance</.link>
               <.link navigate={~p"/documents"} class={if cur == "/documents", do: "active"}>Documents</.link>
+              <.link navigate={~p"/contacts"} class={if String.starts_with?(cur, "/contacts"), do: "active"}>Contacts</.link>
               <.link navigate={~p"/calendar"} class={if cur == "/calendar", do: "active"}>Calendar</.link>
               <.link navigate={~p"/org-chart"} class={if cur == "/org-chart", do: "active"}>Org Chart</.link>
-              <.link navigate={~p"/board-meetings"} class={if cur == "/board-meetings", do: "active"}>Board Meetings</.link>
-              <.link navigate={~p"/contacts"} class={if String.starts_with?(cur, "/contacts"), do: "active"}>Contacts</.link>
-              <.link navigate={~p"/corporate-actions"} class={if cur == "/corporate-actions", do: "active"}>Corporate Actions</.link>
-              <.link navigate={~p"/registers"} class={if cur == "/registers", do: "active"}>Registers</.link>
-              <.link navigate={~p"/share-classes"} class={if cur == "/share-classes", do: "active"}>Share Classes</.link>
-              <.link navigate={~p"/related-party-transactions"} class={if cur == "/related-party-transactions", do: "active"}>Related Party Txns</.link>
+              <.link navigate={~p"/contracts"} class={if cur == "/contracts", do: "active"}>Contracts</.link>
             </div>
           </div>
 
@@ -158,15 +151,11 @@ defmodule HoldcoWeb.Layouts do
           <div class="nav-dropdown">
             <button class={"nav-dropdown-toggle #{if active?.(risk_paths), do: "more-active"}"}>Risk &#9662;</button>
             <div class="nav-dropdown-menu">
-              <.link navigate={~p"/risk/concentration"} class={if cur == "/concentration", do: "active"}>Concentration</.link>
-              <.link navigate={~p"/counterparty-risk"} class={if cur == "/counterparty-risk", do: "active"}>Counterparty</.link>
-              <.link navigate={~p"/covenants"} class={if cur == "/covenants", do: "active"}>Covenants</.link>
+              <.link navigate={~p"/risk/concentration"} class={if cur == "/risk/concentration", do: "active"}>Concentration</.link>
               <.link navigate={~p"/stress-test"} class={if cur == "/stress-test", do: "active"}>Stress Testing</.link>
-              <.link navigate={~p"/liquidity"} class={if cur == "/liquidity", do: "active"}>Liquidity</.link>
               <.link navigate={~p"/debt-maturity"} class={if cur == "/debt-maturity", do: "active"}>Debt Maturity</.link>
               <.link navigate={~p"/cash-forecast"} class={if cur == "/cash-forecast", do: "active"}>Cash Forecast</.link>
               <.link navigate={~p"/anomalies"} class={if cur == "/anomalies", do: "active"}>Anomalies</.link>
-              <.link navigate={~p"/benchmarks"} class={if cur == "/benchmarks", do: "active"}>Benchmarks</.link>
             </div>
           </div>
 
@@ -177,7 +166,6 @@ defmodule HoldcoWeb.Layouts do
               <.link navigate={~p"/kpis"} class={if cur == "/kpis", do: "active"}>KPIs</.link>
               <.link navigate={~p"/compare"} class={if cur == "/compare", do: "active"}>Entity Comparison</.link>
               <.link navigate={~p"/scheduled-reports"} class={if cur == "/scheduled-reports", do: "active"}>Scheduled Reports</.link>
-              <.link navigate={~p"/contracts"} class={if cur == "/contracts", do: "active"}>Contracts</.link>
             </div>
           </div>
 
