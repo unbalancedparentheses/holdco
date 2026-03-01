@@ -166,7 +166,13 @@ defmodule HoldcoWeb.ContractLive.Index do
                 <tr>
                   <td class="td-name">{c.title}</td>
                   <td>{c.counterparty}</td>
-                  <td>{if c.company, do: c.company.name, else: "---"}</td>
+                  <td>
+                    <%= if c.company do %>
+                      <.link navigate={~p"/companies/#{c.company.id}"} class="td-link">{c.company.name}</.link>
+                    <% else %>
+                      ---
+                    <% end %>
+                  </td>
                   <td class="td-mono">{c.end_date}</td>
                   <td>{if c.auto_renew, do: "Yes", else: "No"}</td>
                 </tr>
@@ -205,7 +211,7 @@ defmodule HoldcoWeb.ContractLive.Index do
         <table>
           <thead>
             <tr>
-              <th>Title</th><th>Counterparty</th><th>Type</th><th>Status</th>
+              <th>Title</th><th>Counterparty</th><th>Company</th><th>Type</th><th>Status</th>
               <th>Start</th><th>End</th><th class="th-num">Value</th><th></th>
             </tr>
           </thead>
@@ -214,6 +220,13 @@ defmodule HoldcoWeb.ContractLive.Index do
               <tr>
                 <td class="td-name">{c.title}</td>
                 <td>{c.counterparty}</td>
+                <td>
+                  <%= if c.company do %>
+                    <.link navigate={~p"/companies/#{c.company.id}"} class="td-link">{c.company.name}</.link>
+                  <% else %>
+                    ---
+                  <% end %>
+                </td>
                 <td><span class="tag tag-sky">{humanize(c.contract_type)}</span></td>
                 <td><span class={"tag #{status_tag(c.status)}"}>{humanize(c.status)}</span></td>
                 <td class="td-mono">{c.start_date || "---"}</td>

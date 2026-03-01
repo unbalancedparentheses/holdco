@@ -279,6 +279,15 @@ defmodule HoldcoWeb.CashForecastLive.Index do
         <% end %>
       </div>
     </div>
+
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--rule);">
+      <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint);">Related</span>
+      <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
+        <.link navigate={~p"/debt-maturity"} class="td-link" style="font-size: 0.85rem;">Debt Maturity</.link>
+        <.link navigate={~p"/bank-accounts"} class="td-link" style="font-size: 0.85rem;">Bank Accounts</.link>
+        <.link navigate={~p"/stress-test"} class="td-link" style="font-size: 0.85rem;">Stress Test</.link>
+      </div>
+    </div>
     """
   end
 

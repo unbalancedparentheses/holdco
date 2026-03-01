@@ -259,7 +259,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
           <tbody>
             <%= for ba <- @accounts do %>
               <tr>
-                <td class="td-name">{ba.bank_name}</td>
+                <td class="td-name"><.link navigate={~p"/bank-accounts/#{ba.id}"} class="td-link">{ba.bank_name}</.link></td>
                 <td class="td-mono">{ba.account_number}</td>
                 <td class="td-mono">{ba.iban}</td>
                 <td>{ba.account_type}</td>

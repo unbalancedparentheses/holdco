@@ -291,6 +291,15 @@ defmodule HoldcoWeb.StressTestLive.Index do
       </div>
     </div>
 
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--rule);">
+      <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint);">Related</span>
+      <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
+        <.link navigate={~p"/risk/concentration"} class="td-link" style="font-size: 0.85rem;">Concentration Risk</.link>
+        <.link navigate={~p"/cash-forecast"} class="td-link" style="font-size: 0.85rem;">Cash Forecast</.link>
+        <.link navigate={~p"/debt-maturity"} class="td-link" style="font-size: 0.85rem;">Debt Maturity</.link>
+      </div>
+    </div>
+
     <%!-- Results Modal --%>
     <%= if @show_results do %>
       <% st = find_stress_test(@stress_tests, @show_results) %>

@@ -330,6 +330,62 @@ defmodule HoldcoWeb.DashboardLive do
       </div>
     </div>
 
+    <div class="section">
+      <div class="section-head">
+        <h2>Tools & Analysis</h2>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem;">
+        <.link navigate={~p"/bank-accounts"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Bank Accounts</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Cash positions</div>
+        </.link>
+        <.link navigate={~p"/financials"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Financials</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Revenue & expenses</div>
+        </.link>
+        <.link navigate={~p"/documents"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Documents</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Files & records</div>
+        </.link>
+        <.link navigate={~p"/contacts"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Contacts</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">People & orgs</div>
+        </.link>
+        <.link navigate={~p"/contracts"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Contracts</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Agreements & terms</div>
+        </.link>
+        <.link navigate={~p"/alerts"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Alerts</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Rules & triggers</div>
+        </.link>
+        <.link navigate={~p"/anomalies"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Anomalies</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Fraud detection</div>
+        </.link>
+        <.link navigate={~p"/risk/concentration"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Concentration</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Risk exposure</div>
+        </.link>
+        <.link navigate={~p"/stress-test"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Stress Test</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Monte Carlo shocks</div>
+        </.link>
+        <.link navigate={~p"/cash-forecast"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Cash Forecast</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">12-month projection</div>
+        </.link>
+        <.link navigate={~p"/consolidated"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Consolidated</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Group financials</div>
+        </.link>
+        <.link navigate={~p"/bank-reconciliation"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
+          <div style="font-weight: 600; font-size: 0.85rem;">Reconciliation</div>
+          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Match bank feeds</div>
+        </.link>
+      </div>
+    </div>
+
     <%= if @ai_insight_loading or @ai_insight do %>
       <div class="section">
         <div class="section-head">

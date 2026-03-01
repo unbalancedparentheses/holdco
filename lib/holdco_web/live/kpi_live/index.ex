@@ -479,6 +479,15 @@ defmodule HoldcoWeb.KpiLive.Index do
       </div>
     </div>
 
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--rule);">
+      <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint);">Related</span>
+      <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
+        <.link navigate={~p"/compare"} class="td-link" style="font-size: 0.85rem;">Entity Comparison</.link>
+        <.link navigate={~p"/reports"} class="td-link" style="font-size: 0.85rem;">Reports</.link>
+        <.link navigate={~p"/financials"} class="td-link" style="font-size: 0.85rem;">Financials</.link>
+      </div>
+    </div>
+
     <%!-- Add/Edit KPI Modal --%>
     <%= if @show_form do %>
       <div class="dialog-overlay" phx-click="close_form">

@@ -339,6 +339,15 @@ defmodule HoldcoWeb.AnomalyLive.Index do
       </div>
     </div>
 
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--rule);">
+      <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint);">Related</span>
+      <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
+        <.link navigate={~p"/alerts"} class="td-link" style="font-size: 0.85rem;">Alerts</.link>
+        <.link navigate={~p"/risk/concentration"} class="td-link" style="font-size: 0.85rem;">Concentration Risk</.link>
+        <.link navigate={~p"/audit-log"} class="td-link" style="font-size: 0.85rem;">Audit Log</.link>
+      </div>
+    </div>
+
     <%!-- Resolve / False Positive Modal --%>
     <%= if @show_notes_for do %>
       <div class="dialog-overlay" phx-click="close_notes">

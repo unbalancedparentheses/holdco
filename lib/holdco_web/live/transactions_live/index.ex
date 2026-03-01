@@ -235,7 +235,7 @@ defmodule HoldcoWeb.TransactionsLive.Index do
               <tr>
                 <td class="td-mono">{tx.date}</td>
                 <td><span class="tag tag-ink">{tx.transaction_type}</span></td>
-                <td class="td-name">{tx.description}</td>
+                <td class="td-name"><.link navigate={~p"/transactions/#{tx.id}"} class="td-link">{tx.description}</.link></td>
                 <td>{tx.counterparty}</td>
                 <td class={"td-num #{if Money.negative?(tx.amount), do: "num-negative", else: "num-positive"}"}>
                   {format_currency(tx.amount, tx.currency)}

@@ -1295,11 +1295,14 @@ defmodule HoldcoWeb.CompanyLive.Show do
     <div class="section">
       <div class="section-head">
         <h2>Positions</h2>
-        <%= if @can_write do %>
-          <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="holding">
-            Add Position
-          </button>
-        <% end %>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <.link navigate={~p"/holdings"} class="count" style="text-decoration: none;">View all &rarr;</.link>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="holding">
+              Add Position
+            </button>
+          <% end %>
+        </div>
       </div>
       <div class="panel">
         <table>
@@ -1357,11 +1360,14 @@ defmodule HoldcoWeb.CompanyLive.Show do
     <div class="section">
       <div class="section-head">
         <h2>Bank Accounts</h2>
-        <%= if @can_write do %>
-          <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="bank_account">
-            Add Account
-          </button>
-        <% end %>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <.link navigate={~p"/bank-accounts"} class="count" style="text-decoration: none;">View all &rarr;</.link>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="bank_account">
+              Add Account
+            </button>
+          <% end %>
+        </div>
       </div>
       <div class="panel">
         <table>
@@ -1419,11 +1425,14 @@ defmodule HoldcoWeb.CompanyLive.Show do
     <div class="section">
       <div class="section-head">
         <h2>Transactions</h2>
-        <%= if @can_write do %>
-          <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="transaction">
-            Add Transaction
-          </button>
-        <% end %>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <.link navigate={~p"/transactions"} class="count" style="text-decoration: none;">View all &rarr;</.link>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="transaction">
+              Add Transaction
+            </button>
+          <% end %>
+        </div>
       </div>
       <div class="panel">
         <table>
@@ -1483,11 +1492,14 @@ defmodule HoldcoWeb.CompanyLive.Show do
     <div class="section">
       <div class="section-head">
         <h2>Documents</h2>
-        <%= if @can_write do %>
-          <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="document">
-            Add Document
-          </button>
-        <% end %>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <.link navigate={~p"/documents"} class="count" style="text-decoration: none;">View all &rarr;</.link>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="document">
+              Add Document
+            </button>
+          <% end %>
+        </div>
       </div>
       <div class="panel">
         <table>
@@ -2323,11 +2335,14 @@ defmodule HoldcoWeb.CompanyLive.Show do
     <div class="section">
       <div class="section-head">
         <h2>Financials</h2>
-        <%= if @can_write do %>
-          <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="financial">
-            Add Period
-          </button>
-        <% end %>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <.link navigate={~p"/financials"} class="count" style="text-decoration: none;">View all &rarr;</.link>
+          <%= if @can_write do %>
+            <button class="btn btn-sm btn-primary" phx-click="show_form" phx-value-form="financial">
+              Add Period
+            </button>
+          <% end %>
+        </div>
       </div>
       <div class="panel">
         <table>
