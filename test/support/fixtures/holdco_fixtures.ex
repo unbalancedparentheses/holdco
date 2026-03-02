@@ -1127,86 +1127,6 @@ defmodule Holdco.HoldcoFixtures do
     anomaly
   end
 
-  # ── Benchmarks ───────────────────────────────────────
-
-  def benchmark_fixture(attrs \\ %{}) do
-    {:ok, benchmark} =
-      Holdco.Analytics.create_benchmark(
-        Enum.into(attrs, %{
-          name: "Benchmark #{System.unique_integer([:positive])}",
-          benchmark_type: "index",
-          ticker: "SPY",
-          is_active: true
-        })
-      )
-
-    benchmark
-  end
-
-  def benchmark_comparison_fixture(attrs \\ %{}) do
-    benchmark = Map.get_lazy(attrs, :benchmark, fn -> benchmark_fixture() end)
-
-    {:ok, comparison} =
-      Holdco.Analytics.create_benchmark_comparison(
-        Enum.into(attrs, %{
-          benchmark_id: benchmark.id,
-          period_start: "2024-01-01",
-          period_end: "2024-12-31",
-          portfolio_return: 12.5,
-          benchmark_return: 10.0,
-          alpha: 2.5
-        })
-      )
-
-    comparison
-  end
-
-  # ── Counterparty Exposures ──────────────────────────────
-
-  def counterparty_exposure_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, ce} =
-      Holdco.Analytics.create_counterparty_exposure(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          counterparty_name: "Counterparty #{System.unique_integer([:positive])}",
-          counterparty_type: "bank",
-          exposure_amount: 1_000_000.0,
-          currency: "USD",
-          credit_rating: "A",
-          rating_agency: "S&P",
-          max_exposure_limit: 5_000_000.0,
-          utilization_pct: 20.0,
-          status: "active"
-        })
-      )
-
-    ce
-  end
-
-  # ── Loan Covenants ──────────────────────────────────────
-
-  def loan_covenant_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, lc} =
-      Holdco.Analytics.create_loan_covenant(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          name: "Covenant #{System.unique_integer([:positive])}",
-          covenant_type: "financial",
-          metric: "debt_to_equity",
-          threshold: 2.0,
-          comparison: "below",
-          status: "compliant",
-          measurement_frequency: "quarterly"
-        })
-      )
-
-    lc
-  end
-
   # ── Fund Management ──────────────────────────────────────
 
   def capital_call_fixture(attrs \\ %{}) do
@@ -2192,33 +2112,6 @@ defmodule Holdco.HoldcoFixtures do
     drd
   end
 
-  # ── Airdrops ───────────────────────────────────────────
-
-  def airdrop_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, airdrop} =
-      Holdco.Analytics.create_airdrop(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          event_type: "airdrop",
-          token_name: "UNI",
-          chain: "ethereum",
-          amount: "400.0",
-          value_at_receipt: "2000.00",
-          current_value: "2400.00",
-          currency: "USD",
-          wallet_address: "0x#{:crypto.strong_rand_bytes(20) |> Base.encode16(case: :lower)}",
-          received_date: "2025-06-15",
-          claimed: false,
-          eligible: true,
-          tax_treated: false
-        })
-      )
-
-    airdrop
-  end
-
   # ── SSO Configs ──────────────────────────────────────────
 
   def sso_config_fixture(attrs \\ %{}) do
@@ -2282,22 +2175,6 @@ defmodule Holdco.HoldcoFixtures do
     request
   end
 
-  # ── Custom Dashboards ──────────────────────────────────────────
-
-  def custom_dashboard_fixture(attrs \\ %{}) do
-    user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
-
-    {:ok, dashboard} =
-      Holdco.Analytics.create_custom_dashboard(
-        Enum.into(attrs, %{
-          user_id: user.id,
-          name: "Dashboard #{System.unique_integer([:positive])}"
-        })
-      )
-
-    dashboard
-  end
-
   # ── Plugins ──────────────────────────────────────────
 
   def plugin_fixture(attrs \\ %{}) do
@@ -2334,46 +2211,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     hook
-  end
-
-  # ── BI Connectors ────────────────────────────────────
-
-  def bi_connector_fixture(attrs \\ %{}) do
-    n = System.unique_integer([:positive])
-
-    {:ok, connector} =
-      Holdco.Analytics.create_bi_connector(
-        Enum.into(attrs, %{
-          name: "Connector #{n}",
-          connector_type: "power_bi",
-          dataset_name: "dataset_#{n}",
-          refresh_frequency: "daily",
-          format: "json",
-          is_active: true
-        })
-      )
-
-    connector
-  end
-
-  def bi_export_log_fixture(attrs \\ %{}) do
-    connector = Map.get_lazy(attrs, :connector, fn -> bi_connector_fixture() end)
-    now = DateTime.utc_now() |> DateTime.truncate(:second)
-
-    {:ok, log} =
-      Holdco.Analytics.create_bi_export_log(
-        Enum.into(attrs, %{
-          connector_id: connector.id,
-          started_at: now,
-          completed_at: now,
-          rows_exported: 100,
-          tables_exported: ["companies", "holdings"],
-          status: "success",
-          file_size_bytes: 1024
-        })
-      )
-
-    log
   end
 
   # ── White Label Config ───────────────────────────────
@@ -2702,30 +2539,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     action
-  end
-
-  # ── Health Scores ──────────────────────────────────
-
-  def health_score_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, score} =
-      Holdco.Analytics.create_health_score(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          score_date: Date.utc_today(),
-          overall_score: 75.0,
-          liquidity_score: 80.0,
-          profitability_score: 70.0,
-          compliance_score: 85.0,
-          governance_score: 78.0,
-          risk_score: 72.0,
-          operational_score: 76.0,
-          trend: "stable"
-        })
-      )
-
-    score
   end
 
   # ── Data Lineage ──────────────────────────────────

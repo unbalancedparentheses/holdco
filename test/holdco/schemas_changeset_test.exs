@@ -140,37 +140,6 @@ defmodule Holdco.SchemasChangesetTest do
     end
   end
 
-  # ── 5. Analytics.BiConnector ───────────────────────────────────────────
-  # required: [:name, :connector_type]
-  # no defaults on required fields
-
-  describe "Analytics.BiConnector" do
-    alias Holdco.Analytics.BiConnector
-
-    @valid_attrs %{name: "My BI", connector_type: "power_bi"}
-
-    test "valid changeset with required fields" do
-      changeset = BiConnector.changeset(%BiConnector{}, @valid_attrs)
-      assert changeset.valid?
-    end
-
-    test "invalid changeset with missing required fields" do
-      changeset = BiConnector.changeset(%BiConnector{}, %{})
-      refute changeset.valid?
-      assert "can't be blank" in errors_on(changeset).name
-      assert "can't be blank" in errors_on(changeset).connector_type
-    end
-
-    test "invalid changeset with bad inclusion values" do
-      attrs = Map.merge(@valid_attrs, %{connector_type: "invalid", refresh_frequency: "invalid", sync_status: "invalid"})
-      changeset = BiConnector.changeset(%BiConnector{}, attrs)
-      refute changeset.valid?
-      assert "is invalid" in errors_on(changeset).connector_type
-      assert "is invalid" in errors_on(changeset).refresh_frequency
-      assert "is invalid" in errors_on(changeset).sync_status
-    end
-  end
-
   # ── 7. Compliance.AmlAlert ────────────────────────────────────────────
   # required: [:company_id, :alert_type, :severity]
   # defaults: alert_type: "large_transaction", severity: "medium"
@@ -419,37 +388,6 @@ defmodule Holdco.SchemasChangesetTest do
       assert "is invalid" in errors_on(changeset).declarant_role
       assert "is invalid" in errors_on(changeset).conflict_type
       assert "is invalid" in errors_on(changeset).status
-    end
-  end
-
-  # ── 14. Analytics.Airdrop ─────────────────────────────────────────────
-  # required: [:company_id, :event_type, :token_name, :chain]
-  # defaults: event_type: "airdrop", chain: "ethereum"
-
-  describe "Analytics.Airdrop" do
-    alias Holdco.Analytics.Airdrop
-
-    @valid_attrs %{company_id: 1, event_type: "airdrop", token_name: "UNI", chain: "ethereum"}
-
-    test "valid changeset with required fields" do
-      changeset = Airdrop.changeset(%Airdrop{}, @valid_attrs)
-      assert changeset.valid?
-    end
-
-    test "invalid changeset with missing required fields" do
-      changeset = Airdrop.changeset(%Airdrop{}, %{})
-      refute changeset.valid?
-      assert "can't be blank" in errors_on(changeset).company_id
-      assert "can't be blank" in errors_on(changeset).token_name
-      # event_type and chain have defaults
-    end
-
-    test "invalid changeset with bad inclusion values" do
-      attrs = Map.merge(@valid_attrs, %{event_type: "invalid", chain: "invalid"})
-      changeset = Airdrop.changeset(%Airdrop{}, attrs)
-      refute changeset.valid?
-      assert "is invalid" in errors_on(changeset).event_type
-      assert "is invalid" in errors_on(changeset).chain
     end
   end
 

@@ -5,32 +5,6 @@ defmodule Holdco.SchemaHelpersTest do
   """
   use ExUnit.Case, async: true
 
-  # ── BiConnector ──────────────────────────────────────
-
-  describe "Holdco.Analytics.BiConnector helpers" do
-    test "connector_types/0 returns known types" do
-      types = Holdco.Analytics.BiConnector.connector_types()
-      assert is_list(types)
-      assert "power_bi" in types
-      assert "tableau" in types
-      assert "looker" in types
-    end
-
-    test "refresh_frequencies/0 returns known frequencies" do
-      freqs = Holdco.Analytics.BiConnector.refresh_frequencies()
-      assert is_list(freqs)
-      assert "daily" in freqs
-      assert "hourly" in freqs
-    end
-
-    test "sync_statuses/0 returns known statuses" do
-      statuses = Holdco.Analytics.BiConnector.sync_statuses()
-      assert is_list(statuses)
-      assert "idle" in statuses
-      assert "completed" in statuses
-    end
-  end
-
   # ── AmlAlert ─────────────────────────────────────────
 
   describe "Holdco.Compliance.AmlAlert helpers" do
