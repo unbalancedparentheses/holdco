@@ -76,6 +76,16 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
           <% end %>
         </div>
       </div>
+      <div class="metric-cell">
+        <div class="metric-label">Maturing &lt; 90 Days</div>
+        <div class={"metric-value #{if maturing_soon_count(@active_liabilities, @today) > 0, do: "num-negative", else: ""}"}>
+          {maturing_soon_count(@active_liabilities, @today)}
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Wtd Avg Interest Rate</div>
+        <div class="metric-value">{weighted_avg_interest_rate(@active_liabilities)}%</div>
+      </div>
     </div>
 
     <div class="section">
@@ -182,7 +192,7 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
           </thead>
           <tbody>
             <%= for l <- @liabilities do %>
-              <tr>
+              <tr style={debt_row_style(l.maturity_date, @today)}>
                 <td class="td-name">{l.creditor}</td>
                 <td><span class="tag tag-ink">{l.liability_type}</span></td>
                 <td>
@@ -263,6 +273,56 @@ defmodule HoldcoWeb.DebtMaturityLive.Index do
 
       %{label: label, count: length(items), usd_total: usd_total}
     end)
+  end
+
+  defp maturing_soon_count(liabilities, today) do
+    ninety_days = Date.add(today, 90)
+
+    Enum.count(liabilities, fn l ->
+      case l.maturity_date do
+        nil -> false
+        "" -> false
+        mat_str ->
+          case Date.from_iso8601(mat_str) do
+            {:ok, d} -> Date.compare(d, today) in [:gt, :eq] and Date.compare(d, ninety_days) in [:lt, :eq]
+            _ -> false
+          end
+      end
+    end)
+  end
+
+  defp weighted_avg_interest_rate(liabilities) do
+    with_rates =
+      liabilities
+      |> Enum.filter(&(&1.interest_rate && &1.principal))
+      |> Enum.map(fn l ->
+        principal = Money.to_float(Money.to_decimal(l.principal))
+        rate = Money.to_float(l.interest_rate)
+        {principal, rate}
+      end)
+
+    total_principal = Enum.reduce(with_rates, 0.0, fn {p, _}, acc -> acc + p end)
+
+    if total_principal > 0 do
+      weighted = Enum.reduce(with_rates, 0.0, fn {p, r}, acc -> acc + p * r end)
+      Float.round(weighted / total_principal, 2)
+    else
+      0.0
+    end
+  end
+
+  defp debt_row_style(nil, _today), do: ""
+  defp debt_row_style("", _today), do: ""
+
+  defp debt_row_style(maturity_date, today) do
+    case Date.from_iso8601(maturity_date) do
+      {:ok, d} ->
+        days = Date.diff(d, today)
+        if days >= 0 and days <= 90, do: "background: rgba(198, 40, 40, 0.06);", else: ""
+
+      _ ->
+        ""
+    end
   end
 
   defp maturity_bucket_label(nil, _today), do: "No Maturity"

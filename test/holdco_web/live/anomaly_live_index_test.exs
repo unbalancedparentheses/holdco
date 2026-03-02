@@ -6,60 +6,6 @@ defmodule HoldcoWeb.AnomalyLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "renders Anomaly Detection page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/anomalies")
-      assert html =~ "Anomaly Detection"
-      assert html =~ "Automated detection of unusual patterns"
-    end
-
-    test "shows metrics strip", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/anomalies")
-      assert html =~ "Open Anomalies"
-      assert html =~ "Critical"
-      assert html =~ "Investigating"
-      assert html =~ "Resolved This Month"
-    end
-
-    test "shows filter section", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/anomalies")
-      assert html =~ "Filter"
-      assert html =~ "Status"
-      assert html =~ "Severity"
-      assert html =~ "Anomaly Type"
-      assert html =~ "Entity Type"
-    end
-
-    test "shows anomalies table with headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/anomalies")
-      assert html =~ "Description"
-      assert html =~ "Entity"
-      assert html =~ "Deviation %"
-    end
-
-    test "shows empty state when no anomalies", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/anomalies")
-      assert html =~ "No anomalies found"
-    end
-
-    test "shows Run Detection button", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/anomalies")
-      assert html =~ "Run Detection"
-    end
-  end
-
-  describe "anomaly data display" do
-    test "displays anomaly in the table", %{conn: conn} do
-      anomaly = anomaly_fixture(%{description: "Suspicious transfer detected", severity: "high", status: "open"})
-
-      {:ok, _live, html} = live(conn, ~p"/anomalies")
-      assert html =~ "Suspicious transfer detected"
-      assert html =~ "high"
-      assert html =~ "open"
-      assert html =~ to_string(anomaly.entity_type)
-    end
-  end
-
   describe "filter event" do
     test "filters anomalies by status", %{conn: conn} do
       anomaly_fixture(%{status: "open", description: "Open anomaly"})

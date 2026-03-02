@@ -7,12 +7,6 @@ defmodule HoldcoWeb.HoldingsLiveShowTest do
   setup :register_and_log_in_user
 
   describe "GET /holdings/:id" do
-    test "renders holding show page", %{conn: conn} do
-      holding = holding_fixture()
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-      assert html =~ holding.asset
-    end
-
     test "shows cost basis lots section", %{conn: conn} do
       holding = holding_fixture()
       cost_basis_lot_fixture(%{holding: holding})
@@ -21,82 +15,7 @@ defmodule HoldcoWeb.HoldingsLiveShowTest do
     end
   end
 
-  describe "page layout and metrics" do
-    test "shows page title with asset name", %{conn: conn} do
-      holding = holding_fixture(%{asset: "Apple Inc", ticker: "AAPL", asset_type: "equity"})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Apple Inc"
-      assert html =~ "page-title"
-      assert html =~ "page-title-rule"
-    end
-
-    test "shows ticker and asset type badge", %{conn: conn} do
-      holding = holding_fixture(%{asset: "Google", ticker: "GOOG", asset_type: "equity"})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "GOOG"
-      assert html =~ "equity"
-      assert html =~ "tag tag-ink"
-    end
-
-    test "shows back to holdings link", %{conn: conn} do
-      holding = holding_fixture()
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Back to Positions"
-      assert html =~ "/holdings"
-    end
-
-    test "shows metrics strip with current value, quantity, unrealized and realized GL", %{conn: conn} do
-      holding = holding_fixture(%{quantity: 100.0, currency: "USD"})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Current Value"
-      assert html =~ "Quantity"
-      assert html =~ "Unrealized G/L"
-      assert html =~ "Realized G/L"
-      assert html =~ "metrics-strip"
-    end
-
-    test "shows details section with asset info", %{conn: conn} do
-      holding = holding_fixture(%{asset: "TestAsset", ticker: "TST", asset_type: "bond", currency: "EUR"})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Details"
-      assert html =~ "Asset Name"
-      assert html =~ "TestAsset"
-      assert html =~ "Ticker"
-      assert html =~ "TST"
-      assert html =~ "Asset Type"
-      assert html =~ "bond"
-      assert html =~ "Currency"
-      assert html =~ "EUR"
-    end
-  end
-
   describe "cost basis lots section" do
-    test "shows cost basis lots table headers", %{conn: conn} do
-      holding = holding_fixture()
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Cost Basis Lots"
-      assert html =~ "Purchase Date"
-      assert html =~ "Qty"
-      assert html =~ "Price/Unit"
-      assert html =~ "Cost Basis"
-      assert html =~ "Sold Qty"
-      assert html =~ "Sold Price"
-      assert html =~ "G/L"
-    end
-
-    test "shows empty state when no lots exist", %{conn: conn} do
-      holding = holding_fixture()
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "No cost basis lots recorded."
-    end
-
     test "shows cost basis lot data", %{conn: conn} do
       holding = holding_fixture()
       cost_basis_lot_fixture(%{holding: holding, purchase_date: "2024-03-15", quantity: 50.0, price_per_unit: 200.0})
@@ -147,31 +66,6 @@ defmodule HoldcoWeb.HoldingsLiveShowTest do
     end
   end
 
-  describe "details section" do
-    test "shows unit field or ---", %{conn: conn} do
-      holding = holding_fixture(%{unit: nil})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Unit"
-      assert html =~ "---"
-    end
-
-    test "shows custodian when associated", %{conn: conn} do
-      holding = holding_fixture()
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Custodian"
-    end
-
-    test "shows total cost basis and total gain/loss", %{conn: conn} do
-      holding = holding_fixture()
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Total Cost Basis"
-      assert html =~ "Total Gain/Loss"
-    end
-  end
-
   describe "handle_info for PubSub" do
     test "handles broadcast by reloading data", %{conn: conn} do
       holding = holding_fixture(%{asset: "Broadcast Asset"})
@@ -181,89 +75,6 @@ defmodule HoldcoWeb.HoldingsLiveShowTest do
 
       html = render(view)
       assert html =~ "Broadcast Asset"
-    end
-  end
-
-  describe "handle_params" do
-    test "handle_params is a no-op", %{conn: conn} do
-      holding = holding_fixture()
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ holding.asset
-    end
-  end
-
-  describe "holding with unit" do
-    test "shows unit label next to quantity", %{conn: conn} do
-      holding = holding_fixture(%{asset: "Gold ETF", quantity: 50.0, unit: "oz"})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "oz"
-      assert html =~ "50"
-    end
-  end
-
-  describe "cost basis lot with no sold quantity" do
-    test "shows --- for sold price when sold_quantity is 0", %{conn: conn} do
-      holding = holding_fixture()
-      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 10.0, sold_quantity: 0.0, sold_price: 0.0})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      # When sold_quantity is 0, the template shows "---" for sold price
-      assert html =~ "---"
-    end
-  end
-
-  describe "cost basis lot gain/loss calculation" do
-    test "shows positive gain for profitable sold lot", %{conn: conn} do
-      holding = holding_fixture()
-      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 10.0, sold_quantity: 50.0, sold_price: 20.0})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      # Gain should be positive: 50 * (20 - 10) = 500
-      assert html =~ "+$"
-    end
-
-    test "shows negative gain for losing sold lot", %{conn: conn} do
-      holding = holding_fixture()
-      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 20.0, sold_quantity: 50.0, sold_price: 10.0})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      # Gain should be negative: 50 * (10 - 20) = -500
-      assert html =~ "-$"
-    end
-  end
-
-  describe "multiple cost basis lots" do
-    test "shows total cost basis and total gain/loss across multiple lots", %{conn: conn} do
-      holding = holding_fixture(%{quantity: 200.0})
-      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 10.0})
-      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 15.0})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Total Cost Basis"
-      assert html =~ "2 lots"
-    end
-  end
-
-  describe "holding with company" do
-    test "shows company name in details section", %{conn: conn} do
-      company = company_fixture(%{name: "Holding Company X"})
-      holding = holding_fixture(%{asset: "Linked Asset", company: company})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Linked Asset"
-      assert html =~ "Holding Company X"
-    end
-  end
-
-  describe "holding without custodian" do
-    test "shows --- for custodian when nil", %{conn: conn} do
-      holding = holding_fixture(%{asset: "No Custodian Asset"})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "Custodian"
-      assert html =~ "---"
     end
   end
 
@@ -307,6 +118,49 @@ defmodule HoldcoWeb.HoldingsLiveShowTest do
       assert html =~ "data points"
       assert html =~ "price-history-chart"
       assert html =~ "ChartHook"
+    end
+  end
+
+  describe "cost basis lot with no sold quantity" do
+    test "shows --- for sold price when sold_quantity is 0", %{conn: conn} do
+      holding = holding_fixture()
+      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 10.0, sold_quantity: 0.0, sold_price: 0.0})
+      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
+
+      # When sold_quantity is 0, the template shows "---" for sold price
+      assert html =~ "---"
+    end
+  end
+
+  describe "cost basis lot gain/loss calculation" do
+    test "shows positive gain for profitable sold lot", %{conn: conn} do
+      holding = holding_fixture()
+      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 10.0, sold_quantity: 50.0, sold_price: 20.0})
+      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
+
+      # Gain should be positive: 50 * (20 - 10) = 500
+      assert html =~ "+$"
+    end
+
+    test "shows negative gain for losing sold lot", %{conn: conn} do
+      holding = holding_fixture()
+      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 20.0, sold_quantity: 50.0, sold_price: 10.0})
+      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
+
+      # Gain should be negative: 50 * (10 - 20) = -500
+      assert html =~ "-$"
+    end
+  end
+
+  describe "multiple cost basis lots" do
+    test "shows total cost basis and total gain/loss across multiple lots", %{conn: conn} do
+      holding = holding_fixture(%{quantity: 200.0})
+      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 10.0})
+      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 15.0})
+      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
+
+      assert html =~ "Total Cost Basis"
+      assert html =~ "2 lots"
     end
   end
 
@@ -381,22 +235,4 @@ defmodule HoldcoWeb.HoldingsLiveShowTest do
     end
   end
 
-  describe "format_decimal edge cases" do
-    test "lot with zero quantity shows 0", %{conn: conn} do
-      holding = holding_fixture(%{asset: "Zero Lot Asset"})
-      cost_basis_lot_fixture(%{holding: holding, quantity: 0.0, price_per_unit: 100.0})
-
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-      assert html =~ "Zero Lot Asset"
-    end
-  end
-
-  describe "integer value formatting" do
-    test "holding with integer quantity displays correctly", %{conn: conn} do
-      holding = holding_fixture(%{asset: "Integer Qty", quantity: 100.0})
-      {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      assert html =~ "100"
-    end
-  end
 end

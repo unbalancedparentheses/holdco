@@ -1005,39 +1005,6 @@ defmodule Holdco.HoldcoFixtures do
 
   # ── Analytics ───────────────────────────────────────────
 
-  def kpi_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, kpi} =
-      Holdco.Analytics.create_kpi(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          name: "KPI #{System.unique_integer([:positive])}",
-          metric_type: "currency",
-          target_value: 100_000.0,
-          unit: "USD"
-        })
-      )
-
-    kpi
-  end
-
-  def kpi_snapshot_fixture(attrs \\ %{}) do
-    kpi = Map.get_lazy(attrs, :kpi, fn -> kpi_fixture() end)
-
-    {:ok, snap} =
-      Holdco.Analytics.create_kpi_snapshot(
-        Enum.into(attrs, %{
-          kpi_id: kpi.id,
-          current_value: 85_000.0,
-          date: "2024-01-15",
-          trend: "up"
-        })
-      )
-
-    snap
-  end
-
   def segment_fixture(attrs \\ %{}) do
     company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
 
@@ -2185,33 +2152,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     bg
-  end
-
-  # ── DeFi Positions ─────────────────────────────────────
-
-  def defi_position_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, position} =
-      Holdco.Analytics.create_defi_position(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          protocol_name: "Aave",
-          chain: "ethereum",
-          position_type: "lending",
-          asset_pair: "ETH/USDC",
-          deposited_amount: "10000.00",
-          current_value: "10500.00",
-          unrealized_pnl: "500.00",
-          apy_current: "5.25",
-          currency: "USD",
-          wallet_address: "0x#{:crypto.strong_rand_bytes(20) |> Base.encode16(case: :lower)}",
-          status: "active",
-          entry_date: "2025-01-01"
-        })
-      )
-
-    position
   end
 
   # ── Data Rooms ─────────────────────────────────────────

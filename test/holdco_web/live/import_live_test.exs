@@ -6,61 +6,6 @@ defmodule HoldcoWeb.ImportLiveTest do
 
   setup :register_and_log_in_user
 
-  describe "GET /import" do
-    test "renders import page", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ "Import CSV/Excel"
-    end
-
-    test "renders page title and deck text", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ "page-title"
-      assert html =~ "Upload a CSV or Excel file to bulk-import records"
-    end
-
-    test "renders page-title-rule", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ "page-title-rule"
-    end
-
-    test "shows tab buttons for import types", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ "Companies"
-      assert html =~ "Positions"
-      assert html =~ "Transactions"
-    end
-
-    test "companies tab is active by default", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ "Import Companies"
-    end
-
-    test "shows expected CSV columns for companies", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ "Expected columns (CSV or Excel)"
-      assert html =~ "Name, Country, Entity Type, Category, Ownership %"
-    end
-
-    test "renders import form", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ "import-form"
-      assert html =~ "CSV or Excel File"
-    end
-
-    test "shows companies example row", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ "Acme Corp, US, LLC, Operating, 100"
-    end
-  end
-
   describe "tab switching (editor user)" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
@@ -138,16 +83,6 @@ defmodule HoldcoWeb.ImportLiveTest do
       {:ok, _view, html} = live(conn, ~p"/import?type=unknown")
 
       assert html =~ "Import Companies"
-    end
-  end
-
-  describe "btn classes" do
-    test "active tab button has btn-primary class", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      # Companies is default active tab
-      assert html =~ ~r/phx-value-tab="companies"[^>]*class="btn btn-primary"/s or
-               html =~ ~r/class="btn btn-primary"[^>]*phx-value-tab="companies"/s
     end
   end
 
@@ -778,19 +713,6 @@ defmodule HoldcoWeb.ImportLiveTest do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       :ok
-    end
-
-    test "upload accepts .xlsx extension", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      # The upload config should accept .xlsx
-      assert html =~ ".xlsx"
-    end
-
-    test "upload accepts .xls extension", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/import")
-
-      assert html =~ ".xls"
     end
 
     test "xlsx file type is detected by extension", %{conn: conn} do

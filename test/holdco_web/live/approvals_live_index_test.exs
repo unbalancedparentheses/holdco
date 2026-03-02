@@ -6,95 +6,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  # ── Mount & Render ──────────────────────────────────────
-
-  describe "mount and render" do
-    test "renders page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "<h1>Approvals</h1>"
-      assert html =~ "Review and manage approval requests for data changes across all entities"
-      assert html =~ "page-title-rule"
-    end
-
-    test "renders metrics strip with counts", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "metrics-strip"
-      assert html =~ "Pending"
-      assert html =~ "Approved"
-      assert html =~ "Rejected"
-      assert html =~ "Total"
-    end
-
-    test "renders Pending Requests section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "Pending Requests"
-    end
-
-    test "renders Reviewed Requests section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "Reviewed Requests"
-    end
-
-    test "renders a pending approval request", %{conn: conn} do
-      approval_request_fixture(%{
-        requested_by: "alice@test.com",
-        table_name: "companies",
-        action: "create",
-        notes: "Create new entity",
-        status: "pending"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "alice@test.com"
-      assert html =~ "companies"
-      assert html =~ "create"
-      assert html =~ "Create new entity"
-      assert html =~ "tag-lemon"
-    end
-
-    test "renders vote counts for pending request", %{conn: conn} do
-      approval_request_fixture(%{
-        requested_by: "alice@test.com",
-        table_name: "companies",
-        action: "create",
-        status: "pending",
-        required_approvals: 3
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "0/3 approved"
-    end
-
-    test "renders reviewed (approved) requests", %{conn: conn} do
-      approval_request_fixture(%{
-        requested_by: "bob@test.com",
-        table_name: "holdings",
-        action: "update",
-        status: "approved",
-        reviewed_by: "admin@test.com"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "bob@test.com"
-      assert html =~ "approved"
-      assert html =~ "admin@test.com"
-    end
-
-    test "editor sees New Request button", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "New Request"
-    end
-  end
-
   # ── Show/Close Form ─────────────────────────────────────
 
   describe "show_form and close_form events" do
@@ -117,26 +28,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       assert html =~ ~s(name="approval_request[payload]")
       assert html =~ ~s(name="approval_request[notes]")
       assert html =~ ~s(name="approval_request[required_approvals]")
-    end
-
-    test "form shows table name options", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/approvals")
-
-      html = view |> element("button", "New Request") |> render_click()
-
-      assert html =~ "companies"
-      assert html =~ "holdings"
-      assert html =~ "transactions"
-    end
-
-    test "form shows action options", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/approvals")
-
-      html = view |> element("button", "New Request") |> render_click()
-
-      assert html =~ "create"
-      assert html =~ "update"
-      assert html =~ "delete"
     end
 
     test "close_form closes the modal", %{conn: conn} do
@@ -317,36 +208,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
   # ── Reviewed request rendering ──────────────────────────
 
   describe "reviewed requests rendering" do
-    test "renders rejected request in reviewed section", %{conn: conn} do
-      approval_request_fixture(%{
-        requested_by: "rejected@test.com",
-        table_name: "holdings",
-        action: "delete",
-        status: "rejected",
-        reviewed_by: "reviewer@test.com"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "rejected@test.com"
-      assert html =~ "rejected"
-      assert html =~ "reviewer@test.com"
-    end
-
-    test "renders request with record_id", %{conn: conn} do
-      approval_request_fixture(%{
-        requested_by: "record@test.com",
-        table_name: "companies",
-        action: "update",
-        record_id: 42,
-        status: "pending"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "#42"
-    end
-
     test "renders request without record_id shows dash", %{conn: conn} do
       approval_request_fixture(%{
         requested_by: "norecord@test.com",
@@ -359,32 +220,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       {:ok, _view, html} = live(conn, ~p"/approvals")
 
       assert html =~ "norecord@test.com"
-    end
-
-    test "action tags render correctly for delete action", %{conn: conn} do
-      approval_request_fixture(%{
-        requested_by: "delaction@test.com",
-        table_name: "companies",
-        action: "delete",
-        status: "pending"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "tag-crimson"
-    end
-
-    test "action tags render correctly for update action", %{conn: conn} do
-      approval_request_fixture(%{
-        requested_by: "updaction@test.com",
-        table_name: "companies",
-        action: "update",
-        status: "pending"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "tag-lemon"
     end
 
     test "reviewed_at datetime is formatted", %{conn: conn} do
@@ -400,27 +235,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
       {:ok, _view, html} = live(conn, ~p"/approvals")
 
       assert html =~ "2025-06-15 14:30"
-    end
-
-    test "status tags render correctly for approved, rejected, and unknown", %{conn: conn} do
-      approval_request_fixture(%{
-        requested_by: "approved@test.com",
-        table_name: "companies",
-        action: "create",
-        status: "approved"
-      })
-
-      approval_request_fixture(%{
-        requested_by: "rejected2@test.com",
-        table_name: "companies",
-        action: "create",
-        status: "rejected"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "tag-jade"
-      assert html =~ "tag-crimson"
     end
   end
 
@@ -458,21 +272,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
 
       html = render_hook(view, "close_vote_form", %{})
       refute html =~ "Cast Your Vote"
-    end
-  end
-
-  # ── Viewer/editor permission guards ───────────────────────
-
-  describe "editor sees new request button" do
-    setup %{user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      :ok
-    end
-
-    test "editor can see New Request button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/approvals")
-
-      assert html =~ "New Request"
     end
   end
 

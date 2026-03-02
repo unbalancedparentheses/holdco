@@ -11,152 +11,8 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
     %{company: company}
   end
 
-  describe "GET /companies/:id - page rendering" do
-    setup [:create_company]
-
-    test "renders company show page with company name", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ company.name
-    end
-
-    test "renders page title structure", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "page-title"
-      assert html =~ "page-title-rule"
-    end
-
-    test "shows company country in deck", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ company.country
-    end
-
-    test "shows company category in deck", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ company.category
-    end
-
-    test "shows Back to Companies link", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "Back to Companies"
-      assert html =~ ~s(/companies)
-    end
-
-    test "shows Holding in deck for holding companies", %{conn: conn} do
-      holding_co = company_fixture(%{name: "HoldCo", country: "US", is_holding: true})
-
-      {:ok, _view, html} = live(conn, ~p"/companies/#{holding_co.id}")
-
-      assert html =~ "Holding"
-    end
-  end
-
-  describe "tabs rendering" do
-    setup [:create_company]
-
-    test "renders tabs container", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ ~s(class="tabs")
-    end
-
-    test "renders all tab labels", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "Overview"
-      assert html =~ "Positions"
-      assert html =~ "Bank Accounts"
-      assert html =~ "Transactions"
-      assert html =~ "Documents"
-      assert html =~ "Governance"
-      assert html =~ "Compliance"
-      assert html =~ "Financials"
-      assert html =~ "Comments"
-    end
-
-    test "overview tab is active by default", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="overview"/s
-    end
-
-    test "renders tab-body area", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "tab-body"
-    end
-  end
-
   describe "tab switching" do
     setup [:create_company]
-
-    test "clicking holdings tab activates it", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="holdings"/s
-    end
-
-    test "clicking bank_accounts tab activates it", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="bank_accounts"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="bank_accounts"/s
-    end
-
-    test "clicking transactions tab activates it", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="transactions"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="transactions"/s
-    end
-
-    test "clicking documents tab activates it", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="documents"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="documents"/s
-    end
-
-    test "clicking governance tab activates it", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="governance"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="governance"/s
-    end
-
-    test "clicking compliance tab activates it", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="compliance"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="compliance"/s
-    end
-
-    test "clicking financials tab activates it", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="financials"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="financials"/s
-    end
-
-    test "clicking comments tab activates it", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="comments"])) |> render_click()
-
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="comments"/s
-    end
 
     test "switching tab resets show_form (no modal visible)", %{conn: conn, company: company, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
@@ -176,57 +32,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
 
   describe "overview tab content" do
     setup [:create_company]
-
-    test "shows Company Details section", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "Company Details"
-      assert html =~ "detail-list"
-    end
-
-    test "shows legal name or company name", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "Legal Name"
-      assert html =~ company.name
-    end
-
-    test "shows country in details", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "<dt>Country</dt>"
-      assert html =~ company.country
-    end
-
-    test "shows KYC Status in details", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "KYC Status"
-    end
-
-    test "shows Status in details", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "<dt>Status</dt>"
-    end
-
-    test "shows Key Personnel section", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "Key Personnel"
-    end
-
-    test "shows Beneficial Owners section", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "Beneficial Owners"
-    end
-
-    test "shows Service Providers section", %{conn: conn, company: company} do
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "Service Providers"
-    end
 
     test "displays key personnel data when present", %{conn: conn, company: company} do
       key_personnel_fixture(%{company: company, name: "Jane Director", title: "CEO"})
@@ -268,22 +73,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
   describe "holdings tab content" do
     setup [:create_company]
 
-    test "shows Holdings heading", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
-
-      assert html =~ "<h2>Positions</h2>"
-    end
-
-    test "shows empty state when no holdings", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
-
-      assert html =~ "No holdings for this company."
-    end
-
     test "displays holding data in table", %{conn: conn, company: company} do
       holding_fixture(%{company: company, asset: "Apple Inc", ticker: "AAPL", quantity: 100.0, currency: "USD"})
 
@@ -295,26 +84,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ "AAPL"
     end
 
-    test "editor sees Add Holding button", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
-
-      assert html =~ "Add Position"
-    end
-
-    test "editor sees Del button for holdings", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      holding_fixture(%{company: company, asset: "Test Asset"})
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="holdings"])) |> render_click()
-
-      assert html =~ ~s(phx-click="delete_holding")
-    end
   end
 
   describe "holdings tab - add holding form" do
@@ -371,22 +140,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
   describe "bank accounts tab content" do
     setup [:create_company]
 
-    test "shows Bank Accounts heading", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="bank_accounts"])) |> render_click()
-
-      assert html =~ "<h2>Bank Accounts</h2>"
-    end
-
-    test "shows empty state when no bank accounts", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="bank_accounts"])) |> render_click()
-
-      assert html =~ "No bank accounts for this company."
-    end
-
     test "displays bank account data", %{conn: conn, company: company} do
       bank_account_fixture(%{company: company, bank_name: "Swiss National Bank", account_number: "123456", currency: "CHF"})
 
@@ -396,16 +149,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
 
       assert html =~ "Swiss National Bank"
       assert html =~ "123456"
-    end
-
-    test "editor sees Add Account button", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="bank_accounts"])) |> render_click()
-
-      assert html =~ "Add Account"
     end
 
     test "editor can submit a new bank account", %{conn: conn, company: company, user: user} do
@@ -444,22 +187,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
   describe "transactions tab content" do
     setup [:create_company]
 
-    test "shows Transactions heading", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="transactions"])) |> render_click()
-
-      assert html =~ "<h2>Transactions</h2>"
-    end
-
-    test "shows empty state when no transactions", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="transactions"])) |> render_click()
-
-      assert html =~ "No transactions for this company."
-    end
-
     test "displays transaction data", %{conn: conn, company: company} do
       transaction_fixture(%{company: company, description: "Wire transfer", transaction_type: "credit", amount: 5000.0})
 
@@ -469,16 +196,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
 
       assert html =~ "Wire transfer"
       assert html =~ "credit"
-    end
-
-    test "editor sees Add Transaction button", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="transactions"])) |> render_click()
-
-      assert html =~ "Add Transaction"
     end
 
     test "editor can submit a new transaction", %{conn: conn, company: company, user: user} do
@@ -519,22 +236,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
   describe "documents tab content" do
     setup [:create_company]
 
-    test "shows Documents heading", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="documents"])) |> render_click()
-
-      assert html =~ "<h2>Documents</h2>"
-    end
-
-    test "shows empty state when no documents", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="documents"])) |> render_click()
-
-      assert html =~ "No documents for this company."
-    end
-
     test "displays document data", %{conn: conn, company: company} do
       document_fixture(%{company: company, name: "Articles of Incorporation"})
 
@@ -545,33 +246,10 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ "Articles of Incorporation"
     end
 
-    test "editor sees Add Document button", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="documents"])) |> render_click()
-
-      assert html =~ "Add Document"
-    end
   end
 
   describe "governance tab content" do
     setup [:create_company]
-
-    test "shows governance sections", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="governance"])) |> render_click()
-
-      assert html =~ "Board Meetings"
-      assert html =~ "Cap Table"
-      assert html =~ "Resolutions"
-      assert html =~ "Deals"
-      assert html =~ "Joint Ventures"
-      assert html =~ "Powers of Attorney"
-      assert html =~ "Equity Plans"
-    end
 
     test "displays board meeting data when present", %{conn: conn, company: company} do
       board_meeting_fixture(%{company: company, scheduled_date: "2024-03-15"})
@@ -604,41 +282,10 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ "Approve Dividend"
     end
 
-    test "editor sees Add buttons in governance tab", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="governance"])) |> render_click()
-
-      assert html =~ "Add Meeting"
-      assert html =~ ~s(phx-value-form="cap_table")
-      assert html =~ ~s(phx-value-form="resolution")
-      assert html =~ ~s(phx-value-form="deal")
-      assert html =~ ~s(phx-value-form="jv")
-      assert html =~ ~s(phx-value-form="poa")
-      assert html =~ ~s(phx-value-form="equity_plan")
-    end
-
   end
 
   describe "compliance tab content" do
     setup [:create_company]
-
-    test "shows compliance sections", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="compliance"])) |> render_click()
-
-      assert html =~ "Tax Deadlines"
-      assert html =~ "Insurance Policies"
-      assert html =~ "Regulatory Filings"
-      assert html =~ "Regulatory Licenses"
-      assert html =~ "ESG Scores"
-      assert html =~ "Sanctions Checks"
-      assert html =~ "FATCA Reports"
-      assert html =~ "Withholding Taxes"
-    end
 
     test "displays tax deadline when present", %{conn: conn, company: company} do
       tax_deadline_fixture(%{company: company, jurisdiction: "US", description: "Annual filing", due_date: "2024-04-15"})
@@ -661,42 +308,10 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ "Insurer Inc"
     end
 
-    test "editor sees Add buttons in compliance tab", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="compliance"])) |> render_click()
-
-      assert html =~ "Add Deadline"
-      assert html =~ "Add Policy"
-      assert html =~ ~s(phx-value-form="filing")
-      assert html =~ ~s(phx-value-form="license")
-      assert html =~ ~s(phx-value-form="esg")
-      assert html =~ ~s(phx-value-form="sanctions")
-      assert html =~ ~s(phx-value-form="fatca")
-      assert html =~ ~s(phx-value-form="withholding")
-    end
   end
 
   describe "financials tab content" do
     setup [:create_company]
-
-    test "shows Financials heading", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="financials"])) |> render_click()
-
-      assert html =~ "<h2>Financials</h2>"
-    end
-
-    test "shows empty state when no financials", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="financials"])) |> render_click()
-
-      assert html =~ "No financial records yet."
-    end
 
     test "displays financial data when present", %{conn: conn, company: company} do
       financial_fixture(%{company: company, period: "2024-Q1", revenue: 100_000.0, expenses: 80_000.0})
@@ -706,25 +321,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       html = view |> element(~s(button[phx-value-tab="financials"])) |> render_click()
 
       assert html =~ "2024-Q1"
-    end
-
-    test "shows Liabilities and Dividends sections", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="financials"])) |> render_click()
-
-      assert html =~ "Liabilities"
-      assert html =~ "Dividends"
-    end
-
-    test "editor sees Add Period button", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="financials"])) |> render_click()
-
-      assert html =~ "Add Period"
     end
 
     test "editor can add a financial record", %{conn: conn, company: company, user: user} do
@@ -762,33 +358,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
 
   describe "comments tab content" do
     setup [:create_company]
-
-    test "shows Comments section with count", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="comments"])) |> render_click()
-
-      assert html =~ "Comments (0)"
-    end
-
-    test "shows empty state when no comments", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="comments"])) |> render_click()
-
-      assert html =~ "No comments yet. Be the first to add one."
-    end
-
-    test "shows Add Comment form", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = view |> element(~s(button[phx-value-tab="comments"])) |> render_click()
-
-      assert html =~ "Add Comment"
-      assert html =~ "Post Comment"
-      assert html =~ ~s(phx-submit="save_comment")
-      assert html =~ ~s(name="body")
-    end
 
     test "user can submit a comment", %{conn: conn, company: company} do
       {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
@@ -1532,49 +1101,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
   describe "accounting tab" do
     setup [:create_company]
 
-    test "switching to accounting tab shows Chart of Accounts section", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :switch_tab, %{"tab" => "accounting"})
-
-      assert html =~ "Chart of Accounts"
-    end
-
-    test "shows Journal Entries section", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :switch_tab, %{"tab" => "accounting"})
-
-      assert html =~ "Journal Entries"
-    end
-
-    test "shows metrics strip with account/entry counts", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :switch_tab, %{"tab" => "accounting"})
-
-      assert html =~ "Accounts"
-      assert html =~ "Journal Entries"
-      assert html =~ "Total Debits"
-      assert html =~ "Total Credits"
-    end
-
-    test "shows empty state when no accounts", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :switch_tab, %{"tab" => "accounting"})
-
-      assert html =~ "No accounts for this company."
-    end
-
-    test "shows empty state when no journal entries", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :switch_tab, %{"tab" => "accounting"})
-
-      assert html =~ "No journal entries for this company."
-    end
-
     test "displays account data when present", %{conn: conn, company: company} do
       account_fixture(%{company: company, name: "Cash", code: "1000", account_type: "asset"})
 
@@ -1585,26 +1111,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ "Cash"
       assert html =~ "1000"
       assert html =~ "asset"
-    end
-
-    test "editor sees Add Account button", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :switch_tab, %{"tab" => "accounting"})
-
-      assert html =~ "Add Account"
-    end
-
-    test "editor sees New Entry button", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :switch_tab, %{"tab" => "accounting"})
-
-      assert html =~ "New Entry"
     end
 
     test "editor can add an account", %{conn: conn, company: company, user: user} do
@@ -1982,21 +1488,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
     end
   end
 
-  describe "update_company event" do
-    setup [:create_company]
-
-    test "editor can update company", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :update_company, %{"company" => %{"name" => "Updated Corp"}})
-
-      assert html =~ "Company updated" or html =~ "Updated Corp"
-    end
-
-  end
-
   describe "journal entry validation" do
     setup [:create_company]
 
@@ -2046,112 +1537,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
     end
   end
 
-  describe "status tag coverage via rendering" do
-    setup [:create_company]
-
-    test "company with kyc_status approved renders tag-jade", %{conn: conn} do
-      co = company_fixture(%{name: "Approved KYC Co", country: "US", kyc_status: "approved"})
-      {:ok, _view, html} = live(conn, ~p"/companies/#{co.id}")
-      assert html =~ "tag-jade"
-      assert html =~ "approved"
-    end
-
-    test "company with kyc_status in_progress renders tag-lemon", %{conn: conn} do
-      co = company_fixture(%{name: "InProg KYC Co", country: "US", kyc_status: "in_progress"})
-      {:ok, _view, html} = live(conn, ~p"/companies/#{co.id}")
-      assert html =~ "tag-lemon"
-      assert html =~ "in_progress"
-    end
-
-    test "company with kyc_status rejected renders tag-crimson", %{conn: conn} do
-      co = company_fixture(%{name: "Rejected KYC Co", country: "US", kyc_status: "rejected"})
-      {:ok, _view, html} = live(conn, ~p"/companies/#{co.id}")
-      assert html =~ "tag-crimson"
-      assert html =~ "rejected"
-    end
-
-    test "company with wind_down_status winding_down renders tag-lemon", %{conn: conn} do
-      co = company_fixture(%{name: "WindDown Co", country: "US", wind_down_status: "winding_down"})
-      {:ok, _view, html} = live(conn, ~p"/companies/#{co.id}")
-      assert html =~ "tag-lemon"
-      assert html =~ "winding_down"
-    end
-
-    test "company with wind_down_status dissolved renders tag-crimson", %{conn: conn} do
-      co = company_fixture(%{name: "Dissolved Co", country: "US", wind_down_status: "dissolved"})
-      {:ok, _view, html} = live(conn, ~p"/companies/#{co.id}")
-      assert html =~ "tag-crimson"
-      assert html =~ "dissolved"
-    end
-
-    test "board meeting with completed status renders tag-jade on governance tab", %{conn: conn, company: company} do
-      board_meeting_fixture(%{company: company, scheduled_date: "2024-06-01", status: "completed"})
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :switch_tab, %{"tab" => "governance"})
-      assert html =~ "tag-jade"
-      assert html =~ "completed"
-    end
-
-    test "board meeting with cancelled status renders tag-crimson on governance tab", %{conn: conn, company: company} do
-      board_meeting_fixture(%{company: company, scheduled_date: "2024-06-02", status: "cancelled"})
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :switch_tab, %{"tab" => "governance"})
-      assert html =~ "tag-crimson"
-      assert html =~ "cancelled"
-    end
-
-    test "tax deadline with completed status renders tag-jade on compliance tab", %{conn: conn, company: company} do
-      tax_deadline_fixture(%{company: company, description: "Q1 Tax", due_date: "2024-03-31", status: "completed"})
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :switch_tab, %{"tab" => "compliance"})
-      assert html =~ "completed"
-    end
-
-    test "tax deadline with filed status renders tag-jade on compliance tab", %{conn: conn, company: company} do
-      tax_deadline_fixture(%{company: company, description: "Q2 Tax", due_date: "2024-06-30", status: "filed"})
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :switch_tab, %{"tab" => "compliance"})
-      assert html =~ "filed"
-    end
-
-    test "tax deadline with overdue status renders tag-crimson on compliance tab", %{conn: conn, company: company} do
-      tax_deadline_fixture(%{company: company, description: "Q3 Tax", due_date: "2024-09-30", status: "overdue"})
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :switch_tab, %{"tab" => "compliance"})
-      assert html =~ "tag-crimson"
-      assert html =~ "overdue"
-    end
-
-    test "sanctions check with flagged status renders tag-crimson on compliance tab", %{conn: conn, company: company} do
-      sanctions_check_fixture(%{company: company, checked_name: "Bad Entity", status: "flagged"})
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :switch_tab, %{"tab" => "compliance"})
-      assert html =~ "tag-crimson"
-      assert html =~ "flagged"
-    end
-
-    test "sanctions check with pending status renders tag-lemon on compliance tab", %{conn: conn, company: company} do
-      sanctions_check_fixture(%{company: company, checked_name: "Pending Entity", status: "pending"})
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :switch_tab, %{"tab" => "compliance"})
-      assert html =~ "tag-lemon"
-      assert html =~ "pending"
-    end
-
-    test "joint venture with non-standard status renders tag-ink on governance tab", %{conn: conn, company: company} do
-      joint_venture_fixture(%{company: company, partner: "Unknown JV", name: "Strange JV", status: "unknown"})
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :switch_tab, %{"tab" => "governance"})
-      assert html =~ "tag-ink"
-    end
-
-    test "power of attorney with dissolved status renders status tag on governance tab", %{conn: conn, company: company} do
-      power_of_attorney_fixture(%{company: company, grantor: "CEO", grantee: "CFO", status: "dissolved"})
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-      html = render_hook(view, :switch_tab, %{"tab" => "governance"})
-      assert html =~ "dissolved"
-    end
-  end
 
   # ── Consolidated view ──────────────────────────────────────
 

@@ -12,6 +12,7 @@ defmodule HoldcoWeb.AccountingLive.ChartOfAccounts do
     companies = Corporate.list_companies()
     accounts = Finance.list_accounts()
     tree = build_tree(accounts)
+    balance_map = build_balance_map(nil)
 
     {:ok,
      assign(socket,
@@ -22,7 +23,8 @@ defmodule HoldcoWeb.AccountingLive.ChartOfAccounts do
        tree: tree,
        account_types: @account_types,
        show_form: false,
-       type_counts: count_by_type(accounts)
+       type_counts: count_by_type(accounts),
+       balance_map: balance_map
      )}
   end
 
@@ -49,7 +51,8 @@ defmodule HoldcoWeb.AccountingLive.ChartOfAccounts do
        selected_company_id: id,
        accounts: accounts,
        tree: build_tree(accounts),
-       type_counts: count_by_type(accounts)
+       type_counts: count_by_type(accounts),
+       balance_map: build_balance_map(company_id)
      )}
   end
 
@@ -94,7 +97,8 @@ defmodule HoldcoWeb.AccountingLive.ChartOfAccounts do
     assign(socket,
       accounts: accounts,
       tree: build_tree(accounts),
-      type_counts: count_by_type(accounts)
+      type_counts: count_by_type(accounts),
+      balance_map: build_balance_map(company_id)
     )
   end
 
@@ -111,6 +115,49 @@ defmodule HoldcoWeb.AccountingLive.ChartOfAccounts do
 
   defp count_by_type(accounts) do
     Enum.frequencies_by(accounts, & &1.account_type)
+  end
+
+  defp format_balance(nil), do: "---"
+  defp format_balance(%Decimal{} = d), do: d |> Decimal.round(2) |> Decimal.to_string() |> add_commas()
+  defp format_balance(n) when is_number(n), do: :erlang.float_to_binary(n / 1, decimals: 2) |> add_commas()
+  defp format_balance(_), do: "---"
+
+  defp build_balance_map(company_id) do
+    Finance.trial_balance(company_id)
+    |> Enum.reduce(%{}, fn row, acc ->
+      Map.put(acc, row.id, row.balance)
+    end)
+  rescue
+    _ -> %{}
+  end
+
+  defp total_balance(balance_map) do
+    Enum.reduce(balance_map, Decimal.new(0), fn {_id, bal}, acc ->
+      Decimal.add(acc, safe_to_decimal(bal))
+    end)
+  end
+
+  defp safe_to_decimal(nil), do: Decimal.new(0)
+  defp safe_to_decimal(%Decimal{} = d), do: d
+  defp safe_to_decimal(n) when is_integer(n), do: Decimal.new(n)
+  defp safe_to_decimal(n) when is_float(n), do: Decimal.from_float(n)
+  defp safe_to_decimal(s) when is_binary(s) do
+    case Decimal.parse(s) do
+      {d, _} -> d
+      :error -> Decimal.new(0)
+    end
+  end
+  defp safe_to_decimal(_), do: Decimal.new(0)
+
+  defp add_commas(str) do
+    case String.split(str, ".") do
+      [int_part, dec_part] ->
+        formatted_int = int_part |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+        "#{formatted_int}.#{dec_part}"
+
+      [int_part] ->
+        int_part |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    end
   end
 
   @impl true
@@ -179,6 +226,7 @@ defmodule HoldcoWeb.AccountingLive.ChartOfAccounts do
               <th>Name</th>
               <th>Type</th>
               <th>Currency</th>
+              <th class="th-num">Balance</th>
               <th></th>
             </tr>
           </thead>
@@ -196,6 +244,7 @@ defmodule HoldcoWeb.AccountingLive.ChartOfAccounts do
                 </td>
                 <td><span class={"badge badge-#{account.account_type}"}>{account.account_type}</span></td>
                 <td>{account.currency}</td>
+                <td class="td-num">{format_balance(Map.get(@balance_map, account.id))}</td>
                 <td>
                   <%= if @can_write do %>
                     <button
@@ -210,6 +259,14 @@ defmodule HoldcoWeb.AccountingLive.ChartOfAccounts do
                 </td>
               </tr>
             <% end %>
+            <tr style="font-weight: 700; border-top: 2px solid #ccc;">
+              <td></td>
+              <td>Total</td>
+              <td></td>
+              <td></td>
+              <td class="td-num">{format_balance(total_balance(@balance_map))}</td>
+              <td></td>
+            </tr>
           </tbody>
         </table>
         <%= if @accounts == [] do %>

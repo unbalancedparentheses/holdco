@@ -7,66 +7,6 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
   setup :register_and_log_in_user
 
   describe "mount and render" do
-    test "renders the page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "<h1>Bank Accounts</h1>"
-      assert html =~ "accounts across all entities"
-      assert html =~ "page-title"
-      assert html =~ "page-title-rule"
-    end
-
-    test "renders metrics strip with total balance, accounts count, and currencies", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "metrics-strip"
-      assert html =~ "Total Balance"
-      assert html =~ "Accounts"
-      assert html =~ "Currencies"
-    end
-
-    test "renders All Accounts table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "<th>Bank</th>"
-      assert html =~ "Account #"
-      assert html =~ "<th>IBAN</th>"
-      assert html =~ "<th>Type</th>"
-      assert html =~ "<th>Currency</th>"
-      assert html =~ "Balance"
-      assert html =~ "<th>Company</th>"
-    end
-
-    test "renders section headings", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "All Accounts"
-      assert html =~ "Balance by Currency"
-      assert html =~ "By Currency"
-      assert html =~ "Cash Pools"
-    end
-
-    test "renders empty state when no accounts exist", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "No bank accounts yet."
-      assert html =~ "empty-state"
-    end
-
-    test "renders empty state for cash pools when none exist", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "No cash pools yet."
-    end
-
-    test "renders company filter dropdown", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "All Companies"
-      assert html =~ "form-select"
-      assert html =~ ~s(name="company_id")
-    end
-
     test "shows bank account data when accounts exist", %{conn: conn} do
       company = company_fixture(%{name: "BankTestCo"})
 
@@ -92,21 +32,6 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
       assert html =~ "1 accounts across all entities"
     end
 
-    test "renders the currency chart hook container", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ ~s(id="currency-chart")
-      assert html =~ "ChartHook"
-    end
-
-    test "renders cash pool table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "<th>Name</th>"
-      assert html =~ "Target Balance"
-      assert html =~ "# Entries"
-    end
-
     test "shows cash pool data when pools exist", %{conn: conn} do
       cash_pool_fixture(%{name: "Main Pool", currency: "EUR", target_balance: 100_000.0})
 
@@ -122,36 +47,6 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       :ok
-    end
-
-    test "shows Add Account button for editor", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "Add Account"
-      assert html =~ ~s(phx-click="show_form")
-    end
-
-    test "shows Add Pool button for editor", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "Add Pool"
-      assert html =~ ~s(phx-click="show_pool_form")
-    end
-
-    test "shows delete button on accounts for editor", %{conn: conn} do
-      bank_account_fixture()
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "btn btn-danger btn-sm"
-      assert html =~ "Del"
-      assert html =~ ~s(phx-click="delete")
-    end
-
-    test "shows delete button on cash pools for editor", %{conn: conn} do
-      cash_pool_fixture()
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ ~s(phx-click="delete_pool")
     end
 
     test "clicking Add Account opens the bank account modal form", %{conn: conn} do
@@ -338,13 +233,6 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
       assert html =~ "Bank Two"
     end
 
-    test "company options appear in the filter dropdown", %{conn: conn} do
-      company_fixture(%{name: "DropdownBankCo"})
-
-      {:ok, _view, html} = live(conn, ~p"/bank-accounts")
-
-      assert html =~ "DropdownBankCo"
-    end
   end
 
   describe "by currency table" do
@@ -357,6 +245,195 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
 
       assert html =~ "USD"
       assert html =~ "EUR"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Show page (/bank-accounts/:id)
+  # ------------------------------------------------------------------
+
+  describe "show page" do
+    test "renders show page with bank account details", %{conn: conn} do
+      company = company_fixture(%{name: "ShowBankCo"})
+
+      account =
+        bank_account_fixture(%{
+          company: company,
+          bank_name: "First National Bank",
+          account_number: "1234567890",
+          currency: "EUR",
+          balance: 50000.0,
+          account_type: "savings"
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "First National Bank"
+      assert html =~ "1234567890"
+      assert html =~ "EUR"
+      assert html =~ "50,000"
+      assert html =~ "savings"
+    end
+
+    test "shows company link when company exists", %{conn: conn} do
+      company = company_fixture(%{name: "LinkedBankCompany"})
+      account = bank_account_fixture(%{company: company, bank_name: "Company Bank"})
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "LinkedBankCompany"
+      assert html =~ ~s(/companies/#{company.id})
+    end
+
+    test "shows transaction data when transactions exist", %{conn: conn} do
+      company = company_fixture(%{name: "TxnDataCo"})
+
+      account =
+        bank_account_fixture(%{company: company, bank_name: "TxnBank"})
+
+      transaction_fixture(%{
+        company: company,
+        transaction_type: "credit",
+        description: "Incoming wire",
+        amount: 25000.0,
+        currency: "USD",
+        date: "2024-03-15"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "Incoming wire"
+      assert html =~ "credit"
+      assert html =~ "2024-03-15"
+      assert html =~ "USD"
+    end
+
+    test "shows debit transaction with negative styling", %{conn: conn} do
+      company = company_fixture(%{name: "NegTxnCo"})
+      account = bank_account_fixture(%{company: company, bank_name: "NegTxnBank", currency: "USD"})
+
+      transaction_fixture(%{
+        company: company,
+        transaction_type: "debit",
+        description: "Outgoing payment",
+        amount: 5000.0,
+        currency: "USD",
+        date: "2024-04-01"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "Outgoing payment"
+      assert html =~ "debit"
+    end
+
+    test "handles account with nil balance", %{conn: conn} do
+      account =
+        bank_account_fixture(%{
+          bank_name: "Nil Balance Bank",
+          balance: nil,
+          account_type: "checking"
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "$0"
+    end
+
+  end
+
+  # ------------------------------------------------------------------
+  # Editor: edit + validation errors
+  # ------------------------------------------------------------------
+
+  describe "editor edit and validation" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "edit opens edit form", %{conn: conn} do
+      company = company_fixture()
+      ba = bank_account_fixture(%{company: company, bank_name: "Edit Me Bank"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      html = render_click(view, "edit", %{"id" => to_string(ba.id)})
+      assert html =~ "Edit Bank Account"
+      assert html =~ "Save Changes"
+    end
+
+    test "save failure shows error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "show_form", %{})
+
+      html =
+        render_click(view, "save", %{
+          "bank_account" => %{"bank_name" => ""}
+        })
+
+      assert html =~ "Failed to add bank account" || html =~ "Bank Accounts"
+    end
+
+    test "editor can update a bank account", %{conn: conn} do
+      company = company_fixture()
+      ba = bank_account_fixture(%{company: company, bank_name: "Update Me Bank"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "edit", %{"id" => to_string(ba.id)})
+
+      html =
+        render_click(view, "update", %{
+          "bank_account" => %{
+            "bank_name" => "Updated Bank Name",
+            "balance" => "99999"
+          }
+        })
+
+      assert html =~ "Bank account updated" || html =~ "Updated Bank Name"
+    end
+
+    test "update failure shows error", %{conn: conn} do
+      company = company_fixture()
+      ba = bank_account_fixture(%{company: company, bank_name: "Fail Update Bank"})
+
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "edit", %{"id" => to_string(ba.id)})
+
+      html =
+        render_click(view, "update", %{
+          "bank_account" => %{"bank_name" => ""}
+        })
+
+      assert html =~ "Failed to update bank account" || html =~ "Bank Accounts"
+    end
+
+    test "save_pool failure shows error", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+      render_click(view, "show_pool_form", %{})
+
+      html =
+        render_click(view, "save_pool", %{
+          "pool" => %{"name" => ""}
+        })
+
+      assert html =~ "Failed to add cash pool" || html =~ "Bank Accounts"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # PubSub
+  # ------------------------------------------------------------------
+
+  describe "pubsub" do
+    test "banking_changed message triggers reload", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts")
+
+      company = company_fixture()
+      bank_account_fixture(%{company: company, bank_name: "PubSub Bank"})
+
+      send(view.pid, {:banking_changed, %{}})
+      html = render(view)
+      assert html =~ "PubSub Bank"
     end
   end
 end

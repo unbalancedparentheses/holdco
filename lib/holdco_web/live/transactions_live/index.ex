@@ -21,14 +21,28 @@ defmodule HoldcoWeb.TransactionsLive.Index do
       |> Enum.filter(&Money.negative?(&1.amount))
       |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
 
+    top_counterparties = transactions
+      |> Enum.filter(& &1.counterparty)
+      |> Enum.group_by(& &1.counterparty)
+      |> Enum.map(fn {cp, txs} ->
+        volume = Enum.reduce(txs, Decimal.new(0), fn tx, acc -> Money.add(acc, Money.abs(tx.amount)) end)
+        %{counterparty: cp, count: length(txs), volume: volume}
+      end)
+      |> Enum.sort_by(& &1.volume, {:desc, Decimal})
+      |> Enum.take(10)
+
     {:ok,
      assign(socket,
        page_title: "Transactions",
+       all_transactions: transactions,
        transactions: transactions,
        companies: companies,
        inflows: inflows,
        outflows: outflows,
+       top_counterparties: top_counterparties,
        selected_company_id: "",
+       date_from: "",
+       date_to: "",
        show_form: false,
        editing_item: nil
      )}
@@ -49,31 +63,11 @@ defmodule HoldcoWeb.TransactionsLive.Index do
   end
 
   def handle_event("filter_company", %{"company_id" => id}, socket) do
-    company_id = if id == "", do: nil, else: String.to_integer(id)
+    {:noreply, assign(socket, selected_company_id: id) |> apply_filters()}
+  end
 
-    transactions =
-      Banking.list_transactions()
-      |> then(fn txs ->
-        if company_id, do: Enum.filter(txs, &(&1.company_id == company_id)), else: txs
-      end)
-
-    inflows =
-      transactions
-      |> Enum.filter(&Money.positive?(&1.amount))
-      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
-
-    outflows =
-      transactions
-      |> Enum.filter(&Money.negative?(&1.amount))
-      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
-
-    {:noreply,
-     assign(socket,
-       selected_company_id: id,
-       transactions: transactions,
-       inflows: inflows,
-       outflows: outflows
-     )}
+  def handle_event("filter_dates", %{"from" => from, "to" => to}, socket) do
+    {:noreply, assign(socket, date_from: from, date_to: to) |> apply_filters()}
   end
 
   def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
@@ -125,18 +119,48 @@ defmodule HoldcoWeb.TransactionsLive.Index do
 
   defp reload(socket) do
     transactions = Banking.list_transactions()
+    assign(socket, all_transactions: transactions) |> apply_filters()
+  end
 
-    inflows =
-      transactions
-      |> Enum.filter(&Money.positive?(&1.amount))
-      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
+  defp apply_filters(socket) do
+    txs = socket.assigns.all_transactions
+    company_id = socket.assigns.selected_company_id
+    date_from = socket.assigns.date_from
+    date_to = socket.assigns.date_to
 
-    outflows =
-      transactions
-      |> Enum.filter(&Money.negative?(&1.amount))
-      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
+    txs = if company_id != "" and company_id != nil do
+      cid = if is_binary(company_id), do: String.to_integer(company_id), else: company_id
+      Enum.filter(txs, &(&1.company_id == cid))
+    else
+      txs
+    end
 
-    assign(socket, transactions: transactions, inflows: inflows, outflows: outflows)
+    txs = if date_from != "" and date_from != nil do
+      Enum.filter(txs, fn tx -> (tx.date || "") >= date_from end)
+    else
+      txs
+    end
+
+    txs = if date_to != "" and date_to != nil do
+      Enum.filter(txs, fn tx -> (tx.date || "") <= date_to end)
+    else
+      txs
+    end
+
+    inflows = txs |> Enum.filter(&Money.positive?(&1.amount)) |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
+    outflows = txs |> Enum.filter(&Money.negative?(&1.amount)) |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, tx.amount) end)
+
+    top_counterparties = txs
+      |> Enum.filter(& &1.counterparty)
+      |> Enum.group_by(& &1.counterparty)
+      |> Enum.map(fn {cp, ts} ->
+        volume = Enum.reduce(ts, Decimal.new(0), fn t, acc -> Money.add(acc, Money.abs(t.amount)) end)
+        %{counterparty: cp, count: length(ts), volume: volume}
+      end)
+      |> Enum.sort_by(& &1.volume, {:desc, Decimal})
+      |> Enum.take(10)
+
+    assign(socket, transactions: txs, inflows: inflows, outflows: outflows, top_counterparties: top_counterparties)
   end
 
   @impl true
@@ -163,7 +187,7 @@ defmodule HoldcoWeb.TransactionsLive.Index do
       <hr class="page-title-rule" />
     </div>
 
-    <div style="margin-bottom: 1rem;">
+    <div style="margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
       <form phx-change="filter_company" style="display: flex; align-items: center; gap: 0.5rem;">
         <label class="form-label" style="margin: 0; font-size: 0.85rem;">Company</label>
         <select name="company_id" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
@@ -173,9 +197,19 @@ defmodule HoldcoWeb.TransactionsLive.Index do
           <% end %>
         </select>
       </form>
+      <form phx-change="filter_dates" style="display: flex; align-items: center; gap: 0.5rem;">
+        <label class="form-label" style="margin: 0; font-size: 0.85rem;">From</label>
+        <input type="date" name="from" value={@date_from} class="form-input" style="width: auto; padding: 0.3rem 0.5rem;" />
+        <label class="form-label" style="margin: 0; font-size: 0.85rem;">To</label>
+        <input type="date" name="to" value={@date_to} class="form-input" style="width: auto; padding: 0.3rem 0.5rem;" />
+      </form>
     </div>
 
     <div class="metrics-strip">
+      <div class="metric-cell">
+        <div class="metric-label">Transactions</div>
+        <div class="metric-value">{length(@transactions)}</div>
+      </div>
       <div class="metric-cell">
         <div class="metric-label">Total Inflows</div>
         <div class="metric-value num-positive">${format_number(@inflows)}</div>
@@ -211,6 +245,35 @@ defmodule HoldcoWeb.TransactionsLive.Index do
         </div>
       </div>
     </div>
+
+    <%= if @top_counterparties != [] do %>
+      <div class="section">
+        <div class="section-head">
+          <h2>Top Counterparties</h2>
+          <span class="count">{length(@top_counterparties)}</span>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Counterparty</th>
+                <th class="th-num">Transactions</th>
+                <th class="th-num">Volume</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for cp <- @top_counterparties do %>
+                <tr>
+                  <td class="td-name">{cp.counterparty}</td>
+                  <td class="td-num">{cp.count}</td>
+                  <td class="td-num">${format_number(cp.volume)}</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
 
     <div class="section">
       <div class="section-head">

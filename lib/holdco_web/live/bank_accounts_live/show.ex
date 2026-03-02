@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.BankAccountsLive.Show do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Banking, Corporate}
+  alias Holdco.{Banking, Corporate, Portfolio}
   alias Holdco.Money
 
   @impl true
@@ -11,14 +11,39 @@ defmodule HoldcoWeb.BankAccountsLive.Show do
 
     transactions =
       Banking.list_transactions()
-      |> Enum.filter(&(&1.company_id == account.company_id))
+      |> Enum.filter(&(&1.company_id == account.company_id && &1.currency == account.currency))
+
+    inflow =
+      transactions
+      |> Enum.filter(&(&1.transaction_type == "credit"))
+      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, Money.to_decimal(tx.amount)) end)
+
+    outflow =
+      transactions
+      |> Enum.filter(&(&1.transaction_type == "debit"))
+      |> Enum.reduce(Decimal.new(0), fn tx, acc -> Money.add(acc, Money.abs(Money.to_decimal(tx.amount))) end)
+
+    net = Money.sub(inflow, outflow)
+
+    usd_balance = Portfolio.to_usd(account.balance, account.currency)
+
+    monthly_data =
+      transactions
+      |> Enum.group_by(fn tx -> String.slice(to_string(tx.date), 0, 7) end)
+      |> Enum.sort_by(&elem(&1, 0))
+      |> Enum.take(-12)
 
     {:ok,
      assign(socket,
        page_title: account.bank_name,
        account: account,
        company: company,
-       transactions: transactions
+       transactions: transactions,
+       inflow: inflow,
+       outflow: outflow,
+       net: net,
+       usd_balance: usd_balance,
+       monthly_data: monthly_data
      )}
   end
 
@@ -49,6 +74,24 @@ defmodule HoldcoWeb.BankAccountsLive.Show do
         <div class="metric-label">Type</div>
         <div class="metric-value">{@account.account_type}</div>
       </div>
+      <div class="metric-cell">
+        <div class="metric-label">Inflow</div>
+        <div class="metric-value num-positive">{format_currency(@inflow, @account.currency)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Outflow</div>
+        <div class="metric-value num-negative">{format_currency(@outflow, @account.currency)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Net Flow</div>
+        <div class={"metric-value #{if Money.negative?(@net), do: "num-negative", else: "num-positive"}"}>{format_currency(@net, @account.currency)}</div>
+      </div>
+      <%= if @account.currency != "USD" do %>
+        <div class="metric-cell">
+          <div class="metric-label">USD Equivalent</div>
+          <div class="metric-value">${format_number(@usd_balance)}</div>
+        </div>
+      <% end %>
     </div>
 
     <div class="section">
@@ -84,6 +127,19 @@ defmodule HoldcoWeb.BankAccountsLive.Show do
             </dd>
           </div>
         </dl>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>Monthly Flow</h2></div>
+      <div class="panel">
+        <div id="bank-monthly-chart" phx-hook="ChartHook"
+          data-chart-type="bar"
+          data-chart-data={Jason.encode!(monthly_chart_data(@monthly_data))}
+          data-chart-options={Jason.encode!(%{plugins: %{legend: %{position: "top"}}, scales: %{y: %{beginAtZero: true}}})}
+          style="height: 260px;">
+          <canvas></canvas>
+        </div>
       </div>
     </div>
 
@@ -143,5 +199,31 @@ defmodule HoldcoWeb.BankAccountsLive.Show do
   defp format_currency(amount, currency) do
     sign = if Money.negative?(amount), do: "-", else: ""
     "#{sign}#{format_number(Money.abs(amount))} #{currency}"
+  end
+
+  defp monthly_chart_data(monthly_data) do
+    labels = Enum.map(monthly_data, &elem(&1, 0))
+
+    credits =
+      Enum.map(monthly_data, fn {_month, txs} ->
+        txs
+        |> Enum.filter(&(&1.transaction_type == "credit"))
+        |> Enum.reduce(0, fn tx, acc -> acc + Money.to_float(tx.amount) end)
+      end)
+
+    debits =
+      Enum.map(monthly_data, fn {_month, txs} ->
+        txs
+        |> Enum.filter(&(&1.transaction_type == "debit"))
+        |> Enum.reduce(0, fn tx, acc -> acc + abs(Money.to_float(tx.amount)) end)
+      end)
+
+    %{
+      labels: labels,
+      datasets: [
+        %{label: "Inflow", data: credits, backgroundColor: "rgba(95, 143, 110, 0.7)"},
+        %{label: "Outflow", data: debits, backgroundColor: "rgba(176, 96, 94, 0.7)"}
+      ]
+    }
   end
 end

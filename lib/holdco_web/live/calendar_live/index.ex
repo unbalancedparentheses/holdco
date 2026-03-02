@@ -120,7 +120,48 @@ defmodule HoldcoWeb.CalendarLive.Index do
         </div>
         <div class="metric-value">{count_type(@all_events, "liability")}</div>
       </div>
+      <div class="metric-cell">
+        <div class="metric-label">Overdue</div>
+        <% today_str = Date.utc_today() |> Date.to_iso8601() %>
+        <% overdue_count = Enum.count(@all_events, fn e -> (e.date || "") < today_str end) %>
+        <div class={"metric-value #{if overdue_count > 0, do: "num-negative"}"}>
+          {overdue_count}
+        </div>
+      </div>
     </div>
+
+    <% next_7_days = next_7_day_events(@all_events) %>
+    <%= if next_7_days != [] do %>
+      <div class="section">
+        <div class="section-head">
+          <h2>Next 7 Days</h2>
+          <span class="count">{length(next_7_days)}</span>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Type</th><th>Description</th><th>Company</th></tr>
+            </thead>
+            <tbody>
+              <%= for event <- next_7_days do %>
+                <tr>
+                  <td class="td-mono">{event.date}</td>
+                  <td><span class={"tag #{event_tag(event.type)}"}>{event.type}</span></td>
+                  <td class="td-name">{event.description}</td>
+                  <td>
+                    <%= if event.company_id do %>
+                      <.link navigate={~p"/companies/#{event.company_id}"} class="td-link">{event.company_name}</.link>
+                    <% else %>
+                      ---
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
 
     <div class="section">
       <div class="section-head" style="display: flex; justify-content: space-between; align-items: center;">
@@ -328,6 +369,14 @@ defmodule HoldcoWeb.CalendarLive.Index do
           1
       end
     end)
+  end
+
+  defp next_7_day_events(events) do
+    today = Date.utc_today()
+    week_end = Date.add(today, 7)
+    today_str = Date.to_iso8601(today)
+    week_str = Date.to_iso8601(week_end)
+    Enum.filter(events, fn e -> (e.date || "") >= today_str and (e.date || "") <= week_str end)
   end
 
   defp upcoming_events(events) do

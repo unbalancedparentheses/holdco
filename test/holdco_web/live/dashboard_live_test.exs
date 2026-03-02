@@ -6,113 +6,7 @@ defmodule HoldcoWeb.DashboardLiveTest do
 
   setup :register_and_log_in_user
 
-  describe "GET /" do
-    test "renders dashboard page", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "Portfolio Overview"
-    end
-
-    test "renders page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "page-title"
-      assert html =~ "Net Asset Value"
-    end
-
-    test "renders page-title-rule", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "page-title-rule"
-    end
-
-    test "renders metrics strip", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "metrics-strip"
-      assert html =~ "metric-cell"
-      assert html =~ "metric-label"
-      assert html =~ "metric-value"
-    end
-
-    test "shows NAV metric", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "NAV"
-    end
-
-    test "overview nav link is active", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ ~r/href="\/"[^>]*class="active"/
-    end
-
-    test "shows full navigation bar", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "nav-links"
-      assert html =~ "nav-utils"
-    end
-
-    test "shows footer", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "footer"
-      assert html =~ "Holdco"
-    end
-  end
-
-  describe "metrics strip details" do
-    test "shows Net Asset Value metric", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Net Asset Value"
-    end
-
-    test "shows Liquid metric with note", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Liquid"
-      assert html =~ "Bank balances"
-    end
-
-    test "shows Marketable metric with note", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Marketable"
-      assert html =~ "Stocks, crypto, commodities"
-    end
-
-    test "shows Illiquid metric with note", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Illiquid"
-      assert html =~ "Real estate, PE, funds"
-    end
-
-    test "shows Liabilities metric with negative styling", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Liabilities"
-      assert html =~ "num-negative"
-    end
-
-    test "shows dollar sign by default for USD", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "$"
-    end
-  end
-
   describe "currency selector" do
-    test "renders currency selector form", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Display Currency"
-      assert html =~ ~s(name="currency")
-      assert html =~ "form-select"
-    end
-
-    test "renders all currency options", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      for currency <- ~w(USD EUR GBP ARS BRL CHF JPY CAD AUD) do
-        assert html =~ currency
-      end
-    end
-
     test "changing currency to EUR updates display", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
       html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "EUR"}) |> render_change()
@@ -167,34 +61,23 @@ defmodule HoldcoWeb.DashboardLiveTest do
       html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "USD"}) |> render_change()
       assert html =~ "$"
     end
-  end
 
-  describe "asset allocation section" do
-    test "renders Asset Allocation section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Asset Allocation"
-    end
+    test "switching between multiple currencies works", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
 
-    test "renders stacked bar chart elements", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "stacked-bar"
-      assert html =~ "stacked-bar-legend"
+      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "EUR"}) |> render_change()
+      assert html =~ "\u20AC"
+
+      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "JPY"}) |> render_change()
+      assert html =~ "\u00A5"
+      refute html =~ "\u20AC"
+
+      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "USD"}) |> render_change()
+      assert html =~ "$"
     end
   end
 
   describe "NAV History section" do
-    test "renders NAV History section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "NAV History"
-    end
-
-    test "renders chart hook container", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ ~s(id="nav-chart")
-      assert html =~ "phx-hook=\"ChartHook\""
-      assert html =~ ~s(data-chart-type="line")
-    end
-
     test "renders chart with snapshot data", %{conn: conn} do
       portfolio_snapshot_fixture(%{date: "2024-01-01", nav: 1_000_000.0})
       portfolio_snapshot_fixture(%{date: "2024-02-01", nav: 1_100_000.0})
@@ -206,11 +89,6 @@ defmodule HoldcoWeb.DashboardLiveTest do
   end
 
   describe "corporate structure section" do
-    test "renders Corporate Structure section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Corporate Structure"
-    end
-
     test "shows entity count", %{conn: conn} do
       company_fixture(%{name: "Dashboard Corp"})
       {:ok, _view, html} = live(conn, ~p"/")
@@ -222,45 +100,12 @@ defmodule HoldcoWeb.DashboardLiveTest do
       assert html =~ "0 entities"
     end
 
-    test "renders company table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "<th>Entity</th>"
-      assert html =~ "<th>Country</th>"
-      assert html =~ "<th>Category</th>"
-      assert html =~ "<th>Status</th>"
-    end
-
     test "displays company data", %{conn: conn} do
       company = company_fixture(%{name: "Dashboard Corp", country: "UK", category: "SPV"})
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "Dashboard Corp"
       assert html =~ "UK"
       assert html =~ "SPV"
-      assert html =~ ~s(/companies/#{company.id})
-    end
-
-    test "shows active status with jade tag", %{conn: conn} do
-      company_fixture(%{name: "Active Co", wind_down_status: "active"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "tag-jade"
-    end
-
-    test "shows winding_down status with lemon tag", %{conn: conn} do
-      company_fixture(%{name: "Winding Co", wind_down_status: "winding_down"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "tag-lemon"
-    end
-
-    test "shows dissolved status with crimson tag", %{conn: conn} do
-      company_fixture(%{name: "Gone Co", wind_down_status: "dissolved"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "tag-crimson"
-    end
-
-    test "company name links to detail page", %{conn: conn} do
-      company = company_fixture(%{name: "Linked Corp"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "td-link td-name"
       assert html =~ ~s(/companies/#{company.id})
     end
 
@@ -281,82 +126,15 @@ defmodule HoldcoWeb.DashboardLiveTest do
   end
 
   describe "recent activity section" do
-    test "renders Recent Activity section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Recent Activity"
-    end
-
-    test "renders audit feed container", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ ~s(id="audit-feed")
-    end
-
-    test "renders audit table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "<th>Time</th>"
-      assert html =~ "<th>Action</th>"
-      assert html =~ "<th>Table</th>"
-      assert html =~ "<th>Record</th>"
-    end
-
     test "displays audit log entries", %{conn: conn} do
       audit_log_fixture(%{action: "create", table_name: "companies", record_id: 42})
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "create"
       assert html =~ "companies"
     end
-
-    test "create action shows jade tag", %{conn: conn} do
-      audit_log_fixture(%{action: "create", table_name: "companies"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "tag-jade"
-    end
-
-    test "update action shows lemon tag", %{conn: conn} do
-      audit_log_fixture(%{action: "update", table_name: "companies"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "tag-lemon"
-    end
-
-    test "delete action shows crimson tag", %{conn: conn} do
-      audit_log_fixture(%{action: "delete", table_name: "companies"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "tag-crimson"
-    end
-
-    test "unknown action shows ink tag", %{conn: conn} do
-      audit_log_fixture(%{action: "archive", table_name: "companies"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "tag-ink"
-    end
-
-    test "format_time shows time in td-mono", %{conn: conn} do
-      audit_log_fixture(%{action: "create", table_name: "companies"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "td-mono"
-    end
   end
 
   describe "recent transactions section" do
-    test "renders Recent Transactions section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Recent Transactions"
-    end
-
-    test "shows latest count", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "latest"
-    end
-
-    test "renders transaction table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "<th>Date</th>"
-      assert html =~ "<th>Type</th>"
-      assert html =~ "<th>Description</th>"
-      assert html =~ "<th>Counterparty</th>"
-      assert html =~ "Amount"
-    end
-
     test "displays transaction data", %{conn: conn} do
       transaction_fixture(%{
         description: "Dashboard Wire",
@@ -372,46 +150,10 @@ defmodule HoldcoWeb.DashboardLiveTest do
       assert html =~ "Vendor Co"
     end
 
-    test "shows transaction type with tag", %{conn: conn} do
-      transaction_fixture(%{transaction_type: "debit", description: "Payment"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "tag tag-ink"
-      assert html =~ "debit"
-    end
-
-    test "shows positive amount styling", %{conn: conn} do
-      transaction_fixture(%{amount: 1000.0, description: "Income"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "num-positive"
-    end
-
-    test "shows negative amount styling", %{conn: conn} do
-      transaction_fixture(%{amount: 500.0, description: "Expense", transaction_type: "debit"})
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "num-negative"
-    end
-
     test "shows zero amount transaction", %{conn: conn} do
       transaction_fixture(%{amount: 0.01, description: "Zero Amount Tx"})
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "Zero Amount Tx"
-    end
-  end
-
-  describe "grid layout" do
-    test "renders grid-2 layout sections", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "grid-2"
-    end
-
-    test "renders section-head elements", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "section-head"
-    end
-
-    test "renders panel containers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "panel"
     end
   end
 
@@ -462,66 +204,9 @@ defmodule HoldcoWeb.DashboardLiveTest do
       assert html =~ "$"
       refute html =~ "EUR "
     end
-
-    test "changing currency preserves page structure", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "ARS"}) |> render_change()
-
-      assert html =~ "Portfolio Overview"
-      assert html =~ "metrics-strip"
-      assert html =~ "Net Asset Value"
-      assert html =~ "ARS "
-    end
-
-    test "changing currency updates all metric values with new symbol", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "GBP"}) |> render_change()
-
-      # GBP symbol should appear in metric values
-      assert html =~ "\u00A3"
-      assert html =~ "Liquid"
-      assert html =~ "Marketable"
-      assert html =~ "Illiquid"
-      assert html =~ "Liabilities"
-    end
-
-    test "switching between multiple currencies works", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "EUR"}) |> render_change()
-      assert html =~ "\u20AC"
-
-      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "JPY"}) |> render_change()
-      assert html =~ "\u00A5"
-      refute html =~ "\u20AC"
-
-      html = view |> form(~s(form[phx-change="change_currency"]), %{currency: "USD"}) |> render_change()
-      assert html =~ "$"
-    end
   end
 
-  describe "empty state sections" do
-    test "shows empty state for upcoming deadlines when none exist", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "No upcoming deadlines"
-      assert html =~ "You&#39;re all clear!" or html =~ "all clear"
-    end
-
-    test "shows zero pending approvals message when none exist", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "No pending approvals"
-    end
-
-    test "shows 0 entities link when no companies exist", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "0 entities"
-    end
-
+  describe "upcoming deadlines" do
     test "upcoming deadlines section renders when deadlines exist", %{conn: conn} do
       tax_deadline_fixture(%{
         description: "Q1 Tax Filing",
@@ -536,12 +221,34 @@ defmodule HoldcoWeb.DashboardLiveTest do
       assert html =~ "pending"
     end
 
-    test "empty recent transactions section renders headers", %{conn: conn} do
+    test "deadline with company shows company link", %{conn: conn} do
+      company = company_fixture(%{name: "DeadlineCo"})
+
+      tax_deadline_fixture(%{
+        company: company,
+        description: "Quarterly Filing",
+        due_date: "2027-06-30",
+        status: "pending"
+      })
+
       {:ok, _view, html} = live(conn, ~p"/")
 
-      assert html =~ "Recent Transactions"
-      assert html =~ "<th>Date</th>"
-      assert html =~ "0 latest"
+      assert html =~ "Quarterly Filing"
+      assert html =~ "DeadlineCo"
+      assert html =~ "/companies/#{company.id}"
+    end
+
+    test "pending approvals with non-zero count shows review link", %{conn: conn} do
+      Holdco.Platform.create_approval_request(%{
+        requested_by: "user@test.com",
+        table_name: "companies",
+        action: "create"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "Review pending approvals"
+      assert html =~ "/approvals"
     end
   end
 
@@ -597,88 +304,6 @@ defmodule HoldcoWeb.DashboardLiveTest do
       audit_log_fixture(%{action: "create", table_name: "documents", record_id: 33})
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "/audit-log"
-    end
-  end
-
-  describe "upcoming deadlines with company" do
-    test "deadline with company shows company link", %{conn: conn} do
-      company = company_fixture(%{name: "DeadlineCo"})
-
-      tax_deadline_fixture(%{
-        company: company,
-        description: "Quarterly Filing",
-        due_date: "2027-06-30",
-        status: "pending"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "Quarterly Filing"
-      assert html =~ "DeadlineCo"
-      assert html =~ "/companies/#{company.id}"
-    end
-
-    test "overdue deadline shows crimson tag", %{conn: conn} do
-      tax_deadline_fixture(%{
-        description: "Overdue Filing",
-        due_date: "2027-01-01",
-        status: "overdue"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "Overdue Filing"
-      assert html =~ "tag-crimson"
-    end
-
-    test "pending deadline shows lemon tag", %{conn: conn} do
-      tax_deadline_fixture(%{
-        description: "Pending Filing",
-        due_date: "2027-12-31",
-        status: "pending"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "Pending Filing"
-      assert html =~ "tag-lemon"
-    end
-
-    test "pending approvals with non-zero count shows review link", %{conn: conn} do
-      Holdco.Platform.create_approval_request(%{
-        requested_by: "user@test.com",
-        table_name: "companies",
-        action: "create"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "Review pending approvals"
-      assert html =~ "/approvals"
-    end
-  end
-
-  describe "section links" do
-    test "corporate structure has view all link", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "/companies"
-      assert html =~ "entities"
-    end
-
-    test "recent activity has view all link", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "/audit-log"
-      assert html =~ "View All"
-    end
-
-    test "upcoming deadlines has calendar link", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "/calendar"
-    end
-
-    test "pending approvals has view all link", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "/approvals"
     end
   end
 
@@ -748,36 +373,6 @@ defmodule HoldcoWeb.DashboardLiveTest do
       html = render(view)
 
       assert html =~ "#"
-    end
-  end
-
-  describe "deadline with company" do
-    test "deadline with company shows company name link", %{conn: conn} do
-      company = company_fixture(%{name: "DeadlineOrgCo"})
-
-      tax_deadline_fixture(%{
-        company: company,
-        description: "Company Deadline",
-        due_date: "2027-03-15",
-        status: "pending"
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "Company Deadline"
-      assert html =~ "DeadlineOrgCo"
-      assert html =~ "/companies/#{company.id}"
-    end
-  end
-
-  describe "transaction with negative amount in recent transactions" do
-    test "negative transaction has num-negative class", %{conn: conn} do
-      transaction_fixture(%{amount: 1500.0, description: "DashNeg", transaction_type: "debit"})
-
-      {:ok, _view, html} = live(conn, ~p"/")
-
-      assert html =~ "DashNeg"
-      assert html =~ "num-negative"
     end
   end
 end

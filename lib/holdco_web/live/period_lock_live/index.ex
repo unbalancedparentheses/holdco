@@ -126,7 +126,7 @@ defmodule HoldcoWeb.PeriodLockLive.Index do
     assign(socket, locks: Finance.list_period_locks(company_id))
   end
 
-  defp status_tag("locked"), do: "tag-ruby"
+  defp status_tag("locked"), do: "tag-crimson"
   defp status_tag("unlocked"), do: "tag-jade"
   defp status_tag(_), do: "tag-ink"
 
@@ -134,6 +134,17 @@ defmodule HoldcoWeb.PeriodLockLive.Index do
   defp period_type_label("quarter"), do: "Quarter"
   defp period_type_label("year"), do: "Year"
   defp period_type_label(other), do: other || "Unknown"
+
+  defp latest_lock_date(locks) do
+    locks
+    |> Enum.filter(&(&1.status == "locked"))
+    |> Enum.filter(&(not is_nil(&1.period_end)))
+    |> Enum.sort_by(& &1.period_end, :desc)
+    |> case do
+      [latest | _] -> to_string(latest.period_end)
+      [] -> "N/A"
+    end
+  end
 
   @impl true
   def render(assigns) do
@@ -174,6 +185,10 @@ defmodule HoldcoWeb.PeriodLockLive.Index do
       <div class="metric-cell">
         <div class="metric-label">Unlocked</div>
         <div class="metric-value">{Enum.count(@locks, &(&1.status == "unlocked"))}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Latest Lock</div>
+        <div class="metric-value">{latest_lock_date(@locks)}</div>
       </div>
     </div>
 

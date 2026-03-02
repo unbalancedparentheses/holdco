@@ -69,6 +69,18 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
           {length(@concentration_alerts)}
         </div>
       </div>
+      <div class="metric-cell">
+        <div class="metric-label">HHI Index</div>
+        <div class={"metric-value #{if hhi(@holdings_with_values, @total_portfolio) > 2500, do: "num-negative", else: ""}"}>
+          {hhi(@holdings_with_values, @total_portfolio)}
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Max Position %</div>
+        <div class={"metric-value #{if max_position_pct(@holdings_with_values, @total_portfolio) > 25, do: "num-negative", else: ""}"}>
+          {max_position_pct(@holdings_with_values, @total_portfolio)}%
+        </div>
+      </div>
     </div>
 
     <%= if @concentration_alerts != [] do %>
@@ -261,6 +273,33 @@ defmodule HoldcoWeb.ConcentrationRiskLive.Index do
   # -- Helpers --
 
   defp concentration_threshold, do: @concentration_threshold
+
+  defp hhi(holdings_with_values, total_portfolio) do
+    if Money.gt?(total_portfolio, 0) do
+      holdings_with_values
+      |> Enum.reduce(0.0, fn hv, acc ->
+        pct = Money.to_float(Money.mult(Money.div(hv.value, total_portfolio), 100))
+        acc + pct * pct
+      end)
+      |> Float.round(0)
+      |> trunc()
+    else
+      0
+    end
+  end
+
+  defp max_position_pct(holdings_with_values, total_portfolio) do
+    if Money.gt?(total_portfolio, 0) && holdings_with_values != [] do
+      holdings_with_values
+      |> Enum.map(fn hv ->
+        Money.to_float(Money.mult(Money.div(hv.value, total_portfolio), 100))
+      end)
+      |> Enum.max()
+      |> Float.round(1)
+    else
+      0.0
+    end
+  end
 
   defp build_alerts(holdings_with_values, total_portfolio) do
     if Money.gt?(total_portfolio, 0) do

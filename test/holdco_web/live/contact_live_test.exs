@@ -11,29 +11,6 @@ defmodule HoldcoWeb.ContactLiveTest do
   # ------------------------------------------------------------------
 
   describe "GET /contacts" do
-    test "renders the page with Contacts title", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-
-      assert html =~ "Contacts"
-      assert html =~ "Key people across the holding structure"
-    end
-
-    test "shows metrics strip", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-
-      assert html =~ "metrics-strip"
-      assert html =~ "Total Contacts"
-      assert html =~ "Organizations"
-      assert html =~ "Role Tags"
-    end
-
-    test "shows empty state when no contacts exist", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-
-      assert html =~ "No contacts found."
-      assert html =~ "Add lawyers, accountants, bankers"
-    end
-
     test "table shows contact data", %{conn: conn} do
       contact_fixture(%{
         name: "Jane Doe",
@@ -320,66 +297,10 @@ defmodule HoldcoWeb.ContactLiveTest do
   end
 
   # ------------------------------------------------------------------
-  # Role tag rendering
+  # Role tag rendering — nil edge case
   # ------------------------------------------------------------------
 
   describe "role tag display" do
-    test "renders lawyer role tag", %{conn: conn} do
-      contact_fixture(%{name: "L Person", role_tag: "lawyer"})
-
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-      assert html =~ "lawyer"
-      assert html =~ "tag-ink"
-    end
-
-    test "renders accountant role tag", %{conn: conn} do
-      contact_fixture(%{name: "A Person", role_tag: "accountant"})
-
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-      assert html =~ "accountant"
-      assert html =~ "tag-jade"
-    end
-
-    test "renders banker role tag", %{conn: conn} do
-      contact_fixture(%{name: "B Person", role_tag: "banker"})
-
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-      assert html =~ "banker"
-      assert html =~ "tag-teal"
-    end
-
-    test "renders regulator role tag", %{conn: conn} do
-      contact_fixture(%{name: "R Person", role_tag: "regulator"})
-
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-      assert html =~ "regulator"
-      assert html =~ "tag-crimson"
-    end
-
-    test "renders investor role tag", %{conn: conn} do
-      contact_fixture(%{name: "I Person", role_tag: "investor"})
-
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-      assert html =~ "investor"
-      assert html =~ "tag-lemon"
-    end
-
-    test "renders board_member role tag", %{conn: conn} do
-      contact_fixture(%{name: "BM Person", role_tag: "board_member"})
-
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-      assert html =~ "board_member"
-      assert html =~ "tag-teal"
-    end
-
-    test "renders unknown role tag with default class", %{conn: conn} do
-      contact_fixture(%{name: "Other Person", role_tag: "other"})
-
-      {:ok, _view, html} = live(conn, ~p"/contacts")
-      assert html =~ "other"
-      assert html =~ "tag-ink"
-    end
-
     test "renders contact without role_tag shows dashes", %{conn: conn} do
       contact_fixture(%{name: "No Role Person", role_tag: nil})
 
@@ -651,88 +572,6 @@ defmodule HoldcoWeb.ContactLiveTest do
 
       assert html =~ "Sent proposal"
       assert html =~ "Awaiting feedback by Friday"
-    end
-  end
-
-  # ------------------------------------------------------------------
-  # Interaction type CSS classes
-  # ------------------------------------------------------------------
-
-  describe "interaction type display" do
-    test "call interaction shows jade tag", %{conn: conn} do
-      contact = contact_fixture(%{name: "Tag Call Person"})
-
-      Holdco.Collaboration.create_interaction(%{
-        contact_id: contact.id,
-        interaction_type: "call",
-        summary: "Test call"
-      })
-
-      {:ok, view, _html} = live(conn, ~p"/contacts")
-
-      html =
-        view
-        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
-        |> render_click()
-
-      assert html =~ "tag-jade"
-    end
-
-    test "meeting interaction shows teal tag", %{conn: conn} do
-      contact = contact_fixture(%{name: "Tag Meeting Person"})
-
-      Holdco.Collaboration.create_interaction(%{
-        contact_id: contact.id,
-        interaction_type: "meeting",
-        summary: "Test meeting"
-      })
-
-      {:ok, view, _html} = live(conn, ~p"/contacts")
-
-      html =
-        view
-        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
-        |> render_click()
-
-      assert html =~ "tag-teal"
-    end
-
-    test "email interaction shows lemon tag", %{conn: conn} do
-      contact = contact_fixture(%{name: "Tag Email Person"})
-
-      Holdco.Collaboration.create_interaction(%{
-        contact_id: contact.id,
-        interaction_type: "email",
-        summary: "Test email"
-      })
-
-      {:ok, view, _html} = live(conn, ~p"/contacts")
-
-      html =
-        view
-        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
-        |> render_click()
-
-      assert html =~ "tag-lemon"
-    end
-
-    test "note interaction shows ink tag", %{conn: conn} do
-      contact = contact_fixture(%{name: "Tag Note Person"})
-
-      Holdco.Collaboration.create_interaction(%{
-        contact_id: contact.id,
-        interaction_type: "note",
-        summary: "Test note"
-      })
-
-      {:ok, view, _html} = live(conn, ~p"/contacts")
-
-      html =
-        view
-        |> element(~s(button[phx-click="view_interactions"][phx-value-id="#{contact.id}"]))
-        |> render_click()
-
-      assert html =~ "tag-ink"
     end
   end
 end

@@ -149,6 +149,12 @@ defmodule HoldcoWeb.TransferPricingLive.Index do
         <div class="metric-label">Methods Used</div>
         <div class="metric-value">{length(@summary.by_method)}</div>
       </div>
+      <div class="metric-cell">
+        <div class="metric-label">Documentation Gaps</div>
+        <div class={"metric-value #{if documentation_gaps(@studies) > 0, do: "num-negative", else: "num-positive"}"}>
+          {documentation_gaps(@studies)}
+        </div>
+      </div>
     </div>
 
     <%= if @summary.by_method != [] do %>
@@ -190,6 +196,7 @@ defmodule HoldcoWeb.TransferPricingLive.Index do
               <th>Type</th>
               <th>Method</th>
               <th class="th-num">Amount</th>
+              <th class="th-num">AL Variance %</th>
               <th>Conclusion</th>
               <th>Doc Status</th>
               <th></th>
@@ -211,6 +218,16 @@ defmodule HoldcoWeb.TransferPricingLive.Index do
                 <td><span class="tag tag-sky">{humanize_type(study.transaction_type)}</span></td>
                 <td><span class="tag tag-jade">{humanize_method(study.method)}</span></td>
                 <td class="td-num">${format_number(study.transaction_amount || 0)}</td>
+                <% al_var = arm_length_variance(study) %>
+                <td class="td-num">
+                  <%= if al_var do %>
+                    <span class={"tag #{al_variance_tag(al_var)}"}>
+                      {format_number(al_var)}%
+                    </span>
+                  <% else %>
+                    ---
+                  <% end %>
+                </td>
                 <td><span class={"tag #{conclusion_tag(study.conclusion)}"}>{humanize_conclusion(study.conclusion)}</span></td>
                 <td><span class={"tag #{doc_status_tag(study.documentation_status)}"}>{humanize_doc_status(study.documentation_status)}</span></td>
                 <td>
@@ -397,6 +414,44 @@ defmodule HoldcoWeb.TransferPricingLive.Index do
   defp doc_status_tag("filed"), do: "tag-jade"
   defp doc_status_tag("in_progress"), do: "tag-sky"
   defp doc_status_tag(_), do: "tag-lemon"
+
+  defp documentation_gaps(studies) do
+    Enum.count(studies, fn s ->
+      s.documentation_status in [nil, "not_started", "incomplete"] or is_nil(s.documentation_status)
+    end)
+  end
+
+  defp arm_length_variance(study) do
+    low = study.arm_length_range_low
+    high = study.arm_length_range_high
+    margin = study.tested_party_margin
+
+    if low && high && margin do
+      mid = Decimal.div(Decimal.add(low, high), Decimal.new(2))
+
+      if Decimal.gt?(mid, 0) do
+        Decimal.mult(Decimal.div(Decimal.sub(margin, mid), mid), Decimal.new(100))
+        |> Decimal.round(1)
+        |> Decimal.to_float()
+      else
+        nil
+      end
+    else
+      nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp al_variance_tag(pct) do
+    abs_pct = abs(pct)
+
+    cond do
+      abs_pct <= 5 -> "tag-jade"
+      abs_pct <= 15 -> "tag-lemon"
+      true -> "tag-crimson"
+    end
+  end
 
   defp format_number(%Decimal{} = n),
     do: n |> Decimal.round(2) |> Decimal.to_string() |> add_commas()

@@ -1,9 +1,17 @@
 defmodule HoldcoWeb.ReportsLive do
   use HoldcoWeb, :live_view
 
+  alias Holdco.Analytics
+
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "Reports")}
+    scheduled_reports =
+      Analytics.list_scheduled_reports()
+      |> Enum.filter(& &1.is_active)
+      |> Enum.sort_by(& &1.next_run_date)
+      |> Enum.take(5)
+
+    {:ok, assign(socket, page_title: "Reports", scheduled_reports: scheduled_reports)}
   end
 
   @impl true
@@ -158,6 +166,42 @@ defmodule HoldcoWeb.ReportsLive do
           >
             Download Package
           </a>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top: 2rem;">
+        <div class="section-head" style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 1.1rem;">Scheduled Reports</h2>
+          <.link navigate={~p"/scheduled-reports"} class="td-link" style="font-size: 0.85rem;">View All</.link>
+        </div>
+        <div class="panel">
+          <%= if @scheduled_reports != [] do %>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Frequency</th>
+                  <th>Next Run</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for r <- @scheduled_reports do %>
+                  <tr>
+                    <td class="td-name">{r.name}</td>
+                    <td><span class="tag tag-ink">{r.report_type}</span></td>
+                    <td>{r.frequency}</td>
+                    <td class="td-mono">{r.next_run_date || "Not set"}</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% else %>
+            <div class="empty-state" style="padding: 1rem;">
+              No active scheduled reports.
+              <.link navigate={~p"/scheduled-reports"} class="td-link">Configure one</.link>
+            </div>
+          <% end %>
         </div>
       </div>
 

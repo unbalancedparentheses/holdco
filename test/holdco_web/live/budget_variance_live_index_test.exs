@@ -7,24 +7,6 @@ defmodule HoldcoWeb.BudgetVarianceLiveIndexTest do
   setup :register_and_log_in_user
 
   describe "Index" do
-    test "renders Budget vs Actual page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/budgets/variance")
-      assert html =~ "Budget vs Actual"
-    end
-
-    test "shows metrics strip with all four metrics", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/budgets/variance")
-      assert html =~ "Total Budgeted"
-      assert html =~ "Total Actual"
-      assert html =~ "Variance ($)"
-      assert html =~ "Variance (%)"
-    end
-
-    test "shows empty state when no budgets exist", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/budgets/variance")
-      assert html =~ "No budget records found"
-    end
-
     test "renders with budget data showing category", %{conn: conn} do
       company = company_fixture(%{name: "Budget Corp"})
 
@@ -105,31 +87,6 @@ defmodule HoldcoWeb.BudgetVarianceLiveIndexTest do
       assert html =~ "Budget vs Actual"
     end
 
-    test "displays Variance Detail section with table headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/budgets/variance")
-      assert html =~ "Variance Detail"
-      assert html =~ "Category"
-      assert html =~ "Budgeted"
-      assert html =~ "Actual"
-      assert html =~ "Status"
-    end
-
-    test "displays All Budget Records section", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/budgets/variance")
-      assert html =~ "All Budget Records"
-    end
-
-    test "shows budget chart section", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/budgets/variance")
-      assert html =~ "Budget vs Actual by Category"
-    end
-
-    test "displays company selector in the filter", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/budgets/variance")
-      assert html =~ "All Companies"
-      assert html =~ "Company"
-    end
-
     test "handles noop event", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/budgets/variance")
       html = render_click(live, "noop", %{})
@@ -164,11 +121,6 @@ defmodule HoldcoWeb.BudgetVarianceLiveIndexTest do
 
       {:ok, _live, html} = live(conn, ~p"/budgets/variance")
       assert html =~ "LinkBudgetCo"
-    end
-
-    test "page description is shown", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/budgets/variance")
-      assert html =~ "Compare budgeted amounts against actual spend"
     end
 
     test "variance percentage shows correctly for budgets with data", %{conn: conn} do

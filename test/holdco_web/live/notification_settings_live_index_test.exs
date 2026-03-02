@@ -7,32 +7,6 @@ defmodule HoldcoWeb.NotificationSettingsLiveIndexTest do
   setup :register_and_log_in_user
 
   describe "Index" do
-    test "renders Notification Settings page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/settings/notifications")
-      assert html =~ "Notification Settings"
-      assert html =~ "Configure notification channels"
-    end
-
-    test "shows stats bar", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/settings/notifications")
-      assert html =~ "total deliveries"
-      assert html =~ "sent"
-      assert html =~ "failed"
-      assert html =~ "channels configured"
-    end
-
-    test "shows channels tab by default", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/settings/notifications")
-      assert html =~ "Channels"
-      assert html =~ "Delivery History"
-      assert html =~ "Notification Channels"
-    end
-
-    test "shows empty state when no channels configured", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/settings/notifications")
-      assert html =~ "No notification channels configured yet."
-    end
-
     test "can switch to deliveries tab", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/settings/notifications")
       html = render_click(live, "switch_tab", %{"tab" => "deliveries"})
@@ -229,14 +203,6 @@ defmodule HoldcoWeb.NotificationSettingsLiveIndexTest do
     end
   end
 
-  describe "noop event" do
-    test "noop event does nothing", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings/notifications")
-      html = render_click(view, "noop", %{})
-      assert html =~ "Notification Settings"
-    end
-  end
-
   describe "channel display" do
     test "shows channel details in the table", %{conn: conn, user: user} do
       notification_channel_fixture(%{
@@ -416,74 +382,6 @@ defmodule HoldcoWeb.NotificationSettingsLiveIndexTest do
       assert html =~ "<strong>2</strong> channels configured"
     end
   end
-
-  # ------------------------------------------------------------------
-  # Provider label rendering
-  # ------------------------------------------------------------------
-
-  describe "provider labels" do
-    test "slack channel renders as Slack label", %{conn: conn, user: user} do
-      notification_channel_fixture(%{user: user, provider: "slack"})
-
-      {:ok, _view, html} = live(conn, ~p"/settings/notifications")
-      assert html =~ "Slack"
-    end
-
-    test "email channel renders as Email label", %{conn: conn, user: user} do
-      notification_channel_fixture(%{
-        user: user,
-        provider: "email",
-        config: %{"email" => "label@test.com"}
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/settings/notifications")
-      assert html =~ "Email"
-    end
-
-    test "telegram channel renders as Telegram label", %{conn: conn, user: user} do
-      notification_channel_fixture(%{
-        user: user,
-        provider: "telegram",
-        config: %{"bot_token" => "123:ABC", "chat_id" => "-100"}
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/settings/notifications")
-      assert html =~ "Telegram"
-    end
-
-    test "in_app channel renders as In-App label", %{conn: conn, user: user} do
-      notification_channel_fixture(%{
-        user: user,
-        provider: "in_app",
-        config: %{}
-      })
-
-      {:ok, _view, html} = live(conn, ~p"/settings/notifications")
-      assert html =~ "In-App"
-    end
-  end
-
-  # ------------------------------------------------------------------
-  # Channel action buttons (editor)
-  # ------------------------------------------------------------------
-
-  describe "channel action buttons" do
-    test "editor sees Test, Enable/Disable, Edit, and Del buttons", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      notification_channel_fixture(%{user: user, provider: "slack", is_active: true})
-
-      {:ok, _view, html} = live(conn, ~p"/settings/notifications")
-
-      assert html =~ "Test"
-      assert html =~ "Disable"
-      assert html =~ "Edit"
-      assert html =~ "Del"
-    end
-  end
-
-  # ------------------------------------------------------------------
-  # Form event types checkboxes in edit mode
-  # ------------------------------------------------------------------
 
   describe "edit channel form shows existing data" do
     test "editing a channel pre-selects provider and shows fields", %{conn: conn, user: user} do

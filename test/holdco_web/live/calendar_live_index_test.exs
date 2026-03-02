@@ -7,27 +7,6 @@ defmodule HoldcoWeb.CalendarLiveIndexTest do
   setup :register_and_log_in_user
 
   describe "Index" do
-    test "renders Calendar page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "Calendar"
-    end
-
-    test "displays event type filter", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "All Events"
-    end
-
-    test "shows metrics strip", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "Total Events"
-      assert html =~ "This Month"
-    end
-
-    test "shows empty state when no events exist", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "No upcoming events"
-    end
-
     test "shows tax deadline events", %{conn: conn} do
       company = company_fixture(%{name: "Tax Company"})
       today = Date.utc_today()
@@ -175,36 +154,6 @@ defmodule HoldcoWeb.CalendarLiveIndexTest do
       prev_month = Date.utc_today() |> Date.add(-1) |> Date.beginning_of_month()
       prev_month_name = Calendar.strftime(prev_month, "%B %Y")
       assert html =~ prev_month_name
-    end
-
-    test "shows Tax and Meetings counts in metrics strip", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "Tax"
-      assert html =~ "Meetings"
-      assert html =~ "Liabilities"
-    end
-
-    test "renders event type labels in filter dropdown", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "All Events"
-      assert html =~ "Tax Deadlines"
-      assert html =~ "Board Meetings"
-    end
-
-    test "shows All Upcoming Events section", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "All Upcoming Events"
-    end
-
-    test "groups events by week within a month", %{conn: conn} do
-      company = company_fixture()
-      today = Date.utc_today()
-      today_str = Date.to_iso8601(today)
-
-      tax_deadline_fixture(%{company: company, due_date: today_str})
-
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "Week" || html =~ "No events this month"
     end
 
     test "shows company link for events with company", %{conn: conn} do

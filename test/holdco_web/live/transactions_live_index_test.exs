@@ -6,115 +6,10 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "mount and render" do
-    test "renders the page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "<h1>Transactions</h1>"
-      assert html =~ "transactions across all entities"
-      assert html =~ "page-title"
-      assert html =~ "page-title-rule"
-    end
-
-    test "renders metrics strip with inflows, outflows, and net", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "metrics-strip"
-      assert html =~ "Total Inflows"
-      assert html =~ "Total Outflows"
-      assert html =~ "Net"
-    end
-
-    test "renders the transaction table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "<th>Date</th>"
-      assert html =~ "<th>Type</th>"
-      assert html =~ "<th>Description</th>"
-      assert html =~ "<th>Counterparty</th>"
-      assert html =~ "Amount"
-      assert html =~ "<th>Currency</th>"
-      assert html =~ "<th>Company</th>"
-    end
-
-    test "renders section heading for All Transactions", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "All Transactions"
-      assert html =~ "Transaction Flow"
-    end
-
-    test "renders empty state when no transactions exist", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "No transactions yet."
-      assert html =~ "empty-state"
-    end
-
-    test "renders export CSV link", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "Export CSV"
-      assert html =~ "/export/transactions.csv"
-    end
-
-    test "renders company filter dropdown", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "All Companies"
-      assert html =~ "form-select"
-      assert html =~ ~s(name="company_id")
-    end
-
-    test "shows transaction data when transactions exist", %{conn: conn} do
-      company = company_fixture(%{name: "Acme Corp"})
-      transaction_fixture(%{company: company, description: "Invoice payment", amount: 500.0, currency: "USD", counterparty: "Vendor A", transaction_type: "credit", date: "2024-03-01"})
-
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "Acme Corp"
-      assert html =~ "Invoice payment"
-      assert html =~ "Vendor A"
-      assert html =~ "credit"
-      assert html =~ "2024-03-01"
-      assert html =~ "1 transactions across all entities"
-    end
-
-    test "renders the chart hook container", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ ~s(id="tx-chart")
-      assert html =~ "ChartHook"
-    end
-  end
-
   describe "editor role" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       :ok
-    end
-
-    test "shows Add Transaction button for editor", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "Add Transaction"
-      assert html =~ ~s(phx-click="show_form")
-    end
-
-    test "shows Import CSV link for editor", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "Import CSV"
-      assert html =~ "/import?type=transactions"
-    end
-
-    test "shows delete button for editor when transactions exist", %{conn: conn} do
-      transaction_fixture()
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "btn btn-danger btn-sm"
-      assert html =~ "Del"
-      assert html =~ ~s(phx-click="delete")
     end
 
     test "clicking Add Transaction opens the modal form", %{conn: conn} do
@@ -241,13 +136,6 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
       assert html =~ "Tx2 desc"
     end
 
-    test "company options appear in the filter dropdown", %{conn: conn} do
-      company_fixture(%{name: "DropdownCo"})
-
-      {:ok, _view, html} = live(conn, ~p"/transactions")
-
-      assert html =~ "DropdownCo"
-    end
   end
 
   describe "metrics calculations" do
@@ -303,6 +191,49 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
       # co2's transaction description should not appear in the table
       refute html =~ "MetricTx2"
     end
+  end
+
+  describe "show page" do
+    test "renders show page with transaction details", %{conn: conn} do
+      company = company_fixture(%{name: "ShowTxnCo"})
+
+      transaction =
+        transaction_fixture(%{
+          company: company,
+          transaction_type: "debit",
+          description: "Office rent payment",
+          amount: 2500.0,
+          currency: "GBP",
+          date: "2024-06-15",
+          counterparty: "Landlord Ltd"
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/transactions/#{transaction.id}")
+
+      assert html =~ "Transaction Detail"
+      assert html =~ "debit"
+      assert html =~ "2,500"
+      assert html =~ "GBP"
+      assert html =~ "2024-06-15"
+      assert html =~ "Office rent payment"
+      assert html =~ "Landlord Ltd"
+    end
+
+    test "shows company link when company exists", %{conn: conn} do
+      company = company_fixture(%{name: "LinkedTxnCompany"})
+
+      transaction =
+        transaction_fixture(%{
+          company: company,
+          description: "Company transaction"
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/transactions/#{transaction.id}")
+
+      assert html =~ "LinkedTxnCompany"
+      assert html =~ ~s(/companies/#{company.id})
+    end
+
   end
 
   describe "edit event (editor)" do

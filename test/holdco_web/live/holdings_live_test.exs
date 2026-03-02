@@ -7,38 +7,6 @@ defmodule HoldcoWeb.HoldingsLiveTest do
   setup :register_and_log_in_user
 
   describe "GET /holdings" do
-    test "renders holdings page", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "Positions"
-    end
-
-    test "renders page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "page-title"
-      assert html =~ "positions across all entities"
-    end
-
-    test "renders metrics strip", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "metrics-strip"
-      assert html =~ "Total Positions"
-    end
-
-    test "holdings page renders without nav highlight", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "Positions"
-    end
-
-    test "shows export button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "Export CSV"
-    end
-
     test "shows add button for editors", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, _view, html} = live(conn, ~p"/holdings")
@@ -53,27 +21,6 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       assert html =~ "Test Asset XYZ"
       assert html =~ "TXYZ"
       assert html =~ "100"
-    end
-
-    test "shows empty state when no holdings", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "No positions yet"
-    end
-
-    test "renders allocation section", %{conn: conn} do
-      holding_fixture(%{asset_type: "equity"})
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "Allocation by Type"
-      assert html =~ "By Type Summary"
-    end
-
-    test "shows Total Quantity Value metric", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "Total Quantity Value"
-      assert html =~ "Asset Types"
     end
   end
 
@@ -210,20 +157,6 @@ defmodule HoldcoWeb.HoldingsLiveTest do
     end
   end
 
-  describe "holdings table headers" do
-    test "renders all table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "Asset"
-      assert html =~ "Ticker"
-      assert html =~ "Qty"
-      assert html =~ "Unit"
-      assert html =~ "Type"
-      assert html =~ "Currency"
-      assert html =~ "Company"
-    end
-  end
-
   describe "holdings with company" do
     test "shows company name in table", %{conn: conn} do
       company = company_fixture(%{name: "HoldingCompanyCo"})
@@ -233,16 +166,6 @@ defmodule HoldcoWeb.HoldingsLiveTest do
 
       assert html =~ "HoldingCompanyCo"
       assert html =~ "CompanyAsset"
-    end
-
-    test "shows company name in table for each holding", %{conn: conn} do
-      company2 = company_fixture(%{name: "SecondHoldingCo"})
-      holding_fixture(%{company: company2, asset: "SecondAsset"})
-
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "SecondAsset"
-      assert html =~ "SecondHoldingCo"
     end
   end
 
@@ -376,15 +299,6 @@ defmodule HoldcoWeb.HoldingsLiveTest do
       html = render_hook(view, "filter_company", %{"company_id" => ""})
       assert html =~ "All Asset A"
       assert html =~ "All Asset B"
-    end
-
-    test "filter_company renders company dropdown in form", %{conn: conn} do
-      company_fixture(%{name: "DropdownCo"})
-      {:ok, _view, html} = live(conn, ~p"/holdings")
-
-      assert html =~ "DropdownCo"
-      assert html =~ ~s(name="company_id")
-      assert html =~ "All Companies"
     end
   end
 

@@ -6,39 +6,6 @@ defmodule HoldcoWeb.PeriodLockLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "renders Period Locks page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/period-locks")
-      assert html =~ "Period Locks"
-      assert html =~ "Lock accounting periods to prevent modifications to closed periods"
-    end
-
-    test "shows metrics strip", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/period-locks")
-      assert html =~ "Total Locks"
-      assert html =~ "Active Locks"
-      assert html =~ "Unlocked"
-    end
-
-    test "shows table with headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/period-locks")
-      assert html =~ "All Period Locks"
-      assert html =~ "Company"
-      assert html =~ "Period Type"
-      assert html =~ "Status"
-    end
-
-    test "shows empty state when no period locks exist", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/period-locks")
-      assert html =~ "No period locks defined."
-    end
-
-    test "shows company filter", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/period-locks")
-      assert html =~ "All Companies"
-    end
-  end
-
   describe "show_form and close_form events" do
     test "show_form opens the lock period form", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/period-locks")

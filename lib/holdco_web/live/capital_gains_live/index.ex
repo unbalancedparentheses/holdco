@@ -97,6 +97,8 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
             <tr>
               <th>Asset</th>
               <th>Company</th>
+              <th class="th-num">Holding Period</th>
+              <th>Term</th>
               <th class="th-num">ST Realized</th>
               <th class="th-num">ST Unrealized</th>
               <th class="th-num">LT Realized</th>
@@ -116,6 +118,17 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
                   </.link>
                 </td>
                 <td>{r.company}</td>
+                <% days_held = holding_period_days(r) %>
+                <td class="td-num">{format_holding_period(days_held)}</td>
+                <td>
+                  <%= if days_held do %>
+                    <span class={"tag #{if days_held >= 365, do: "tag-jade", else: "tag-lemon"}"}>
+                      {if days_held >= 365, do: "Long-Term", else: "Short-Term"}
+                    </span>
+                  <% else %>
+                    <span class="tag tag-ink">N/A</span>
+                  <% end %>
+                </td>
                 <td class={"td-num #{gain_class(r.short_term_realized)}"}>{format_number(r.short_term_realized)}</td>
                 <td class={"td-num #{gain_class(r.short_term_unrealized)}"}>{format_number(r.short_term_unrealized)}</td>
                 <td class={"td-num #{gain_class(r.long_term_realized)}"}>{format_number(r.long_term_realized)}</td>
@@ -129,6 +142,8 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
           <tfoot>
             <tr style="font-weight: 600; border-top: 2px solid var(--rule);">
               <td class="td-name">Total</td>
+              <td></td>
+              <td></td>
               <td></td>
               <td class={"td-num #{gain_class(sum_field(@results, :short_term_realized))}"}>{format_number(sum_field(@results, :short_term_realized))}</td>
               <td class={"td-num #{gain_class(sum_field(@results, :short_term_unrealized))}"}>{format_number(sum_field(@results, :short_term_unrealized))}</td>
@@ -254,4 +269,24 @@ defmodule HoldcoWeb.CapitalGainsLive.Index do
         int_part |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
     end
   end
+
+  defp holding_period_days(r) do
+    acq = Map.get(r, :acquisition_date) || Map.get(r, :purchase_date)
+    disp = Map.get(r, :disposal_date) || Map.get(r, :sale_date)
+
+    case {parse_date(acq), parse_date(disp)} do
+      {{:ok, a}, {:ok, d}} -> Date.diff(d, a)
+      {{:ok, a}, _} -> Date.diff(Date.utc_today(), a)
+      _ -> nil
+    end
+  end
+
+  defp parse_date(nil), do: :error
+  defp parse_date(%Date{} = d), do: {:ok, d}
+  defp parse_date(str) when is_binary(str), do: Date.from_iso8601(str)
+  defp parse_date(_), do: :error
+
+  defp format_holding_period(nil), do: "---"
+  defp format_holding_period(days) when days >= 365, do: "#{div(days, 365)}y #{rem(days, 365)}d"
+  defp format_holding_period(days), do: "#{days}d"
 end

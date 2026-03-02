@@ -57,7 +57,6 @@ defmodule Holdco.Corporate.Company do
     has_many :withholding_taxes, Holdco.Compliance.WithholdingTax
     has_many :fixed_assets, Holdco.Finance.FixedAsset
     has_many :leases, Holdco.Finance.Lease
-    has_many :kpis, Holdco.Analytics.Kpi
     has_many :segments, Holdco.Finance.Segment
     has_many :kyc_records, Holdco.Compliance.KycRecord
     has_many :aml_alerts, Holdco.Compliance.AmlAlert

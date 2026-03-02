@@ -148,8 +148,16 @@ defmodule HoldcoWeb.ContractLive.Index do
         <div class="metric-value">${format_number(@summary.total_value)}</div>
       </div>
       <div class="metric-cell">
+        <div class="metric-label">Active</div>
+        <div class="metric-value num-positive">{Enum.count(@contracts, &(&1.status == "active"))}</div>
+      </div>
+      <div class="metric-cell">
         <div class="metric-label">Expiring (30d)</div>
         <div class="metric-value num-negative">{length(@expiring)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Auto-Renew Pipeline</div>
+        <div class="metric-value">{Enum.count(@contracts, & &1.auto_renew)}</div>
       </div>
     </div>
 

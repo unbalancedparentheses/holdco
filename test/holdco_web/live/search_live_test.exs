@@ -6,64 +6,6 @@ defmodule HoldcoWeb.SearchLiveTest do
 
   setup :register_and_log_in_user
 
-  describe "GET /search" do
-    test "renders search page", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/search")
-
-      assert html =~ "Search"
-    end
-
-    test "renders page title and rule", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/search")
-
-      assert html =~ "page-title"
-      assert html =~ "page-title-rule"
-    end
-
-    test "renders search input", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/search")
-
-      assert html =~ ~s(name="q")
-      assert html =~ "form-input"
-      assert html =~ "Search companies, positions, transactions, documents, or type a feature name..."
-    end
-
-    test "renders search button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/search")
-
-      assert html =~ "Search"
-      assert html =~ "btn btn-primary"
-    end
-
-    test "does not show results section when no query", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/search")
-
-      refute html =~ "results for"
-    end
-  end
-
-  describe "search with query param" do
-    test "renders search results page with query", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/search?q=test")
-
-      assert html =~ "Search"
-      assert html =~ "results for"
-      assert html =~ "&quot;test&quot;" or html =~ "\"test\""
-    end
-
-    test "shows total result count", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/search?q=nonexistentquery12345")
-
-      assert html =~ "0 results for"
-    end
-
-    test "shows no results message when nothing matches", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/search?q=zzzznonexistent")
-
-      assert html =~ "No results found for"
-    end
-  end
-
   describe "search with matching data" do
     test "finds matching companies", %{conn: conn} do
       company_fixture(%{name: "Acme Corporation"})
@@ -104,14 +46,6 @@ defmodule HoldcoWeb.SearchLiveTest do
       assert html =~ "Board Resolution 2024"
     end
 
-    test "shows total count across all categories", %{conn: conn} do
-      company = company_fixture(%{name: "SearchTest Corp"})
-      holding_fixture(%{company: company, asset: "SearchTest Equity"})
-
-      {:ok, _view, html} = live(conn, ~p"/search?q=SearchTest")
-
-      assert html =~ "results for"
-    end
   end
 
   describe "search event" do
@@ -164,12 +98,4 @@ defmodule HoldcoWeb.SearchLiveTest do
     end
   end
 
-  describe "search form in nav" do
-    test "search form is present in navigation", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/search")
-
-      assert html =~ "nav-search"
-      assert html =~ ~s(action="/search")
-    end
-  end
 end

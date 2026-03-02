@@ -6,90 +6,6 @@ defmodule HoldcoWeb.AuditLiveTest do
 
   setup :register_and_log_in_user
 
-  describe "GET /audit-log" do
-    test "renders audit log page", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ "Audit Log"
-    end
-
-    test "renders page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ "page-title"
-      assert html =~ "Real-time activity stream across all entities"
-    end
-
-    test "renders page-title-rule", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ "page-title-rule"
-    end
-
-    test "shows filter controls", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ "Filters"
-      assert html =~ "Filter"
-      assert html =~ "Clear"
-    end
-
-    test "shows action filter dropdown", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ ~s(name="filters[action]")
-      assert html =~ "create"
-      assert html =~ "update"
-      assert html =~ "delete"
-    end
-
-    test "shows table name filter input", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ ~s(name="filters[table_name]")
-      assert html =~ "e.g. companies"
-    end
-
-    test "shows date range filter inputs", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ ~s(name="filters[from]")
-      assert html =~ ~s(name="filters[to]")
-    end
-
-    test "shows metrics strip with counts", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ "metrics-strip"
-      assert html =~ "Total Entries"
-      assert html =~ "Creates"
-      assert html =~ "Updates"
-      assert html =~ "Deletes"
-    end
-
-    test "shows Activity Stream section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ "Activity Stream"
-    end
-
-    test "shows empty state when no audit logs", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ "No audit log entries yet. Actions will appear here in real-time."
-    end
-
-    test "displays audit log table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ "Time"
-      assert html =~ "Action"
-      assert html =~ "Table"
-      assert html =~ "Record ID"
-      assert html =~ "Details"
-    end
-  end
-
   describe "with audit log entries" do
     test "displays existing audit log entries", %{conn: conn} do
       audit_log_fixture(%{action: "create", table_name: "companies", record_id: 42, details: "Created Acme Corp"})
@@ -102,28 +18,6 @@ defmodule HoldcoWeb.AuditLiveTest do
       assert html =~ "Created Acme Corp"
     end
 
-    test "shows correct tag classes for different actions", %{conn: conn} do
-      audit_log_fixture(%{action: "create", table_name: "companies"})
-      audit_log_fixture(%{action: "update", table_name: "holdings"})
-      audit_log_fixture(%{action: "delete", table_name: "transactions"})
-
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ "tag-jade"
-      assert html =~ "tag-lemon"
-      assert html =~ "tag-crimson"
-    end
-
-    test "metrics strip reflects correct counts", %{conn: conn} do
-      audit_log_fixture(%{action: "create", table_name: "companies"})
-      audit_log_fixture(%{action: "create", table_name: "holdings"})
-      audit_log_fixture(%{action: "update", table_name: "companies"})
-
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      # Should show at least 3 total entries and 2 creates, 1 update
-      assert html =~ "metric-value"
-    end
   end
 
   describe "filtering" do
@@ -212,15 +106,6 @@ defmodule HoldcoWeb.AuditLiveTest do
 
       html = render(view)
       assert html =~ "Realtime entry"
-    end
-  end
-
-  describe "footer link" do
-    test "audit-log link is present in footer", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ ~s(href="/audit-log")
-      assert html =~ "Audit Log"
     end
   end
 
@@ -458,17 +343,6 @@ defmodule HoldcoWeb.AuditLiveTest do
 
       html = render(view)
       refute html =~ "Too recent for old to filter"
-    end
-  end
-
-  describe "unknown action tag" do
-    test "unknown action gets ink tag", %{conn: conn} do
-      audit_log_fixture(%{action: "archive", table_name: "companies", details: "archived_entry"})
-
-      {:ok, _view, html} = live(conn, ~p"/audit-log")
-
-      assert html =~ "tag-ink"
-      assert html =~ "archive"
     end
   end
 

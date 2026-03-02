@@ -21,7 +21,8 @@ defmodule HoldcoWeb.ImportLive do
      |> assign(
        page_title: "Import CSV/Excel",
        active_tab: initial_tab,
-       results: nil
+       results: nil,
+       import_history: []
      )
      |> allow_upload(:csv_file,
        accept: ~w(.csv .xlsx .xls),
@@ -81,7 +82,20 @@ defmodule HoldcoWeb.ImportLive do
           end)
 
         result = List.first(results)
-        {:noreply, assign(socket, results: result)}
+
+        history_entry = %{
+          type: socket.assigns.active_tab,
+          filename: entry.client_name,
+          created: result.created,
+          errors: length(result.errors),
+          timestamp: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+        }
+
+        {:noreply,
+         assign(socket,
+           results: result,
+           import_history: [history_entry | socket.assigns.import_history]
+         )}
     end
   end
 
@@ -419,6 +433,38 @@ defmodule HoldcoWeb.ImportLive do
         <% end %>
       </div>
     </div>
+
+    <%= if @import_history != [] do %>
+      <div class="section">
+        <div class="section-head">
+          <h2>Recent Imports (This Session)</h2>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Type</th>
+                <th>File</th>
+                <th class="th-num">Created</th>
+                <th class="th-num">Errors</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for h <- @import_history do %>
+                <tr>
+                  <td class="td-mono">{NaiveDateTime.to_string(h.timestamp)}</td>
+                  <td><span class="tag tag-ink">{String.capitalize(h.type)}</span></td>
+                  <td class="td-name">{h.filename}</td>
+                  <td class="td-num num-positive">{h.created}</td>
+                  <td class={"td-num #{if h.errors > 0, do: "num-negative", else: ""}"}>{h.errors}</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
     """
   end
 

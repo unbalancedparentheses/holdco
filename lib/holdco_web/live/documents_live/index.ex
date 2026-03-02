@@ -7,16 +7,41 @@ defmodule HoldcoWeb.DocumentsLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    documents = Documents.list_documents()
+    all_documents = Documents.list_documents()
     companies = Corporate.list_companies()
+
+    total_files =
+      all_documents
+      |> Enum.flat_map(fn d ->
+        if Ecto.assoc_loaded?(d.uploads), do: d.uploads, else: []
+      end)
+      |> length()
+
+    doc_types =
+      all_documents
+      |> Enum.map(& &1.doc_type)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    recent_uploads =
+      all_documents
+      |> Enum.sort_by(& &1.inserted_at, {:desc, NaiveDateTime})
+      |> Enum.take(5)
 
     {:ok,
      socket
      |> assign(
        page_title: "Documents",
-       documents: documents,
+       documents: all_documents,
+       all_documents: all_documents,
+       total_files: total_files,
+       doc_types: doc_types,
+       recent_uploads: recent_uploads,
        companies: companies,
        selected_company_id: "",
+       selected_doc_type: "",
+       search_query: "",
        show_form: false,
        editing_item: nil
      )
@@ -42,15 +67,15 @@ defmodule HoldcoWeb.DocumentsLive.Index do
   end
 
   def handle_event("filter_company", %{"company_id" => id}, socket) do
-    company_id = if id == "", do: nil, else: String.to_integer(id)
+    {:noreply, assign(socket, selected_company_id: id) |> apply_filters()}
+  end
 
-    documents =
-      Documents.list_documents()
-      |> then(fn docs ->
-        if company_id, do: Enum.filter(docs, &(&1.company_id == company_id)), else: docs
-      end)
+  def handle_event("filter_doc_type", %{"doc_type" => type}, socket) do
+    {:noreply, assign(socket, selected_doc_type: type) |> apply_filters()}
+  end
 
-    {:noreply, assign(socket, selected_company_id: id, documents: documents)}
+  def handle_event("search_docs", %{"q" => q}, socket) do
+    {:noreply, assign(socket, search_query: q) |> apply_filters()}
   end
 
   def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
@@ -69,11 +94,10 @@ defmodule HoldcoWeb.DocumentsLive.Index do
     case Documents.create_document(params) do
       {:ok, document} ->
         process_uploads(socket, document)
-        documents = Documents.list_documents()
 
         {:noreply,
-         socket
-         |> assign(documents: documents, show_form: false, editing_item: nil)
+         reload(socket)
+         |> assign(show_form: false, editing_item: nil)
          |> put_flash(:info, "Document added")}
 
       {:error, _} ->
@@ -86,11 +110,9 @@ defmodule HoldcoWeb.DocumentsLive.Index do
 
     case Documents.update_document(document, params) do
       {:ok, _} ->
-        documents = Documents.list_documents()
-
         {:noreply,
-         socket
-         |> assign(documents: documents, show_form: false, editing_item: nil)
+         reload(socket)
+         |> assign(show_form: false, editing_item: nil)
          |> put_flash(:info, "Document updated")}
 
       {:error, _} ->
@@ -101,8 +123,72 @@ defmodule HoldcoWeb.DocumentsLive.Index do
   def handle_event("delete", %{"id" => id}, socket) do
     document = Documents.get_document!(String.to_integer(id))
     Documents.delete_document(document)
-    documents = Documents.list_documents()
-    {:noreply, assign(socket, documents: documents) |> put_flash(:info, "Document deleted")}
+    {:noreply, reload(socket) |> put_flash(:info, "Document deleted")}
+  end
+
+  defp reload(socket) do
+    all_documents = Documents.list_documents()
+
+    total_files =
+      all_documents
+      |> Enum.flat_map(fn d ->
+        if Ecto.assoc_loaded?(d.uploads), do: d.uploads, else: []
+      end)
+      |> length()
+
+    doc_types =
+      all_documents
+      |> Enum.map(& &1.doc_type)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    socket
+    |> assign(
+      all_documents: all_documents,
+      total_files: total_files,
+      doc_types: doc_types
+    )
+    |> apply_filters()
+  end
+
+  defp apply_filters(socket) do
+    docs = socket.assigns.all_documents
+    company_id = socket.assigns.selected_company_id
+    doc_type = socket.assigns.selected_doc_type
+    query = String.downcase(socket.assigns.search_query || "")
+
+    docs =
+      if company_id != "" do
+        cid = String.to_integer(company_id)
+        Enum.filter(docs, &(&1.company_id == cid))
+      else
+        docs
+      end
+
+    docs =
+      if doc_type != "" do
+        Enum.filter(docs, &(&1.doc_type == doc_type))
+      else
+        docs
+      end
+
+    docs =
+      if query != "" do
+        Enum.filter(docs, fn d ->
+          String.contains?(String.downcase(d.name || ""), query) or
+            String.contains?(String.downcase(d.doc_type || ""), query)
+        end)
+      else
+        docs
+      end
+
+    recent_uploads =
+      docs
+      |> Enum.sort_by(& &1.inserted_at, {:desc, NaiveDateTime})
+      |> Enum.take(5)
+
+    assign(socket, documents: docs, recent_uploads: recent_uploads)
   end
 
   defp process_uploads(socket, document) do
@@ -171,7 +257,22 @@ defmodule HoldcoWeb.DocumentsLive.Index do
       <hr class="page-title-rule" />
     </div>
 
-    <div style="margin-bottom: 1rem;">
+    <div class="metrics-strip">
+      <div class="metric-cell">
+        <div class="metric-label">Total Documents</div>
+        <div class="metric-value">{length(@all_documents)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Total Files</div>
+        <div class="metric-value">{@total_files}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Document Types</div>
+        <div class="metric-value">{length(@doc_types)}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
       <form phx-change="filter_company" style="display: flex; align-items: center; gap: 0.5rem;">
         <label class="form-label" style="margin: 0; font-size: 0.85rem;">Company</label>
         <select name="company_id" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
@@ -180,6 +281,18 @@ defmodule HoldcoWeb.DocumentsLive.Index do
             <option value={c.id} selected={to_string(c.id) == @selected_company_id}>{c.name}</option>
           <% end %>
         </select>
+      </form>
+      <form phx-change="filter_doc_type" style="display: flex; align-items: center; gap: 0.5rem;">
+        <label class="form-label" style="margin: 0; font-size: 0.85rem;">Type</label>
+        <select name="doc_type" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+          <option value="">All Types</option>
+          <%= for t <- @doc_types do %>
+            <option value={t} selected={t == @selected_doc_type}>{t}</option>
+          <% end %>
+        </select>
+      </form>
+      <form phx-change="search_docs" style="display: flex; align-items: center; gap: 0.5rem;">
+        <input type="text" name="q" value={@search_query} placeholder="Search documents..." class="form-input" style="width: 200px; padding: 0.3rem 0.5rem;" phx-debounce="200" />
       </form>
     </div>
 
@@ -278,6 +391,34 @@ defmodule HoldcoWeb.DocumentsLive.Index do
         <% end %>
       </div>
     </div>
+
+    <%= if @recent_uploads != [] do %>
+      <div class="section">
+        <div class="section-head">
+          <h2>Recent Uploads</h2>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for doc <- @recent_uploads do %>
+                <tr>
+                  <td class="td-name">{doc.name}</td>
+                  <td><span class="tag tag-ink">{doc.doc_type}</span></td>
+                  <td class="td-mono">{if doc.inserted_at, do: Calendar.strftime(doc.inserted_at, "%Y-%m-%d")}</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
 
     <%= if @show_form == :add do %>
       <div class="dialog-overlay" phx-click="close_form">

@@ -10,12 +10,18 @@ defmodule HoldcoWeb.NotificationsLive do
 
     notifications = Notifications.list_notifications(user_id)
     unread = Notifications.unread_count(user_id)
+    warning_count = Enum.count(notifications, &(&1.type == "warning"))
+    error_count = Enum.count(notifications, &(&1.type == "error"))
 
     {:ok,
      assign(socket,
        page_title: "Notifications",
+       all_notifications: notifications,
        notifications: notifications,
-       unread_count: unread
+       unread_count: unread,
+       warning_count: warning_count,
+       error_count: error_count,
+       type_filter: "all"
      )}
   end
 
@@ -30,6 +36,31 @@ defmodule HoldcoWeb.NotificationsLive do
     {:noreply, reload(socket)}
   end
 
+  def handle_event("delete", %{"id" => id}, socket) do
+    id = String.to_integer(id)
+
+    case Enum.find(socket.assigns.all_notifications, &(&1.id == id)) do
+      nil ->
+        {:noreply, socket}
+
+      notif ->
+        Notifications.delete_notification(notif)
+        {:noreply, reload(socket)}
+    end
+  end
+
+  def handle_event("delete_all_read", _, socket) do
+    socket.assigns.all_notifications
+    |> Enum.filter(& &1.read_at)
+    |> Enum.each(&Notifications.delete_notification/1)
+
+    {:noreply, reload(socket)}
+  end
+
+  def handle_event("filter_type", %{"type" => type}, socket) do
+    {:noreply, socket |> assign(type_filter: type) |> apply_type_filter()}
+  end
+
   @impl true
   def handle_info({:new_notification, _notif}, socket) do
     {:noreply, reload(socket)}
@@ -41,7 +72,31 @@ defmodule HoldcoWeb.NotificationsLive do
     user_id = socket.assigns.current_scope.user.id
     notifications = Notifications.list_notifications(user_id)
     unread = Notifications.unread_count(user_id)
-    assign(socket, notifications: notifications, unread_count: unread)
+    warning_count = Enum.count(notifications, &(&1.type == "warning"))
+    error_count = Enum.count(notifications, &(&1.type == "error"))
+
+    socket
+    |> assign(
+      all_notifications: notifications,
+      notifications: notifications,
+      unread_count: unread,
+      warning_count: warning_count,
+      error_count: error_count
+    )
+    |> apply_type_filter()
+  end
+
+  defp apply_type_filter(socket) do
+    filter = socket.assigns.type_filter
+
+    filtered =
+      if filter == "all" do
+        socket.assigns.all_notifications
+      else
+        Enum.filter(socket.assigns.all_notifications, &(&1.type == filter))
+      end
+
+    assign(socket, notifications: filtered)
   end
 
   @impl true
@@ -60,8 +115,56 @@ defmodule HoldcoWeb.NotificationsLive do
       <hr class="page-title-rule" />
     </div>
 
+    <div class="metrics-strip">
+      <div class="metric-cell">
+        <div class="metric-label">Total</div>
+        <div class="metric-value">{length(@all_notifications)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Unread</div>
+        <div class={"metric-value #{if @unread_count > 0, do: "num-negative"}"}>
+          {@unread_count}
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Warnings</div>
+        <div class={"metric-value #{if @warning_count > 0, do: "num-negative"}"}>
+          {@warning_count}
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Errors</div>
+        <div class={"metric-value #{if @error_count > 0, do: "num-negative"}"}>
+          {@error_count}
+        </div>
+      </div>
+    </div>
+
     <div class="section">
       <div class="panel">
+        <div style="margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center;">
+          <form phx-change="filter_type" style="display: flex; align-items: center; gap: 0.5rem;">
+            <label class="form-label" style="margin: 0; font-size: 0.85rem;">Type</label>
+            <select name="type" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
+              <option value="all" selected={@type_filter == "all"}>All</option>
+              <option value="info" selected={@type_filter == "info"}>Info</option>
+              <option value="warning" selected={@type_filter == "warning"}>Warning</option>
+              <option value="error" selected={@type_filter == "error"}>Error</option>
+              <option value="success" selected={@type_filter == "success"}>Success</option>
+            </select>
+          </form>
+          <% has_read = Enum.any?(@all_notifications, & &1.read_at) %>
+          <%= if has_read do %>
+            <button
+              phx-click="delete_all_read"
+              class="btn btn-danger btn-sm"
+              data-confirm="Delete all read notifications?"
+            >
+              Delete All Read
+            </button>
+          <% end %>
+        </div>
+
         <%= if @notifications == [] do %>
           <div class="empty-state">No notifications yet.</div>
         <% else %>
@@ -100,6 +203,14 @@ defmodule HoldcoWeb.NotificationsLive do
                         Mark Read
                       </button>
                     <% end %>
+                    <button
+                      phx-click="delete"
+                      phx-value-id={notif.id}
+                      class="btn btn-danger btn-sm"
+                      data-confirm="Delete?"
+                    >
+                      Del
+                    </button>
                   </td>
                 </tr>
               <% end %>

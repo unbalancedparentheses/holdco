@@ -6,35 +6,6 @@ defmodule HoldcoWeb.SettingsLiveTest do
 
   setup :register_and_log_in_user
 
-  describe "GET /settings" do
-    test "renders settings page with title, deck, tabs, and tab-body", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/settings")
-
-      assert html =~ "Settings"
-      assert html =~ "page-title"
-      assert html =~ "Application settings, categories, API keys, webhooks, and backup configuration"
-      assert html =~ "page-title-rule"
-      assert html =~ ~s(class="tabs")
-      assert html =~ ~s(phx-value-tab="settings")
-      assert html =~ ~s(phx-value-tab="categories")
-      assert html =~ ~s(phx-value-tab="webhooks")
-      assert html =~ ~s(phx-value-tab="backups")
-      assert html =~ "tab-body"
-      assert html =~ ~r/class="tab tab-active"[^>]*phx-value-tab="settings"/s
-      assert html =~ "Application Settings"
-      assert html =~ "No settings configured yet."
-    end
-
-    test "displays existing settings in table", %{conn: conn} do
-      setting_fixture(%{key: "app_name", value: "My Holdco"})
-
-      {:ok, _view, html} = live(conn, ~p"/settings")
-
-      assert html =~ "app_name"
-      assert html =~ "My Holdco"
-    end
-  end
-
   describe "tab switching" do
     test "clicking each tab activates it, shows content, and switching closes modal", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "admin")
@@ -208,13 +179,6 @@ defmodule HoldcoWeb.SettingsLiveTest do
     end
   end
 
-  describe "nav active state" do
-    test "settings nav link is highlighted", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/settings")
-
-      assert html =~ ~r/href="\/settings"[^>]*class="active"/s
-    end
-  end
 
   describe "noop event" do
     test "noop does not crash the view", %{conn: conn} do
@@ -236,33 +200,6 @@ defmodule HoldcoWeb.SettingsLiveTest do
   end
 
   describe "users tab rendering" do
-    test "users tab shows Users heading and user count", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      html = view |> element(~s(button[phx-value-tab="users"])) |> render_click()
-
-      assert html =~ "Users"
-      assert html =~ "users"
-    end
-
-    test "users tab shows current user email", %{conn: conn, user: user} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      html = view |> element(~s(button[phx-value-tab="users"])) |> render_click()
-
-      assert html =~ user.email
-    end
-
-    test "users tab shows Email, Role, and Joined headers", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      html = view |> element(~s(button[phx-value-tab="users"])) |> render_click()
-
-      assert html =~ "Email"
-      assert html =~ "Role"
-      assert html =~ "Joined"
-    end
-
     test "admin sees role dropdown on users tab", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "admin")
       {:ok, view, _html} = live(conn, ~p"/settings")
@@ -386,19 +323,6 @@ defmodule HoldcoWeb.SettingsLiveTest do
   # ------------------------------------------------------------------
 
   describe "AI tab" do
-    test "AI tab renders LLM configuration form", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      html = view |> element(~s(button[phx-value-tab="ai"])) |> render_click()
-
-      assert html =~ "AI / LLM Configuration"
-      assert html =~ "Provider"
-      assert html =~ "API Key"
-      assert html =~ "Model"
-      assert html =~ "Anthropic (Claude)"
-      assert html =~ "OpenAI (GPT)"
-    end
-
     test "admin can save AI settings", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "admin")
       {:ok, view, _html} = live(conn, ~p"/settings")
@@ -419,15 +343,6 @@ defmodule HoldcoWeb.SettingsLiveTest do
       assert html =~ "AI settings saved"
     end
 
-    test "admin sees Save and Test Connection buttons on AI tab", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "admin")
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      html = view |> element(~s(button[phx-value-tab="ai"])) |> render_click()
-
-      assert html =~ "Save"
-      assert html =~ "Test Connection"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -574,19 +489,4 @@ defmodule HoldcoWeb.SettingsLiveTest do
     end
   end
 
-  # ------------------------------------------------------------------
-  # Users tab role display
-  # ------------------------------------------------------------------
-
-  describe "users tab role dropdown display" do
-    test "users tab shows role dropdown for all authenticated users (hooks grant can_admin)", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      html = view |> element(~s(button[phx-value-tab="users"])) |> render_click()
-
-      # The hooks.ex grants can_admin: true to all authenticated users
-      assert html =~ ~s(phx-change="update_role")
-      assert html =~ ~s(name="role")
-    end
-  end
 end

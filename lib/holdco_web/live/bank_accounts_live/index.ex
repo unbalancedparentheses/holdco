@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.BankAccountsLive.Index do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Banking, Corporate, Treasury}
+  alias Holdco.{Banking, Corporate, Treasury, Portfolio}
   alias Holdco.Money
 
   @impl true
@@ -11,6 +11,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
     accounts = Banking.list_bank_accounts()
     companies = Corporate.list_companies()
     total_balance = Banking.total_balance()
+    total_usd = Enum.reduce(accounts, Decimal.new(0), fn a, acc -> Money.add(acc, Portfolio.to_usd(a.balance, a.currency)) end)
     cash_pools = Treasury.list_cash_pools()
 
     {:ok,
@@ -19,6 +20,7 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
        accounts: accounts,
        companies: companies,
        total_balance: total_balance,
+       total_usd: total_usd,
        selected_company_id: "",
        show_form: false,
        editing_item: nil,
@@ -141,8 +143,9 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
   defp reload(socket) do
     accounts = Banking.list_bank_accounts()
     total_balance = Banking.total_balance()
+    total_usd = Enum.reduce(accounts, Decimal.new(0), fn a, acc -> Money.add(acc, Portfolio.to_usd(a.balance, a.currency)) end)
     cash_pools = Treasury.list_cash_pools()
-    assign(socket, accounts: accounts, total_balance: total_balance, cash_pools: cash_pools)
+    assign(socket, accounts: accounts, total_balance: total_balance, total_usd: total_usd, cash_pools: cash_pools)
   end
 
   @impl true
@@ -183,6 +186,10 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
         <div class="metric-value">{length(@accounts)}</div>
       </div>
       <div class="metric-cell">
+        <div class="metric-label">Total in USD</div>
+        <div class="metric-value">${format_number(@total_usd)}</div>
+      </div>
+      <div class="metric-cell">
         <div class="metric-label">Currencies</div>
         <div class="metric-value">
           {@accounts |> Enum.map(& &1.currency) |> Enum.uniq() |> length()}
@@ -211,21 +218,21 @@ defmodule HoldcoWeb.BankAccountsLive.Index do
 
       <div class="section">
         <div class="section-head">
-          <h2>By Currency</h2>
+          <h2>Balance by Company</h2>
         </div>
         <div class="panel">
           <table>
             <thead>
               <tr>
-                <th>Currency</th>
-                <th class="th-num">Count</th>
+                <th>Company</th>
+                <th class="th-num">Accounts</th>
                 <th class="th-num">Total Balance</th>
               </tr>
             </thead>
             <tbody>
-              <%= for {currency, accts} <- Enum.group_by(@accounts, & &1.currency) do %>
+              <%= for {company_name, accts} <- @accounts |> Enum.group_by(fn a -> if a.company, do: a.company.name, else: "Unassigned" end) |> Enum.sort_by(&elem(&1, 0)) do %>
                 <tr>
-                  <td>{currency}</td>
+                  <td class="td-name">{company_name}</td>
                   <td class="td-num">{length(accts)}</td>
                   <td class="td-num">
                     {format_number(Enum.reduce(accts, Decimal.new(0), fn a, acc -> Money.add(acc, a.balance) end))}

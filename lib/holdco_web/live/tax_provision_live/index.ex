@@ -165,6 +165,19 @@ defmodule HoldcoWeb.TaxProvisionLive.Index do
   defp provision_type_label("deferred"), do: "Deferred"
   defp provision_type_label(other), do: other
 
+  defp total_tax_amount(provisions) do
+    Enum.reduce(provisions, Decimal.new(0), fn p, acc ->
+      amt = p.tax_amount || Decimal.new(0)
+      Decimal.add(acc, amt)
+    end)
+  end
+
+  defp jurisdiction_summary(provisions) do
+    provisions
+    |> Enum.group_by(& &1.jurisdiction)
+    |> Enum.sort_by(fn {j, _} -> j end)
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -216,7 +229,23 @@ defmodule HoldcoWeb.TaxProvisionLive.Index do
       </form>
     </div>
 
-    <%!-- Tax Summary Cards --%>
+    <%!-- Always-visible metrics --%>
+    <div class="metrics-strip">
+      <div class="metric-cell">
+        <div class="metric-label">Total Provisions</div>
+        <div class="metric-value">{length(@provisions)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Total Tax Amount</div>
+        <div class="metric-value num-negative">{format_decimal(total_tax_amount(@provisions))}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Jurisdictions</div>
+        <div class="metric-value">{@provisions |> Enum.map(& &1.jurisdiction) |> Enum.uniq() |> length()}</div>
+      </div>
+    </div>
+
+    <%!-- Tax Summary Cards (when filtered) --%>
     <%= if @tax_summary do %>
       <div class="metrics-strip">
         <div class="metric-cell">
@@ -262,6 +291,32 @@ defmodule HoldcoWeb.TaxProvisionLive.Index do
             <div class="metric-label">Rate</div>
             <div class="metric-value">{format_decimal(@calc_result.tax_rate)}%</div>
           </div>
+        </div>
+      </div>
+    <% end %>
+
+    <%= if @provisions != [] do %>
+      <div class="section">
+        <div class="section-head"><h2>By Jurisdiction</h2></div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Jurisdiction</th>
+                <th class="th-num">Provisions</th>
+                <th class="th-num">Total Tax Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for {jurisdiction, items} <- jurisdiction_summary(@provisions) do %>
+                <tr>
+                  <td class="td-name">{jurisdiction}</td>
+                  <td class="td-num">{length(items)}</td>
+                  <td class="td-num num-negative">{format_decimal(total_tax_amount(items))}</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
         </div>
       </div>
     <% end %>

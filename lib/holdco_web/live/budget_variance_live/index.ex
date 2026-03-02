@@ -76,6 +76,8 @@ defmodule HoldcoWeb.BudgetVarianceLive.Index do
 
     <% total_variance = Money.sub(@total_actual, @total_budgeted) %>
     <% variance_pct = if Money.gt?(@total_budgeted, 0), do: Money.mult(Money.div(total_variance, @total_budgeted), 100), else: Decimal.new(0) %>
+    <% overruns = Enum.filter(@categories, fn cat -> Money.gt?(cat.actual, cat.budgeted) end) %>
+    <% largest_overrun = if overruns != [], do: Enum.max_by(overruns, fn cat -> Money.to_float(Money.sub(cat.actual, cat.budgeted)) end), else: nil %>
     <div class="metrics-strip">
       <div class="metric-cell">
         <div class="metric-label">Total Budgeted</div>
@@ -95,6 +97,22 @@ defmodule HoldcoWeb.BudgetVarianceLive.Index do
         <div class="metric-label">Variance (%)</div>
         <div class={"metric-value #{variance_class(total_variance)}"}>
           {variance_sign(total_variance)}{Money.to_float(Money.round(Money.abs(variance_pct), 1))}%
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Largest Overrun</div>
+        <div class="metric-value num-negative">
+          <%= if largest_overrun do %>
+            {largest_overrun.category}: +${format_number(Money.sub(largest_overrun.actual, largest_overrun.budgeted))}
+          <% else %>
+            None
+          <% end %>
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Categories Over Budget</div>
+        <div class={"metric-value #{if length(overruns) > 0, do: "num-negative", else: "num-positive"}"}>
+          {length(overruns)}
         </div>
       </div>
     </div>

@@ -194,7 +194,6 @@ defmodule HoldcoWeb.Router do
 
       # Phase 1 — Reports & Analytics
       live "/tax/capital-gains", CapitalGainsLive.Index, :index
-      live "/kpis", KpiLive.Index, :index
 
       # Phase 2 — Period Close & Recurring
       live "/period-locks", PeriodLockLive.Index, :index
@@ -223,9 +222,6 @@ defmodule HoldcoWeb.Router do
 
       # Contracts
       live "/contracts", ContractLive.Index, :index
-
-      # DeFi
-      live "/defi-positions", DefiPositionLive.Index, :index
 
     end
   end

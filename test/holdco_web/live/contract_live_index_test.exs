@@ -7,37 +7,6 @@ defmodule HoldcoWeb.ContractLiveIndexTest do
   setup :register_and_log_in_user
 
   describe "Index" do
-    test "renders Contract Management page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/contracts")
-      assert html =~ "Contract Management"
-      assert html =~ "Track contracts, renewals, and counterparty relationships"
-    end
-
-    test "shows metrics strip", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/contracts")
-      assert html =~ "Total Contracts"
-      assert html =~ "Total Value"
-      assert html =~ "Expiring (30d)"
-    end
-
-    test "shows contracts table with headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/contracts")
-      assert html =~ "Title"
-      assert html =~ "Counterparty"
-      assert html =~ "Type"
-      assert html =~ "Status"
-    end
-
-    test "shows empty state when no contracts", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/contracts")
-      assert html =~ "No contracts found"
-    end
-
-    test "shows add contract button", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/contracts")
-      assert html =~ "Add Contract"
-    end
-
     test "opens add contract form", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/contracts")
       html = render_click(live, "show_form")

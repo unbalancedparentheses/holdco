@@ -182,10 +182,61 @@ defmodule HoldcoWeb.RecurringTransactionsLive.Index do
   defp frequency_label("yearly"), do: "Yearly"
   defp frequency_label(other), do: other || "Unknown"
 
-  defp type_tag("expense"), do: "tag-ruby"
+  defp type_tag("expense"), do: "tag-crimson"
   defp type_tag("revenue"), do: "tag-jade"
   defp type_tag("transfer"), do: "tag-lemon"
   defp type_tag(_), do: "tag-ink"
+
+  defp monthly_multiplier("daily"), do: Decimal.new("30")
+  defp monthly_multiplier("weekly"), do: Decimal.from_float(4.33)
+  defp monthly_multiplier("monthly"), do: Decimal.new("1")
+  defp monthly_multiplier("quarterly"), do: Decimal.from_float(0.333)
+  defp monthly_multiplier("yearly"), do: Decimal.from_float(0.0833)
+  defp monthly_multiplier(_), do: Decimal.new("1")
+
+  defp total_monthly_volume(transactions) do
+    transactions
+    |> Enum.filter(& &1.is_active)
+    |> Enum.reduce(Decimal.new(0), fn rt, acc ->
+      amt = rt.amount || Decimal.new(0)
+      mult = monthly_multiplier(rt.frequency)
+      Decimal.add(acc, Decimal.mult(amt, mult))
+    end)
+    |> Decimal.round(2)
+  end
+
+  defp due_soon_count(transactions) do
+    today = Date.utc_today()
+    seven_days = Date.add(today, 7)
+
+    Enum.count(transactions, fn rt ->
+      rt.is_active && rt.next_run_date &&
+        case parse_date(rt.next_run_date) do
+          {:ok, d} -> Date.compare(d, today) in [:gt, :eq] and Date.compare(d, seven_days) in [:lt, :eq]
+          _ -> false
+        end
+    end)
+  end
+
+  defp parse_date(%Date{} = d), do: {:ok, d}
+  defp parse_date(str) when is_binary(str), do: Date.from_iso8601(str)
+  defp parse_date(_), do: :error
+
+  defp rt_row_style(rt) do
+    today = Date.utc_today()
+
+    if rt.is_active && rt.next_run_date do
+      case parse_date(rt.next_run_date) do
+        {:ok, d} ->
+          if Date.compare(d, today) == :lt, do: "background: rgba(198, 40, 40, 0.06);", else: ""
+
+        _ ->
+          ""
+      end
+    else
+      ""
+    end
+  end
 
   defp format_number(%Decimal{} = n),
     do: n |> Decimal.round(2) |> Decimal.to_string() |> add_commas()
@@ -255,6 +306,14 @@ defmodule HoldcoWeb.RecurringTransactionsLive.Index do
         <div class="metric-label">Inactive</div>
         <div class="metric-value">{Enum.count(@transactions, &(!&1.is_active))}</div>
       </div>
+      <div class="metric-cell">
+        <div class="metric-label">Total Monthly Volume</div>
+        <div class="metric-value">${format_number(total_monthly_volume(@transactions))}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Due Soon (7d)</div>
+        <div class="metric-value">{due_soon_count(@transactions)}</div>
+      </div>
     </div>
 
     <div class="section">
@@ -280,7 +339,7 @@ defmodule HoldcoWeb.RecurringTransactionsLive.Index do
           </thead>
           <tbody>
             <%= for rt <- @transactions do %>
-              <tr>
+              <tr style={rt_row_style(rt)}>
                 <td class="td-name">{rt.description}</td>
                 <td>
                   <%= if rt.company do %>

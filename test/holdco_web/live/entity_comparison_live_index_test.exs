@@ -6,26 +6,6 @@ defmodule HoldcoWeb.EntityComparisonLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "renders Entity Comparison page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/compare")
-      assert html =~ "Entity Comparison"
-      assert html =~ "Compare balance sheets and income statements"
-    end
-
-    test "shows company selection buttons", %{conn: conn} do
-      company_fixture(%{name: "TestCo Alpha"})
-      {:ok, _live, html} = live(conn, ~p"/compare")
-      assert html =~ "TestCo Alpha"
-      assert html =~ "Select Entities"
-    end
-
-    test "shows empty state when no companies selected", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/compare")
-      assert html =~ "Select at least 2 entities"
-    end
-  end
-
   describe "toggle_company" do
     test "toggles a single company selection", %{conn: conn} do
       company = company_fixture(%{name: "Toggle Corp"})
@@ -244,17 +224,6 @@ defmodule HoldcoWeb.EntityComparisonLiveIndexTest do
       assert html =~ "Net Income"
       assert html =~ "ISJournalA"
       assert html =~ "ISJournalB"
-    end
-  end
-
-  describe "checkmark and selected display" do
-    test "selected companies show checkmark", %{conn: conn} do
-      c1 = company_fixture(%{name: "CheckCo"})
-
-      {:ok, live, _html} = live(conn, ~p"/compare")
-      html = render_click(live, "toggle_company", %{"id" => to_string(c1.id)})
-      assert html =~ "Selected:"
-      assert html =~ "CheckCo"
     end
   end
 

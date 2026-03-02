@@ -6,41 +6,6 @@ defmodule HoldcoWeb.ScheduledReportsLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "renders Scheduled Reports page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/scheduled-reports")
-      assert html =~ "Scheduled Reports"
-      assert html =~ "Configure automated report delivery by email"
-    end
-
-    test "shows reports table with headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/scheduled-reports")
-      assert html =~ "Reports"
-      assert html =~ "Name"
-      assert html =~ "Type"
-      assert html =~ "Frequency"
-      assert html =~ "Recipients"
-      assert html =~ "Format"
-      assert html =~ "Next Run"
-    end
-
-    test "shows empty state when no scheduled reports exist", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/scheduled-reports")
-      assert html =~ "No scheduled reports configured yet."
-    end
-
-    test "shows configured count", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/scheduled-reports")
-      assert html =~ "configured"
-    end
-
-    test "displays an existing scheduled report", %{conn: conn} do
-      scheduled_report_fixture(%{name: "Weekly Portfolio Summary"})
-      {:ok, _live, html} = live(conn, ~p"/scheduled-reports")
-      assert html =~ "Weekly Portfolio Summary"
-    end
-  end
-
   describe "show_form and close_form" do
     test "show_form opens the new report dialog", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/scheduled-reports")

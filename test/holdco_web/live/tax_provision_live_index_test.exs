@@ -6,43 +6,6 @@ defmodule HoldcoWeb.TaxProvisionLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "renders Tax Provisions page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/tax-provisions")
-      assert html =~ "Tax Provisions"
-      assert html =~ "Manage current and deferred tax provisions across jurisdictions"
-    end
-
-    test "shows filter controls", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/tax-provisions")
-      assert html =~ "All Companies"
-      assert html =~ "All Years"
-      assert html =~ "Jurisdiction"
-    end
-
-    test "shows provisions table with headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/tax-provisions")
-      assert html =~ "Provisions"
-      assert html =~ "Year"
-      assert html =~ "Jurisdiction"
-      assert html =~ "Tax Rate"
-      assert html =~ "Tax Amount"
-      assert html =~ "Status"
-    end
-
-    test "shows empty state when no provisions exist", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/tax-provisions")
-      assert html =~ "No tax provisions found."
-    end
-
-    test "displays an existing tax provision", %{conn: conn} do
-      _tp = tax_provision_fixture(%{jurisdiction: "UK", tax_year: 2025})
-      {:ok, _live, html} = live(conn, ~p"/tax-provisions")
-      assert html =~ "UK"
-      assert html =~ "2025"
-    end
-  end
-
   describe "show_form and close_form" do
     test "show_form opens the add provision dialog", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")

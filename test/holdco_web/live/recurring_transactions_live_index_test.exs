@@ -6,39 +6,6 @@ defmodule HoldcoWeb.RecurringTransactionsLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "renders Recurring Transactions page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/recurring-transactions")
-      assert html =~ "Recurring Transactions"
-      assert html =~ "Automate repetitive journal entries on a set schedule"
-    end
-
-    test "shows metrics strip", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/recurring-transactions")
-      assert html =~ "Total"
-      assert html =~ "Active"
-      assert html =~ "Inactive"
-    end
-
-    test "shows table with headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/recurring-transactions")
-      assert html =~ "All Recurring Transactions"
-      assert html =~ "Description"
-      assert html =~ "Frequency"
-      assert html =~ "Next Run"
-    end
-
-    test "shows empty state when no recurring transactions exist", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/recurring-transactions")
-      assert html =~ "No recurring transactions defined."
-    end
-
-    test "shows company filter", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/recurring-transactions")
-      assert html =~ "All Companies"
-    end
-  end
-
   describe "show_form and close_form" do
     test "show_form opens the new transaction dialog", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")

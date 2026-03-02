@@ -275,6 +275,21 @@ defmodule HoldcoWeb.ContactLive.Index do
       </div>
     </div>
 
+    <% role_counts = @contacts |> Enum.filter(& &1.role_tag) |> Enum.group_by(& &1.role_tag) |> Enum.map(fn {role, cs} -> {role, length(cs)} end) |> Enum.sort_by(&elem(&1, 1), :desc) %>
+    <%= if role_counts != [] do %>
+      <div class="section">
+        <div class="section-head"><h2>By Role</h2></div>
+        <div class="panel" style="padding: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+          <%= for {role, count} <- role_counts do %>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+              <span class={"tag #{role_tag_class(role)}"}>{role |> String.replace("_", " ") |> String.capitalize()}</span>
+              <span style="font-size: 0.85rem; font-weight: 600;">{count}</span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
     <div class="section">
       <div class="section-head">
         <h2>All Contacts</h2>

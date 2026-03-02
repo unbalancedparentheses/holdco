@@ -40,8 +40,7 @@ defmodule HoldcoWeb.SearchLive do
   @pages [
     {"Portfolio", [
       {"/holdings", "Positions"}, {"/transactions", "Transactions"},
-      {"/bank-accounts", "Bank Accounts"}, {"/financials", "Financials"},
-      {"/defi-positions", "DeFi Positions"}
+      {"/bank-accounts", "Bank Accounts"}, {"/financials", "Financials"}
     ]},
     {"Corporate", [
       {"/documents", "Documents"}, {"/contacts", "Contacts"},
@@ -66,7 +65,7 @@ defmodule HoldcoWeb.SearchLive do
       {"/anomalies", "Anomalies"}
     ]},
     {"Reports", [
-      {"/reports", "Overview"}, {"/kpis", "KPIs"},
+      {"/reports", "Overview"},
       {"/compare", "Entity Comparison"}, {"/scheduled-reports", "Scheduled Reports"}
     ]},
     {"Admin", [

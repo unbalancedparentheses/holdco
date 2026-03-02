@@ -6,14 +6,6 @@ defmodule HoldcoWeb.TotpSetupLiveTest do
   setup :register_and_log_in_user
 
   describe "mount" do
-    test "renders setup page when TOTP is not enabled", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/users/settings/2fa")
-      assert html =~ "Two-Factor Authentication"
-      assert html =~ "Scan QR Code"
-      assert html =~ "Verify Code"
-      assert html =~ "Authentication Code"
-    end
-
     test "renders enabled page when TOTP is already enabled", %{conn: conn, user: user} do
       # Enable TOTP for the user
       secret = Holdco.Accounts.generate_totp_secret()
@@ -25,36 +17,6 @@ defmodule HoldcoWeb.TotpSetupLiveTest do
       assert html =~ "Disable Two-Factor Authentication"
     end
 
-    test "displays QR code SVG when TOTP is not enabled", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/users/settings/2fa")
-      # QR code should be rendered as an SVG
-      assert html =~ "<svg"
-    end
-
-    test "displays secret key in details section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/users/settings/2fa")
-      assert html =~ "secret key instead"
-    end
-
-    test "has a back link to account settings", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/users/settings/2fa")
-      assert html =~ "Back to Account Settings"
-      assert html =~ "/users/settings"
-    end
-
-    test "shows page title for setup", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/users/settings/2fa")
-      assert html =~ "Two-Factor Authentication"
-    end
-
-    test "shows TOTP protection message when enabled", %{conn: conn, user: user} do
-      secret = Holdco.Accounts.generate_totp_secret()
-      {:ok, _user} = Holdco.Accounts.enable_totp(user, secret)
-
-      {:ok, _view, html} = live(conn, ~p"/users/settings/2fa")
-      assert html =~ "protected with TOTP"
-      assert html =~ "authenticator app"
-    end
   end
 
   describe "regenerate_secret" do

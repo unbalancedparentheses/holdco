@@ -1,17 +1,24 @@
 defmodule HoldcoWeb.CompanyLive.Index do
   use HoldcoWeb, :live_view
-  alias Holdco.Corporate
+  alias Holdco.{Corporate, Banking, Assets}
   alias Holdco.Corporate.Company
+  alias Holdco.Money
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: Corporate.subscribe()
     companies = Corporate.list_companies()
+    total_cash = Banking.total_balance()
+    positions_count = length(Assets.list_holdings())
+    active_count = Enum.count(companies, &(&1.wind_down_status == "active"))
 
     {:ok,
      assign(socket,
        page_title: "Companies",
        companies: companies,
+       total_cash: total_cash,
+       positions_count: positions_count,
+       active_count: active_count,
        sorted_companies: sort_hierarchically(companies),
        changeset: Corporate.change_company(%Company{}),
        view_mode: :list,
@@ -179,6 +186,25 @@ defmodule HoldcoWeb.CompanyLive.Index do
         </div>
       </div>
       <hr class="page-title-rule" />
+    </div>
+
+    <div class="metrics-strip">
+      <div class="metric-cell">
+        <div class="metric-label">Total Entities</div>
+        <div class="metric-value">{length(@companies)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Active</div>
+        <div class="metric-value num-positive">{@active_count}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Total Cash</div>
+        <div class="metric-value">${format_number(@total_cash)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Positions</div>
+        <div class="metric-value">{@positions_count}</div>
+      </div>
     </div>
 
     <%= if @company_tree != [] do %>
@@ -484,6 +510,19 @@ defmodule HoldcoWeb.CompanyLive.Index do
       </ul>
     <% end %>
     """
+  end
+
+  defp format_number(%Decimal{} = n),
+    do: n |> Decimal.round(0) |> Decimal.to_string() |> add_commas()
+
+  defp format_number(n) when is_float(n),
+    do: Money.to_float(Money.round(n, 0)) |> :erlang.float_to_binary(decimals: 0) |> add_commas()
+
+  defp format_number(n) when is_integer(n), do: Integer.to_string(n) |> add_commas()
+  defp format_number(_), do: "0"
+
+  defp add_commas(str) do
+    str |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
   end
 
   defp org_card_style(status) do

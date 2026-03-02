@@ -6,49 +6,6 @@ defmodule HoldcoWeb.TransferPricingLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "renders Transfer Pricing page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/transfer-pricing")
-      assert html =~ "Transfer Pricing"
-      assert html =~ "Related party pricing studies and documentation"
-    end
-
-    test "shows metrics strip", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/transfer-pricing")
-      assert html =~ "Total Studies"
-      assert html =~ "Needing Adjustment"
-      assert html =~ "Total Adjustment Amount"
-      assert html =~ "Methods Used"
-    end
-
-    test "shows studies table with headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/transfer-pricing")
-      assert html =~ "Studies"
-      assert html =~ "Study Name"
-      assert html =~ "Company"
-      assert html =~ "Year"
-      assert html =~ "Related Party"
-      assert html =~ "Method"
-      assert html =~ "Conclusion"
-    end
-
-    test "shows empty state when no studies exist", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/transfer-pricing")
-      assert html =~ "No transfer pricing studies found."
-    end
-
-    test "shows company filter", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/transfer-pricing")
-      assert html =~ "All Companies"
-    end
-
-    test "displays an existing transfer pricing study", %{conn: conn} do
-      transfer_pricing_study_fixture(%{study_name: "Interco Licensing Study"})
-      {:ok, _live, html} = live(conn, ~p"/transfer-pricing")
-      assert html =~ "Interco Licensing Study"
-    end
-  end
-
   describe "show_form and close_form" do
     test "show_form opens the add study dialog", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")

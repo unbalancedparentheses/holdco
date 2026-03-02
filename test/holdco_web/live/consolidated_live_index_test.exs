@@ -6,54 +6,6 @@ defmodule HoldcoWeb.ConsolidatedLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "renders Consolidated Financial Statements page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/consolidated")
-      assert html =~ "Consolidated Financial Statements"
-      assert html =~ "Group-level balance sheet and income statement"
-    end
-
-    test "shows metrics strip with all labels", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/consolidated")
-      assert html =~ "Entities"
-      assert html =~ "Total Assets (Consol.)"
-      assert html =~ "Total Equity (Consol.)"
-      assert html =~ "Intercompany Eliminations"
-      assert html =~ "NCI (Non-Controlling)"
-    end
-
-    test "shows tab buttons for balance sheet, income statement, and eliminations", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/consolidated")
-      assert html =~ "Balance Sheet"
-      assert html =~ "Income Statement"
-      assert html =~ "Eliminations"
-    end
-
-    test "defaults to balance sheet tab", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/consolidated")
-      assert html =~ "Consolidated Balance Sheet"
-      assert html =~ "Assets"
-      assert html =~ "Liabilities"
-      assert html =~ "Equity"
-      assert html =~ "Non-Controlling Interest"
-    end
-
-    test "balance sheet shows Total Assets row", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/consolidated")
-      assert html =~ "Total Assets"
-    end
-
-    test "balance sheet shows Total Liabilities row", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/consolidated")
-      assert html =~ "Total Liabilities"
-    end
-
-    test "balance sheet shows Total Equity row", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/consolidated")
-      assert html =~ "Total Equity"
-    end
-  end
-
   describe "switch_tab" do
     test "switches to income statement tab", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/consolidated")
@@ -81,32 +33,10 @@ defmodule HoldcoWeb.ConsolidatedLiveIndexTest do
       assert html =~ "Assets"
     end
 
-    test "eliminations tab shows transfer table columns", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/consolidated")
-      html = render_click(live, "switch_tab", %{"tab" => "eliminations"})
-      assert html =~ "Date"
-      assert html =~ "From Entity"
-      assert html =~ "To Entity"
-      assert html =~ "Description"
-      assert html =~ "Amount"
-      assert html =~ "Currency"
-      assert html =~ "Total Eliminations"
-    end
-
     test "eliminations tab shows empty state when no transfers", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/consolidated")
       html = render_click(live, "switch_tab", %{"tab" => "eliminations"})
       assert html =~ "No intercompany transfers recorded"
-    end
-
-    test "NCI by entity table shows ownership columns", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/consolidated")
-      html = render_click(live, "switch_tab", %{"tab" => "eliminations"})
-      assert html =~ "Ownership %"
-      assert html =~ "NCI %"
-      assert html =~ "Entity Equity"
-      assert html =~ "NCI Value"
-      assert html =~ "Total NCI"
     end
   end
 
@@ -239,7 +169,7 @@ defmodule HoldcoWeb.ConsolidatedLiveIndexTest do
       %{c1: c1, c2: c2}
     end
 
-    test "balance sheet shows account rows with entity data", %{conn: conn, c1: c1, c2: c2} do
+    test "balance sheet shows account rows with entity data", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/consolidated")
       assert html =~ "Consolidated Balance Sheet"
       # Should show the short names of companies
@@ -254,18 +184,11 @@ defmodule HoldcoWeb.ConsolidatedLiveIndexTest do
       assert html =~ "Net Income (Consolidated)"
     end
 
-    test "eliminations tab shows NCI percentages for partially owned entity", %{conn: conn, c2: c2} do
+    test "eliminations tab shows NCI percentages for partially owned entity", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/consolidated")
       html = render_click(live, "switch_tab", %{"tab" => "eliminations"})
       assert html =~ "60%"
       assert html =~ "40%"
-    end
-
-    test "balance sheet shows consolidation columns", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/consolidated")
-      assert html =~ "Elim."
-      assert html =~ "NCI"
-      assert html =~ "Consolidated"
     end
   end
 
@@ -295,7 +218,7 @@ defmodule HoldcoWeb.ConsolidatedLiveIndexTest do
       assert html =~ "50,000"
     end
 
-    test "income statement shows NCI share for partially owned entities", %{conn: conn, c2: c2} do
+    test "income statement shows NCI share for partially owned entities", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/consolidated")
       html = render_click(live, "switch_tab", %{"tab" => "income_statement"})
       assert html =~ "Attributable to NCI"

@@ -222,6 +222,14 @@ defmodule HoldcoWeb.AuditLive.Index do
         <div class="metric-label">Deletes</div>
         <div class="metric-value">{Enum.count(@logs, &(&1.action == "delete"))}</div>
       </div>
+      <div class="metric-cell">
+        <div class="metric-label">Unique Users</div>
+        <div class="metric-value">{unique_users(@logs)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Tables Affected</div>
+        <div class="metric-value">{tables_affected(@logs)}</div>
+      </div>
     </div>
 
     <div class="section">
@@ -281,4 +289,24 @@ defmodule HoldcoWeb.AuditLive.Index do
   defp action_tag("update"), do: "tag-lemon"
   defp action_tag("delete"), do: "tag-crimson"
   defp action_tag(_), do: "tag-ink"
+
+  defp unique_users(logs) do
+    logs
+    |> Enum.map(fn log ->
+      if is_map(log.user) && log.user, do: log.user.id, else: nil
+    end)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+    |> length()
+  rescue
+    _ -> 0
+  end
+
+  defp tables_affected(logs) do
+    logs
+    |> Enum.map(& &1.table_name)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+    |> length()
+  end
 end

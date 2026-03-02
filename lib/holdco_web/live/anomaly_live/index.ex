@@ -193,6 +193,40 @@ defmodule HoldcoWeb.AnomalyLive.Index do
   defp format_decimal(%Decimal{} = d), do: Decimal.round(d, 2) |> Decimal.to_string()
   defp format_decimal(v), do: to_string(v)
 
+  defp severity_distribution(anomalies) do
+    anomalies
+    |> Enum.group_by(& &1.severity)
+    |> Enum.sort_by(fn {sev, _} ->
+      case sev do
+        "critical" -> 0
+        "high" -> 1
+        "medium" -> 2
+        "low" -> 3
+        _ -> 4
+      end
+    end)
+  end
+
+  defp avg_resolution_time(anomalies) do
+    resolved =
+      anomalies
+      |> Enum.filter(fn a -> a.status == "resolved" && a.resolved_at && a.inserted_at end)
+      |> Enum.map(fn a ->
+        DateTime.diff(a.resolved_at, a.inserted_at, :hour)
+      end)
+
+    if resolved != [] do
+      avg_hours = Enum.sum(resolved) / length(resolved)
+
+      cond do
+        avg_hours < 24 -> "#{Float.round(avg_hours, 1)}h"
+        true -> "#{Float.round(avg_hours / 24, 1)}d"
+      end
+    else
+      "N/A"
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -227,6 +261,35 @@ defmodule HoldcoWeb.AnomalyLive.Index do
       <div class="metric-cell">
         <div class="metric-label">Resolved This Month</div>
         <div class="metric-value num-positive">{@resolved_this_month}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Avg Resolution Time</div>
+        <div class="metric-value">{avg_resolution_time(@anomalies)}</div>
+      </div>
+    </div>
+
+    <%!-- Severity Distribution --%>
+    <div class="section">
+      <div class="section-head"><h2>Severity Distribution</h2></div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Severity</th>
+              <th class="th-num">Count</th>
+              <th class="th-num">Open</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for {sev, items} <- severity_distribution(@anomalies) do %>
+              <tr>
+                <td><span class={"tag #{severity_tag(sev)}"}>{sev}</span></td>
+                <td class="td-num">{length(items)}</td>
+                <td class="td-num">{Enum.count(items, &(&1.status in ["open", "investigating"]))}</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
       </div>
     </div>
 

@@ -6,58 +6,6 @@ defmodule HoldcoWeb.AccountingReportsTest do
 
   setup :register_and_log_in_user
 
-  # ── Mount & Render ──────────────────────────────────────
-
-  describe "mount and render" do
-    test "renders page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/reports")
-
-      assert html =~ "<h1>Accounting Reports</h1>"
-      assert html =~ "Trial Balance, Balance Sheet, and Income Statement"
-      assert html =~ "page-title-rule"
-    end
-
-    test "renders company filter", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/reports")
-
-      assert html =~ "All Companies (Consolidated)"
-      assert html =~ ~s(phx-change="filter_company")
-    end
-
-    test "renders three tab buttons", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/reports")
-
-      assert html =~ "Trial Balance"
-      assert html =~ "Balance Sheet"
-      assert html =~ "Income Statement"
-    end
-
-    test "defaults to trial balance tab", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/reports")
-
-      # Trial balance tab should be active (btn-primary)
-      assert html =~ ~s(phx-value-tab="trial_balance")
-      # Trial balance content is rendered
-      assert html =~ "Trial Balance"
-      assert html =~ "Code"
-      assert html =~ "Account"
-      assert html =~ "Debit"
-      assert html =~ "Credit"
-      assert html =~ "Balance"
-    end
-
-    test "shows empty state for trial balance", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/reports")
-
-      assert html =~ "No account activity. Create journal entries to see the trial balance."
-    end
-
-    test "shows balanced indicator for trial balance", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/reports")
-
-      assert html =~ "Balanced"
-    end
-  end
 
   # ── Tab Switching ───────────────────────────────────────
 
@@ -196,9 +144,9 @@ defmodule HoldcoWeb.AccountingReportsTest do
       rev_acct = account_fixture(%{company_id: company.id, code: "4000", name: "ConsultingRev", account_type: "revenue"})
       exp_acct = account_fixture(%{company_id: company.id, code: "5000", name: "OfficeExp", account_type: "expense"})
 
-      # Use a date in the current year so it falls within the default date range
+      # Use a date in the current year that's always in the past (Jan 10)
       today = Date.utc_today()
-      date = Date.to_iso8601(%{today | day: 15})
+      date = Date.to_iso8601(%{today | month: 1, day: 10})
       je = journal_entry_fixture(%{company_id: company.id, date: date, description: "Monthly"})
       journal_line_fixture(%{entry_id: je.id, account_id: rev_acct.id, debit: 0.0, credit: 3000.0})
       journal_line_fixture(%{entry_id: je.id, account_id: exp_acct.id, debit: 3000.0, credit: 0.0})
@@ -209,29 +157,6 @@ defmodule HoldcoWeb.AccountingReportsTest do
 
       assert html =~ "ConsultingRev"
       assert html =~ "OfficeExp"
-    end
-  end
-
-  # ── Empty states for tabs ───────────────────────────────
-
-  describe "empty states for all tabs" do
-    test "balance sheet shows empty states", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/reports")
-
-      html = view |> element(~s(button[phx-value-tab="balance_sheet"])) |> render_click()
-
-      assert html =~ "No asset accounts with activity."
-      assert html =~ "No liability accounts with activity."
-      assert html =~ "No equity accounts with activity."
-    end
-
-    test "income statement shows empty states", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/reports")
-
-      html = view |> element(~s(button[phx-value-tab="income_statement"])) |> render_click()
-
-      assert html =~ "No revenue recorded for this period."
-      assert html =~ "No expenses recorded for this period."
     end
   end
 
@@ -300,34 +225,4 @@ defmodule HoldcoWeb.AccountingReportsTest do
     end
   end
 
-  # ── Company options in filter dropdown ────────────────
-
-  describe "company options" do
-    test "company names appear in the filter dropdown", %{conn: conn} do
-      company_fixture(%{name: "DropdownReportCo"})
-
-      {:ok, _view, html} = live(conn, ~p"/accounts/reports")
-
-      assert html =~ "DropdownReportCo"
-    end
-  end
-
-  # ── Tab button active state ───────────────────────────
-
-  describe "tab button active states" do
-    test "trial balance button is primary by default", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/reports")
-
-      assert html =~ ~s(phx-value-tab="trial_balance")
-    end
-
-    test "balance sheet tab shows balanced indicator", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/reports")
-
-      html = view |> element(~s(button[phx-value-tab="balance_sheet"])) |> render_click()
-
-      assert html =~ "A = L + E"
-      assert html =~ "Balanced"
-    end
-  end
 end

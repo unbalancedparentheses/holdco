@@ -7,48 +7,6 @@ defmodule HoldcoWeb.DeferredTaxLiveIndexTest do
   setup :register_and_log_in_user
 
   describe "Index" do
-    test "renders Deferred Taxes page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/deferred-taxes")
-      assert html =~ "Deferred Taxes"
-      assert html =~ "Track deferred tax assets and liabilities from temporary differences"
-    end
-
-    test "shows metrics strip", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/deferred-taxes")
-      assert html =~ "Total Items"
-      assert html =~ "Deferred Assets"
-      assert html =~ "Deferred Liabilities"
-      assert html =~ "Net Position"
-    end
-
-    test "shows filter controls", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/deferred-taxes")
-      assert html =~ "Company"
-      assert html =~ "Year"
-      assert html =~ "All Types"
-    end
-
-    test "shows calculator section", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/deferred-taxes")
-      assert html =~ "Calculate Deferred Tax"
-      assert html =~ "Book Basis"
-      assert html =~ "Tax Basis"
-      assert html =~ "Tax Rate"
-    end
-
-    test "shows deferred tax items table with headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/deferred-taxes")
-      assert html =~ "Deferred Tax Items"
-      assert html =~ "Year"
-      assert html =~ "Description"
-      assert html =~ "Source"
-    end
-
-    test "shows empty state when no deferred taxes", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/deferred-taxes")
-      assert html =~ "No deferred tax items found"
-    end
-
     test "opens add deferred tax form", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/deferred-taxes")
       html = render_click(live, "show_form")

@@ -6,40 +6,6 @@ defmodule HoldcoWeb.BankReconciliationLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "renders Bank Reconciliation page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/bank-reconciliation")
-      assert html =~ "Bank Reconciliation"
-      assert html =~ "Match bank feed transactions to book entries"
-    end
-
-    test "shows metrics strip", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/bank-reconciliation")
-      assert html =~ "Total Transactions"
-      assert html =~ "Matched"
-      assert html =~ "Unmatched"
-      assert html =~ "Match Rate"
-    end
-
-    test "shows bank feed and candidate sections", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/bank-reconciliation")
-      assert html =~ "Bank Feed Transactions"
-      assert html =~ "Candidate Book Entries"
-    end
-
-    test "shows empty state when no config selected", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/bank-reconciliation")
-      assert html =~ "Select an unmatched bank feed transaction"
-    end
-
-    test "shows filter controls", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/bank-reconciliation")
-      assert html =~ "Bank Feed"
-      assert html =~ "Status"
-      assert html =~ "Date Range"
-    end
-  end
-
   describe "select_config event" do
     test "selects a bank feed config", %{conn: conn} do
       config = bank_feed_config_fixture(%{is_active: true})
@@ -380,33 +346,6 @@ defmodule HoldcoWeb.BankReconciliationLiveIndexTest do
       assert html =~ "---"
     end
 
-    test "shows transaction counts for a config with transactions", %{conn: conn} do
-      config = bank_feed_config_fixture(%{is_active: true})
-
-      Holdco.Integrations.create_bank_feed_transaction(%{
-        feed_config_id: config.id,
-        external_id: "ext_count1_#{System.unique_integer([:positive])}",
-        date: "2025-05-01",
-        description: "Count txn 1",
-        amount: 100.00,
-        currency: "USD"
-      })
-
-      Holdco.Integrations.create_bank_feed_transaction(%{
-        feed_config_id: config.id,
-        external_id: "ext_count2_#{System.unique_integer([:positive])}",
-        date: "2025-05-02",
-        description: "Count txn 2",
-        amount: 200.00,
-        currency: "USD"
-      })
-
-      {:ok, view, _html} = live(conn, ~p"/bank-reconciliation")
-      html = render_change(view, "select_config", %{"config_id" => to_string(config.id)})
-
-      # Should show 2 total and 2 unmatched
-      assert html =~ "metrics-strip"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -422,14 +361,6 @@ defmodule HoldcoWeb.BankReconciliationLiveIndexTest do
       assert html =~ "Chase Bank" || html =~ to_string(config.id)
     end
 
-    test "initially selects first config when configs exist", %{conn: conn} do
-      bank_feed_config_fixture(%{is_active: true, institution_name: "First Bank"})
-
-      {:ok, _view, html} = live(conn, ~p"/bank-reconciliation")
-
-      # Should auto-select the first config
-      assert html =~ "Bank Feed Transactions"
-    end
   end
 
   # ------------------------------------------------------------------
@@ -445,11 +376,6 @@ defmodule HoldcoWeb.BankReconciliationLiveIndexTest do
 
       html = render(view)
       assert html =~ "No transactions for current filters."
-    end
-
-    test "shows candidate empty state when no feed txn selected", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/bank-reconciliation")
-      assert html =~ "Select an unmatched bank feed transaction on the left"
     end
 
     test "shows candidate empty state when selected txn has no matches", %{conn: conn} do

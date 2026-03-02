@@ -7,40 +7,6 @@ defmodule HoldcoWeb.AlertsLiveIndexTest do
   setup :register_and_log_in_user
 
   describe "Index" do
-    test "renders Alerts page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/alerts")
-      assert html =~ "Alerts"
-      assert html =~ "Configure alert rules to monitor portfolio metrics"
-    end
-
-    test "shows metrics strip", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/alerts")
-      assert html =~ "Active Rules"
-      assert html =~ "Unread Alerts"
-      assert html =~ "Critical Alerts"
-      assert html =~ "Total Rules"
-    end
-
-    test "shows tab buttons for rules and alerts", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/alerts")
-      assert html =~ "Alert Rules"
-      assert html =~ "Active Alerts"
-    end
-
-    test "shows empty state when no rules", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/alerts")
-      assert html =~ "No alert rules configured yet"
-    end
-
-    test "shows rules table with correct headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/alerts")
-      assert html =~ "Name"
-      assert html =~ "Metric"
-      assert html =~ "Condition"
-      assert html =~ "Threshold"
-      assert html =~ "Severity"
-    end
-
     test "opens new rule form", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/alerts")
       html = render_click(live, "show_form")

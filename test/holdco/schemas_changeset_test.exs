@@ -171,38 +171,6 @@ defmodule Holdco.SchemasChangesetTest do
     end
   end
 
-  # ── 6. Analytics.DefiPosition ──────────────────────────────────────────
-  # required: [:company_id, :protocol_name, :chain, :position_type]
-  # defaults: chain: "ethereum", position_type: "lending"
-
-  describe "Analytics.DefiPosition" do
-    alias Holdco.Analytics.DefiPosition
-
-    @valid_attrs %{company_id: 1, protocol_name: "Aave", chain: "ethereum", position_type: "lending"}
-
-    test "valid changeset with required fields" do
-      changeset = DefiPosition.changeset(%DefiPosition{}, @valid_attrs)
-      assert changeset.valid?
-    end
-
-    test "invalid changeset with missing required fields" do
-      changeset = DefiPosition.changeset(%DefiPosition{}, %{})
-      refute changeset.valid?
-      assert "can't be blank" in errors_on(changeset).company_id
-      assert "can't be blank" in errors_on(changeset).protocol_name
-      # chain and position_type have defaults
-    end
-
-    test "invalid changeset with bad inclusion values" do
-      attrs = Map.merge(@valid_attrs, %{chain: "invalid", position_type: "invalid", status: "invalid"})
-      changeset = DefiPosition.changeset(%DefiPosition{}, attrs)
-      refute changeset.valid?
-      assert "is invalid" in errors_on(changeset).chain
-      assert "is invalid" in errors_on(changeset).position_type
-      assert "is invalid" in errors_on(changeset).status
-    end
-  end
-
   # ── 7. Compliance.AmlAlert ────────────────────────────────────────────
   # required: [:company_id, :alert_type, :severity]
   # defaults: alert_type: "large_transaction", severity: "medium"

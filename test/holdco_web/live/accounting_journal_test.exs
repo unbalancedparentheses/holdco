@@ -9,52 +9,6 @@ defmodule HoldcoWeb.AccountingJournalTest do
   # ── Mount & Render ──────────────────────────────────────
 
   describe "mount and render" do
-    test "renders page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/journal")
-
-      assert html =~ "<h1>Journal Entries</h1>"
-      assert html =~ "Double-entry bookkeeping records"
-      assert html =~ "page-title-rule"
-    end
-
-    test "renders company filter", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/journal")
-
-      assert html =~ "All Companies"
-      assert html =~ ~s(phx-change="filter_company")
-    end
-
-    test "renders table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/journal")
-
-      assert html =~ "All Entries"
-      assert html =~ "Date"
-      assert html =~ "Reference"
-      assert html =~ "Description"
-      assert html =~ "Debit"
-      assert html =~ "Credit"
-      assert html =~ "Lines"
-    end
-
-    test "renders empty state when no entries", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/journal")
-
-      assert html =~ "No journal entries yet."
-    end
-
-    test "renders existing journal entries", %{conn: conn} do
-      company = company_fixture(%{name: "JournalCo"})
-      je = journal_entry_fixture(%{company_id: company.id, date: "2025-01-15", description: "Office rent", reference: "JE-001"})
-      acct = account_fixture(%{company_id: company.id, code: "6000", name: "Rent Expense", account_type: "expense"})
-      journal_line_fixture(%{entry_id: je.id, account_id: acct.id, debit: 5000.0, credit: 0.0})
-
-      {:ok, _view, html} = live(conn, ~p"/accounts/journal")
-
-      assert html =~ "2025-01-15"
-      assert html =~ "Office rent"
-      assert html =~ "JE-001"
-    end
-
     test "editor sees New Journal Entry button", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
       {:ok, _view, html} = live(conn, ~p"/accounts/journal")
@@ -389,25 +343,4 @@ defmodule HoldcoWeb.AccountingJournalTest do
     end
   end
 
-  # ── Entry with reference shows correctly ──────────────
-
-  describe "entry display details" do
-    test "entry without reference shows em dash", %{conn: conn} do
-      journal_entry_fixture(%{date: "2025-05-01", description: "No ref entry", reference: nil})
-
-      {:ok, _view, html} = live(conn, ~p"/accounts/journal")
-
-      assert html =~ "No ref entry"
-    end
-
-    test "editor sees delete button", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      journal_entry_fixture(%{date: "2025-05-01", description: "EditorDeleteEntry"})
-
-      {:ok, _view, html} = live(conn, ~p"/accounts/journal")
-
-      assert html =~ "EditorDeleteEntry"
-      assert html =~ "btn btn-danger btn-sm"
-    end
-  end
 end

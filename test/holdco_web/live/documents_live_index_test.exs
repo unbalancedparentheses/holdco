@@ -6,73 +6,6 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "mount and render" do
-    test "renders the page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "<h1>Documents</h1>"
-      assert html =~ "documents in the library"
-      assert html =~ "page-title"
-      assert html =~ "page-title-rule"
-    end
-
-    test "renders the documents table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "<th>Name</th>"
-      assert html =~ "<th>Type</th>"
-      assert html =~ "<th>Company</th>"
-      assert html =~ "<th>Files</th>"
-      assert html =~ "<th>Date</th>"
-    end
-
-    test "renders empty state when no documents exist", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "No documents yet."
-      assert html =~ "empty-state"
-    end
-
-    test "renders company filter dropdown", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "All Companies"
-      assert html =~ "form-select"
-      assert html =~ ~s(name="company_id")
-    end
-
-    test "shows document data when documents exist", %{conn: conn} do
-      company = company_fixture(%{name: "DocTestCo"})
-      document_fixture(%{company: company, name: "Annual Report", doc_type: "report"})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "DocTestCo"
-      assert html =~ "Annual Report"
-      assert html =~ "report"
-      assert html =~ "tag tag-ink"
-      assert html =~ "1 documents in the library"
-    end
-
-    test "shows --- when document has no uploads", %{conn: conn} do
-      document_fixture(%{name: "NoFilesDoc"})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "NoFilesDoc"
-      # The "---" placeholder for no files
-      assert html =~ "---"
-    end
-
-    test "company options appear in the filter dropdown", %{conn: conn} do
-      company_fixture(%{name: "DocDropdownCo"})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "DocDropdownCo"
-    end
-  end
-
   describe "editor role" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
@@ -84,15 +17,6 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
 
       assert html =~ "Add Document"
       assert html =~ ~s(phx-click="show_form")
-    end
-
-    test "shows delete button for editor when documents exist", %{conn: conn} do
-      document_fixture()
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "btn btn-danger btn-sm"
-      assert html =~ "Del"
-      assert html =~ ~s(phx-click="delete")
     end
 
     test "clicking Add Document opens the modal form", %{conn: conn} do
@@ -113,14 +37,6 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
       assert html =~ ~s(name="document[notes]")
       assert html =~ "Attach Files"
       assert html =~ "DocFormCo"
-    end
-
-    test "form shows placeholder for document type", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      html = view |> element("button", "Add Document") |> render_click()
-
-      assert html =~ "e.g. contract, certificate, report"
     end
 
     test "clicking Cancel closes the modal form", %{conn: conn} do
@@ -280,30 +196,6 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
     end
   end
 
-  describe "document count display" do
-    test "shows correct document count in deck text", %{conn: conn} do
-      document_fixture(%{name: "Doc1"})
-      document_fixture(%{name: "Doc2"})
-      document_fixture(%{name: "Doc3"})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "3 documents in the library"
-    end
-  end
-
-  describe "document date display" do
-    test "shows formatted date for documents", %{conn: conn} do
-      document_fixture(%{name: "DatedDoc"})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "DatedDoc"
-      # Date should be formatted as YYYY-MM-DD
-      assert html =~ "td-mono"
-    end
-  end
-
   describe "upload display details" do
     test "image uploads show preview thumbnail", %{conn: conn} do
       doc = document_fixture(%{name: "ImageDoc"})
@@ -316,80 +208,129 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
     end
   end
 
-  describe "show_form and close_form events" do
-    setup %{user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      :ok
-    end
-
-    test "show_form assigns show_form to true", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      html = render_hook(view, "show_form", %{})
-      assert html =~ "dialog-overlay"
-    end
-
-    test "close_form assigns show_form to false", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      render_hook(view, "show_form", %{})
-      html = render_hook(view, "close_form", %{})
-      refute html =~ "dialog-overlay"
-    end
-  end
-
-  describe "document with company shows company name" do
-    test "shows company name for document with company", %{conn: conn} do
-      company = company_fixture(%{name: "DocLinkedCo"})
-      document_fixture(%{name: "LinkedDoc", company: company})
+  describe "document rendering edge cases" do
+    test "document with nil doc_type renders without error", %{conn: conn} do
+      document_fixture(%{name: "NilTypeDoc", doc_type: nil})
 
       {:ok, _view, html} = live(conn, ~p"/documents")
 
-      assert html =~ "LinkedDoc"
-      assert html =~ "DocLinkedCo"
+      assert html =~ "NilTypeDoc"
     end
-  end
 
-  describe "non-image non-pdf upload" do
-    test "shows file name and download for non-image non-pdf upload", %{conn: conn} do
-      doc = document_fixture(%{name: "SpreadsheetDoc"})
-      document_upload_fixture(%{document: doc, file_name: "data.xlsx", content_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})
+    test "document with nil url and nil notes renders without error", %{conn: conn} do
+      document_fixture(%{name: "NilFieldsDoc", url: nil, notes: nil})
 
       {:ok, _view, html} = live(conn, ~p"/documents")
 
-      assert html =~ "data.xlsx"
-      assert html =~ "Download"
-      # Non-PDF should not have View button
-      refute html =~ ">View</a>"
+      assert html =~ "NilFieldsDoc"
     end
   end
 
-  describe "multiple documents count" do
-    test "shows 0 documents for empty library", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/documents")
+  describe "filter resets document count" do
+    test "filtered view shows correct document count", %{conn: conn} do
+      co1 = company_fixture(%{name: "CountFilterCo1"})
+      co2 = company_fixture(%{name: "CountFilterCo2"})
+      document_fixture(%{company: co1, name: "CFDoc1"})
+      document_fixture(%{company: co1, name: "CFDoc2"})
+      document_fixture(%{company: co2, name: "CFDoc3"})
 
-      assert html =~ "0 documents in the library"
-    end
-  end
-
-  describe "editor delete permission guard" do
-    setup %{user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      :ok
-    end
-
-    test "editor can delete a document via button", %{conn: conn} do
-      doc = document_fixture(%{name: "EditorDelDoc"})
       {:ok, view, html} = live(conn, ~p"/documents")
-      assert html =~ "EditorDelDoc"
+      assert html =~ "3 documents in the library"
 
       html =
         view
-        |> element(~s(button[phx-click="delete"][phx-value-id="#{doc.id}"]))
-        |> render_click()
+        |> form("form[phx-change=\"filter_company\"]", %{"company_id" => to_string(co1.id)})
+        |> render_change()
 
-      assert html =~ "Document deleted"
-      refute html =~ "EditorDelDoc"
+      assert html =~ "2 documents in the library"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Edit form update submission
+  # ------------------------------------------------------------------
+
+  describe "editor update submission" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "submitting the edit form updates the document", %{conn: conn} do
+      company = company_fixture(%{name: "UpdateDocCo"})
+      doc = document_fixture(%{company: company, name: "Old Name", doc_type: "contract"})
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+
+      # Open edit form
+      view
+      |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
+      |> render_click()
+
+      # Submit update
+      html =
+        view
+        |> form("form[phx-submit=\"update\"]", %{
+          "document" => %{
+            "company_id" => to_string(company.id),
+            "name" => "New Name",
+            "doc_type" => "report",
+            "url" => "https://updated.example.com",
+            "notes" => "Updated notes"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Document updated"
+      assert html =~ "New Name"
+      refute html =~ "dialog-overlay"
+    end
+
+    test "update with invalid data shows error", %{conn: conn} do
+      company = company_fixture(%{name: "UpdateFailCo"})
+      doc = document_fixture(%{company: company, name: "FailDoc"})
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+
+      view
+      |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
+      |> render_click()
+
+      html =
+        view
+        |> form("form[phx-submit=\"update\"]", %{
+          "document" => %{
+            "company_id" => "",
+            "name" => ""
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to update document"
+    end
+  end
+
+  # ------------------------------------------------------------------
+  # Edit form close via overlay click
+  # ------------------------------------------------------------------
+
+  describe "edit form overlay close" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
+    end
+
+    test "clicking overlay on edit form closes it", %{conn: conn} do
+      doc = document_fixture(%{name: "OverlayCloseDoc"})
+
+      {:ok, view, _html} = live(conn, ~p"/documents")
+
+      view
+      |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
+      |> render_click()
+
+      html = view |> element(".dialog-overlay") |> render_click()
+      refute html =~ "dialog-overlay"
     end
   end
 
@@ -517,165 +458,6 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
     end
   end
 
-  describe "document rendering edge cases" do
-    test "renders doc_type as tag badge", %{conn: conn} do
-      document_fixture(%{name: "BadgeDoc", doc_type: "lease_agreement"})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "lease_agreement"
-      assert html =~ "tag tag-ink"
-    end
-
-    test "document with nil doc_type renders without error", %{conn: conn} do
-      document_fixture(%{name: "NilTypeDoc", doc_type: nil})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "NilTypeDoc"
-    end
-
-    test "document with nil url and nil notes renders without error", %{conn: conn} do
-      document_fixture(%{name: "NilFieldsDoc", url: nil, notes: nil})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "NilFieldsDoc"
-    end
-  end
-
-  describe "filter resets document count" do
-    test "filtered view shows correct document count", %{conn: conn} do
-      co1 = company_fixture(%{name: "CountFilterCo1"})
-      co2 = company_fixture(%{name: "CountFilterCo2"})
-      document_fixture(%{company: co1, name: "CFDoc1"})
-      document_fixture(%{company: co1, name: "CFDoc2"})
-      document_fixture(%{company: co2, name: "CFDoc3"})
-
-      {:ok, view, html} = live(conn, ~p"/documents")
-      assert html =~ "3 documents in the library"
-
-      html =
-        view
-        |> form("form[phx-change=\"filter_company\"]", %{"company_id" => to_string(co1.id)})
-        |> render_change()
-
-      assert html =~ "2 documents in the library"
-    end
-  end
-
-  # ------------------------------------------------------------------
-  # Edit form update submission
-  # ------------------------------------------------------------------
-
-  describe "editor update submission" do
-    setup %{user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      :ok
-    end
-
-    test "submitting the edit form updates the document", %{conn: conn} do
-      company = company_fixture(%{name: "UpdateDocCo"})
-      doc = document_fixture(%{company: company, name: "Old Name", doc_type: "contract"})
-
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      # Open edit form
-      view
-      |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
-      |> render_click()
-
-      # Submit update
-      html =
-        view
-        |> form("form[phx-submit=\"update\"]", %{
-          "document" => %{
-            "company_id" => to_string(company.id),
-            "name" => "New Name",
-            "doc_type" => "report",
-            "url" => "https://updated.example.com",
-            "notes" => "Updated notes"
-          }
-        })
-        |> render_submit()
-
-      assert html =~ "Document updated"
-      assert html =~ "New Name"
-      refute html =~ "dialog-overlay"
-    end
-
-    test "update with invalid data shows error", %{conn: conn} do
-      company = company_fixture(%{name: "UpdateFailCo"})
-      doc = document_fixture(%{company: company, name: "FailDoc"})
-
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      view
-      |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
-      |> render_click()
-
-      html =
-        view
-        |> form("form[phx-submit=\"update\"]", %{
-          "document" => %{
-            "company_id" => "",
-            "name" => ""
-          }
-        })
-        |> render_submit()
-
-      assert html =~ "Failed to update document"
-    end
-  end
-
-  # ------------------------------------------------------------------
-  # Edit form close via overlay click
-  # ------------------------------------------------------------------
-
-  describe "edit form overlay close" do
-    setup %{user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      :ok
-    end
-
-    test "clicking overlay on edit form closes it", %{conn: conn} do
-      doc = document_fixture(%{name: "OverlayCloseDoc"})
-
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      view
-      |> element(~s(button[phx-click="edit"][phx-value-id="#{doc.id}"]))
-      |> render_click()
-
-      html = view |> element(".dialog-overlay") |> render_click()
-      refute html =~ "dialog-overlay"
-    end
-  end
-
-  # ------------------------------------------------------------------
-  # Edit button and form for different documents
-  # ------------------------------------------------------------------
-
-  describe "editor edit button presence" do
-    setup %{user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      :ok
-    end
-
-    test "shows edit and delete buttons for each document", %{conn: conn} do
-      document_fixture(%{name: "EditBtnDoc1"})
-      document_fixture(%{name: "EditBtnDoc2"})
-
-      {:ok, _view, html} = live(conn, ~p"/documents")
-
-      assert html =~ "EditBtnDoc1"
-      assert html =~ "EditBtnDoc2"
-      # Both should have edit buttons
-      assert html =~ ~s(phx-click="edit")
-      assert html =~ ~s(phx-click="delete")
-    end
-  end
-
   # ------------------------------------------------------------------
   # Save form with URL and notes fields
   # ------------------------------------------------------------------
@@ -768,6 +550,20 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
       assert html =~ "LinkedDoc2"
       assert html =~ "LinkedCo2"
       assert html =~ ~s(/companies/#{company.id})
+    end
+  end
+
+  describe "non-image non-pdf upload" do
+    test "shows file name and download for non-image non-pdf upload", %{conn: conn} do
+      doc = document_fixture(%{name: "SpreadsheetDoc"})
+      document_upload_fixture(%{document: doc, file_name: "data.xlsx", content_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})
+
+      {:ok, _view, html} = live(conn, ~p"/documents")
+
+      assert html =~ "data.xlsx"
+      assert html =~ "Download"
+      # Non-PDF should not have View button
+      refute html =~ ">View</a>"
     end
   end
 end

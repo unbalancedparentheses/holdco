@@ -58,7 +58,7 @@ defmodule HoldcoWeb.EntityComparisonLive.Index do
     <div class="page-title">
       <h1>Entity Comparison</h1>
       <p class="deck">
-        Compare balance sheets and income statements side-by-side across 2 to 4 entities
+        Compare balance sheets, income statements, and financial ratios side-by-side across 2 to 4 entities
       </p>
       <hr class="page-title-rule" />
     </div>
@@ -124,6 +124,13 @@ defmodule HoldcoWeb.EntityComparisonLive.Index do
             class={"btn #{if @active_tab == "income_statement", do: "btn-primary", else: "btn-secondary"}"}
           >
             Income Statement
+          </button>
+          <button
+            phx-click="switch_tab"
+            phx-value-tab="ratios"
+            class={"btn #{if @active_tab == "ratios", do: "btn-primary", else: "btn-secondary"}"}
+          >
+            Ratios
           </button>
         </div>
 
@@ -299,6 +306,56 @@ defmodule HoldcoWeb.EntityComparisonLive.Index do
             </table>
           </div>
         <% end %>
+
+        <%= if @active_tab == "ratios" do %>
+          <div class="panel">
+            <h3 style="padding: 1rem 1rem 0; font-family: 'Source Serif 4', Georgia, serif;">Financial Ratios</h3>
+            <%
+              ratios = compute_ratios(@balance_sheets, @income_statements, @selected_ids)
+              current_ratios = Enum.map(@selected_ids, fn id -> Map.get(ratios, id, %{})[:current_ratio] end)
+              net_margins = Enum.map(@selected_ids, fn id -> Map.get(ratios, id, %{})[:net_margin] end)
+              cr_best = best_ratio(current_ratios)
+              cr_worst = worst_ratio(current_ratios)
+              nm_best = best_ratio(net_margins)
+              nm_worst = worst_ratio(net_margins)
+            %>
+            <table>
+              <thead>
+                <tr>
+                  <th>Ratio</th>
+                  <%= for c <- @selected_companies do %>
+                    <th class="th-num">{c.name}</th>
+                  <% end %>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-name">Current Ratio</td>
+                  <%= for {id, idx} <- Enum.with_index(@selected_ids) do %>
+                    <% val = Map.get(ratios, id, %{})[:current_ratio] %>
+                    <td class="td-num" style={ratio_highlight(idx, cr_best, cr_worst)}>
+                      {format_ratio(val)}
+                    </td>
+                  <% end %>
+                </tr>
+                <tr>
+                  <td class="td-name">Net Margin (%)</td>
+                  <%= for {id, idx} <- Enum.with_index(@selected_ids) do %>
+                    <% val = Map.get(ratios, id, %{})[:net_margin] %>
+                    <td class="td-num" style={ratio_highlight(idx, nm_best, nm_worst)}>
+                      {format_ratio(val)}<%= if val, do: "%" %>
+                    </td>
+                  <% end %>
+                </tr>
+              </tbody>
+            </table>
+            <p style="color: var(--muted); font-size: 0.85rem; padding: 1rem;">
+              Current Ratio = Total Current Assets / Total Current Liabilities. Net Margin = (Revenue - Expenses) / Revenue * 100.
+              <span style="color: #2e7d32;">Green</span> = best,
+              <span style="color: #c62828;">Red</span> = worst among selected entities.
+            </p>
+          </div>
+        <% end %>
       </div>
     <% else %>
       <div class="section">
@@ -314,7 +371,6 @@ defmodule HoldcoWeb.EntityComparisonLive.Index do
       <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint);">Related</span>
       <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
         <.link navigate={~p"/consolidated"} class="td-link" style="font-size: 0.85rem;">Consolidated</.link>
-        <.link navigate={~p"/kpis"} class="td-link" style="font-size: 0.85rem;">KPIs</.link>
         <.link navigate={~p"/financials"} class="td-link" style="font-size: 0.85rem;">Financials</.link>
       </div>
     </div>
@@ -408,5 +464,80 @@ defmodule HoldcoWeb.EntityComparisonLive.Index do
 
   defp add_commas(str) do
     str |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+  end
+
+  # -- Ratios --
+
+  defp compute_ratios(balance_sheets, income_statements, selected_ids) do
+    Map.new(selected_ids, fn id ->
+      bs = Map.get(balance_sheets, id, %{})
+      is = Map.get(income_statements, id, %{})
+
+      total_assets = Map.get(bs, :total_assets, 0)
+      total_liabilities = Map.get(bs, :total_liabilities, 0)
+      total_revenue = Map.get(is, :total_revenue, 0)
+      total_expenses = Map.get(is, :total_expenses, 0)
+
+      current_ratio =
+        if is_positive?(total_liabilities) do
+          safe_div(total_assets, total_liabilities)
+        else
+          nil
+        end
+
+      net_margin =
+        if is_positive?(total_revenue) do
+          net = safe_sub(total_revenue, total_expenses)
+          safe_div(net, total_revenue) |> safe_mult(100)
+        else
+          nil
+        end
+
+      {id, %{current_ratio: current_ratio, net_margin: net_margin}}
+    end)
+  end
+
+  defp is_positive?(%Decimal{} = d), do: Decimal.gt?(d, 0)
+  defp is_positive?(n) when is_number(n), do: n > 0
+  defp is_positive?(_), do: false
+
+  defp safe_div(%Decimal{} = a, %Decimal{} = b), do: Decimal.div(a, b) |> Decimal.round(2)
+  defp safe_div(a, b) when is_number(a) and is_number(b) and b != 0, do: Float.round(a / b, 2)
+  defp safe_div(a, b), do: safe_div(to_dec(a), to_dec(b))
+
+  defp safe_sub(%Decimal{} = a, %Decimal{} = b), do: Decimal.sub(a, b)
+  defp safe_sub(a, b), do: safe_sub(to_dec(a), to_dec(b))
+
+  defp safe_mult(%Decimal{} = a, n), do: Decimal.mult(a, Decimal.new(n)) |> Decimal.round(1)
+  defp safe_mult(a, n) when is_number(a), do: Float.round(a * n, 1)
+  defp safe_mult(a, n), do: safe_mult(to_dec(a), n)
+
+  defp to_dec(%Decimal{} = d), do: d
+  defp to_dec(n) when is_float(n), do: Decimal.from_float(n)
+  defp to_dec(n) when is_integer(n), do: Decimal.new(n)
+  defp to_dec(_), do: Decimal.new(0)
+
+  defp format_ratio(nil), do: "N/A"
+  defp format_ratio(%Decimal{} = d), do: Decimal.to_string(Decimal.round(d, 2))
+  defp format_ratio(n) when is_number(n), do: :erlang.float_to_binary(n / 1, decimals: 2)
+  defp format_ratio(_), do: "N/A"
+
+  defp best_ratio(values) do
+    nums = values |> Enum.with_index() |> Enum.reject(fn {v, _} -> is_nil(v) end)
+    if nums == [], do: nil, else: nums |> Enum.max_by(fn {v, _} -> to_dec(v) end) |> elem(1)
+  end
+
+  defp worst_ratio(values) do
+    nums = values |> Enum.with_index() |> Enum.reject(fn {v, _} -> is_nil(v) end)
+    if nums == [], do: nil, else: nums |> Enum.min_by(fn {v, _} -> to_dec(v) end) |> elem(1)
+  end
+
+  defp ratio_highlight(idx, best, worst) do
+    cond do
+      best == worst -> ""
+      idx == best -> "background: rgba(46, 125, 50, 0.12); color: #2e7d32; font-weight: 600;"
+      idx == worst -> "background: rgba(198, 40, 40, 0.12); color: #c62828; font-weight: 600;"
+      true -> ""
+    end
   end
 end

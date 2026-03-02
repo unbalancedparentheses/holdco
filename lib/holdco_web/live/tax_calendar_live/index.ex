@@ -9,8 +9,21 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
     annual_filings = Compliance.list_annual_filings()
     companies = Corporate.list_companies()
 
+    deadlines = Enum.sort_by(deadlines, & &1.due_date)
+
     pending = Enum.count(deadlines, &(&1.status == "pending"))
     overdue = Enum.count(deadlines, &(&1.status == "overdue"))
+
+    today = Date.utc_today()
+    thirty_days = Date.add(today, 30)
+
+    upcoming_30 =
+      Enum.count(deadlines, fn d ->
+        case parse_date(d.due_date) do
+          {:ok, dd} -> Date.compare(dd, today) in [:gt, :eq] and Date.compare(dd, thirty_days) in [:lt, :eq]
+          _ -> false
+        end
+      end)
 
     {:ok,
      assign(socket,
@@ -20,6 +33,8 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
        companies: companies,
        pending: pending,
        overdue: overdue,
+       upcoming_30: upcoming_30,
+       today: today,
        show_form: false,
        editing_item: nil
      )}
@@ -153,6 +168,10 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
         <div class="metric-label">Overdue</div>
         <div class="metric-value num-negative">{@overdue}</div>
       </div>
+      <div class="metric-cell">
+        <div class="metric-label">Upcoming 30 Days</div>
+        <div class="metric-value">{@upcoming_30}</div>
+      </div>
     </div>
 
     <div class="section">
@@ -164,6 +183,7 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
           <thead>
             <tr>
               <th>Due Date</th>
+              <th class="th-num">Days Until Due</th>
               <th>Jurisdiction</th>
               <th>Description</th>
               <th>Company</th>
@@ -173,8 +193,12 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
           </thead>
           <tbody>
             <%= for td <- @deadlines do %>
-              <tr>
+              <% days_until = days_until_due(td.due_date, @today) %>
+              <tr style={row_urgency_style(days_until, td.status)}>
                 <td class="td-mono">{td.due_date}</td>
+                <td class={"td-num #{if days_until && days_until < 0, do: "num-negative", else: ""}"}>
+                  {format_days_until(days_until)}
+                </td>
                 <td>{td.jurisdiction}</td>
                 <td class="td-name">{td.description}</td>
                 <td>
@@ -348,4 +372,34 @@ defmodule HoldcoWeb.TaxCalendarLive.Index do
   defp status_tag("pending"), do: "tag-lemon"
   defp status_tag("overdue"), do: "tag-crimson"
   defp status_tag(_), do: "tag-ink"
+
+  defp parse_date(nil), do: :error
+  defp parse_date(%Date{} = d), do: {:ok, d}
+
+  defp parse_date(str) when is_binary(str) do
+    case Date.from_iso8601(str) do
+      {:ok, _} = ok -> ok
+      _ -> :error
+    end
+  end
+
+  defp parse_date(_), do: :error
+
+  defp days_until_due(due_date, today) do
+    case parse_date(due_date) do
+      {:ok, dd} -> Date.diff(dd, today)
+      _ -> nil
+    end
+  end
+
+  defp format_days_until(nil), do: "---"
+  defp format_days_until(0), do: "Today"
+  defp format_days_until(n) when n < 0, do: "#{abs(n)}d overdue"
+  defp format_days_until(n), do: "#{n}d"
+
+  defp row_urgency_style(nil, _status), do: ""
+  defp row_urgency_style(_days, "completed"), do: ""
+  defp row_urgency_style(days, _status) when days < 0, do: "background: rgba(198, 40, 40, 0.06);"
+  defp row_urgency_style(days, _status) when days <= 7, do: "background: rgba(245, 200, 66, 0.12);"
+  defp row_urgency_style(_days, _status), do: ""
 end

@@ -119,6 +119,25 @@ defmodule HoldcoWeb.ScheduledReportsLive.Index do
       <hr class="page-title-rule" />
     </div>
 
+    <div class="metrics-strip">
+      <div class="metric-cell">
+        <div class="metric-label">Total</div>
+        <div class="metric-value">{length(@reports)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Active</div>
+        <div class="metric-value">{Enum.count(@reports, & &1.is_active)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Paused</div>
+        <div class="metric-value">{Enum.count(@reports, &(!&1.is_active))}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Next Due</div>
+        <div class="metric-value">{next_due_date(@reports)}</div>
+      </div>
+    </div>
+
     <div class="section">
       <div class="section-head">
         <h2>Reports</h2>
@@ -155,7 +174,7 @@ defmodule HoldcoWeb.ScheduledReportsLive.Index do
                   <button
                     phx-click="toggle_active"
                     phx-value-id={r.id}
-                    class={"tag #{if r.is_active, do: "tag-green", else: "tag-red"}"}
+                    class={"tag #{if r.is_active, do: "tag-jade", else: "tag-crimson"}"}
                     style="cursor: pointer; border: none;"
                   >
                     {if r.is_active, do: "Active", else: "Paused"}
@@ -299,6 +318,16 @@ defmodule HoldcoWeb.ScheduledReportsLive.Index do
       </div>
     <% end %>
     """
+  end
+
+  defp next_due_date(reports) do
+    reports
+    |> Enum.filter(&(&1.is_active && &1.next_run_date))
+    |> Enum.sort_by(& &1.next_run_date)
+    |> case do
+      [first | _] -> to_string(first.next_run_date)
+      [] -> "N/A"
+    end
   end
 
   defp format_type("portfolio_summary"), do: "Portfolio Summary"

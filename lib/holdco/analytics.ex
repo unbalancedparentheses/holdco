@@ -3,53 +3,7 @@ defmodule Holdco.Analytics do
   alias Holdco.Repo
   alias Holdco.Money
 
-  alias Holdco.Analytics.{Kpi, KpiSnapshot, ReportTemplate, ScheduledReport, StressTest, LiquidityCoverage, Anomaly, Benchmark, BenchmarkComparison, CounterpartyExposure, LoanCovenant, DefiPosition, Airdrop, CustomDashboard, BiConnector, BiExportLog, HealthScore}
-
-  # KPIs
-  def list_kpis(company_id \\ nil) do
-    query = from(k in Kpi, order_by: k.name, preload: [:company, :snapshots])
-    query = if company_id, do: where(query, [k], k.company_id == ^company_id), else: query
-    Repo.all(query)
-  end
-
-  def get_kpi!(id), do: Repo.get!(Kpi, id) |> Repo.preload([:company, :snapshots])
-
-  def create_kpi(attrs) do
-    %Kpi{}
-    |> Kpi.changeset(attrs)
-    |> Repo.insert()
-    |> audit_and_broadcast("kpis", "create")
-  end
-
-  def update_kpi(%Kpi{} = kpi, attrs) do
-    kpi
-    |> Kpi.changeset(attrs)
-    |> Repo.update()
-    |> audit_and_broadcast("kpis", "update")
-  end
-
-  def delete_kpi(%Kpi{} = kpi) do
-    Repo.delete(kpi)
-    |> audit_and_broadcast("kpis", "delete")
-  end
-
-  # KPI Snapshots
-  def list_kpi_snapshots(kpi_id) do
-    from(s in KpiSnapshot, where: s.kpi_id == ^kpi_id, order_by: [desc: s.date])
-    |> Repo.all()
-  end
-
-  def create_kpi_snapshot(attrs) do
-    %KpiSnapshot{}
-    |> KpiSnapshot.changeset(attrs)
-    |> Repo.insert()
-    |> audit_and_broadcast("kpi_snapshots", "create")
-  end
-
-  def delete_kpi_snapshot(%KpiSnapshot{} = snap) do
-    Repo.delete(snap)
-    |> audit_and_broadcast("kpi_snapshots", "delete")
-  end
+  alias Holdco.Analytics.{ReportTemplate, ScheduledReport, StressTest, LiquidityCoverage, Anomaly, Benchmark, BenchmarkComparison, CounterpartyExposure, LoanCovenant, Airdrop, CustomDashboard, BiConnector, BiExportLog, HealthScore}
 
   # Report Templates
   def list_report_templates(user_id \\ nil) do
@@ -148,63 +102,6 @@ defmodule Holdco.Analytics do
   end
 
   defp compute_next_run_date(_, from_date), do: Date.add(from_date, 1)
-
-  # KPI Auto-Population
-  def compute_kpi_value(kpi) do
-    case kpi.data_source do
-      nil -> nil
-      "" -> nil
-      "revenue" ->
-        financials = Holdco.Finance.list_financials(kpi.company_id)
-        case financials do
-          [latest | _] -> latest.revenue
-          _ -> nil
-        end
-      "expenses" ->
-        financials = Holdco.Finance.list_financials(kpi.company_id)
-        case financials do
-          [latest | _] -> latest.expenses
-          _ -> nil
-        end
-      "net_income" ->
-        financials = Holdco.Finance.list_financials(kpi.company_id)
-        case financials do
-          [latest | _] -> Money.sub(Money.to_decimal(latest.revenue), Money.to_decimal(latest.expenses))
-          _ -> nil
-        end
-      "cash_balance" ->
-        accounts = Holdco.Banking.list_bank_accounts()
-        accounts
-        |> Enum.filter(fn ba -> kpi.company_id == nil or ba.company_id == kpi.company_id end)
-        |> Enum.reduce(Decimal.new(0), fn ba, acc -> Money.add(acc, Money.to_decimal(ba.balance)) end)
-      "nav" ->
-        nav = Holdco.Portfolio.calculate_nav()
-        nav.nav
-      "liability_total" ->
-        liabilities = Holdco.Finance.list_liabilities(kpi.company_id)
-        Enum.reduce(liabilities, Decimal.new(0), fn l, acc ->
-          if l.status == "active", do: Money.add(acc, Money.to_decimal(l.principal)), else: acc
-        end)
-      _ -> nil
-    end
-  end
-
-  def auto_snapshot_kpis do
-    list_kpis()
-    |> Enum.filter(& &1.data_source)
-    |> Enum.filter(& &1.data_source != "")
-    |> Enum.each(fn kpi ->
-      case compute_kpi_value(kpi) do
-        nil -> :skip
-        value ->
-          create_kpi_snapshot(%{
-            "kpi_id" => kpi.id,
-            "value" => value,
-            "date" => Date.to_iso8601(Date.utc_today())
-          })
-      end
-    end)
-  end
 
   # ── Stress Tests ─────────────────────────────────────
 
@@ -1144,60 +1041,6 @@ defmodule Holdco.Analytics do
     end)
   end
 
-
-  # DeFi Positions
-  def list_defi_positions(company_id \\ nil) do
-    query = from(d in DefiPosition, order_by: [desc: d.inserted_at], preload: [:company])
-    query = if company_id, do: where(query, [d], d.company_id == ^company_id), else: query
-    Repo.all(query)
-  end
-
-  def get_defi_position!(id), do: Repo.get!(DefiPosition, id) |> Repo.preload(:company)
-
-  def create_defi_position(attrs) do
-    %DefiPosition{}
-    |> DefiPosition.changeset(attrs)
-    |> Repo.insert()
-    |> audit_and_broadcast("defi_positions", "create")
-  end
-
-  def update_defi_position(%DefiPosition{} = pos, attrs) do
-    pos
-    |> DefiPosition.changeset(attrs)
-    |> Repo.update()
-    |> audit_and_broadcast("defi_positions", "update")
-  end
-
-  def delete_defi_position(%DefiPosition{} = pos) do
-    Repo.delete(pos)
-    |> audit_and_broadcast("defi_positions", "delete")
-  end
-
-  def total_defi_value(company_id) do
-    from(d in DefiPosition,
-      where: d.company_id == ^company_id and d.status == "active",
-      select: sum(d.current_value)
-    )
-    |> Repo.one() || Decimal.new(0)
-  end
-
-  def defi_by_chain(company_id) do
-    from(d in DefiPosition,
-      where: d.company_id == ^company_id and d.status == "active",
-      group_by: d.chain,
-      select: {d.chain, sum(d.current_value), count(d.id)}
-    )
-    |> Repo.all()
-  end
-
-  def defi_by_protocol(company_id) do
-    from(d in DefiPosition,
-      where: d.company_id == ^company_id and d.status == "active",
-      group_by: d.protocol_name,
-      select: {d.protocol_name, sum(d.current_value), count(d.id)}
-    )
-    |> Repo.all()
-  end
 
   # Airdrops
   def list_airdrops(company_id \\ nil) do

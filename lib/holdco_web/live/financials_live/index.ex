@@ -278,6 +278,13 @@ defmodule HoldcoWeb.FinancialsLive.Index do
         <div class="metric-label">Total Liabilities</div>
         <div class="metric-value num-negative">{sym}{format_number(@total_liabilities)}</div>
       </div>
+      <div class="metric-cell">
+        <div class="metric-label">Net Margin</div>
+        <% net_margin = if Money.gt?(@total_revenue, 0), do: Money.to_float(Money.round(Money.mult(Money.div(Money.sub(@total_revenue, @total_expenses), @total_revenue), 100), 1)), else: 0.0 %>
+        <div class={"metric-value #{if net_margin >= 0, do: "num-positive", else: "num-negative"}"}>
+          {net_margin}%
+        </div>
+      </div>
     </div>
 
     <div class="section">

@@ -11,7 +11,8 @@ defmodule HoldcoWeb.HoldingsLive.Index do
     holdings = Assets.list_holdings()
     companies = Corporate.list_companies()
     allocation = Portfolio.asset_allocation()
-    total_value = Enum.reduce(holdings, Decimal.new(0), fn h, acc -> Money.add(acc, Money.to_decimal(h.quantity)) end)
+    gains = Portfolio.calculate_gains()
+    total_market_value = Enum.reduce(holdings, Decimal.new(0), fn h, acc -> Money.add(acc, Portfolio.holding_value(h)) end)
 
     asset_types =
       case Holdco.Platform.get_setting_value("asset_types") do
@@ -26,7 +27,8 @@ defmodule HoldcoWeb.HoldingsLive.Index do
        holdings: holdings,
        companies: companies,
        allocation: allocation,
-       total_value: total_value,
+       total_market_value: total_market_value,
+       gains: gains,
        asset_types: asset_types,
        show_form: false,
        editing_item: nil,
@@ -115,12 +117,14 @@ defmodule HoldcoWeb.HoldingsLive.Index do
   defp reload(socket) do
     holdings = Assets.list_holdings()
     allocation = Portfolio.asset_allocation()
-    total_value = Enum.reduce(holdings, Decimal.new(0), fn h, acc -> Money.add(acc, Money.to_decimal(h.quantity)) end)
+    gains = Portfolio.calculate_gains()
+    total_market_value = Enum.reduce(holdings, Decimal.new(0), fn h, acc -> Money.add(acc, Portfolio.holding_value(h)) end)
 
     assign(socket,
       all_holdings: holdings,
       allocation: allocation,
-      total_value: total_value
+      total_market_value: total_market_value,
+      gains: gains
     )
     |> apply_sort_and_filter()
   end
@@ -207,8 +211,20 @@ defmodule HoldcoWeb.HoldingsLive.Index do
         <div class="metric-value">{length(@holdings)}</div>
       </div>
       <div class="metric-cell">
-        <div class="metric-label">Total Quantity Value</div>
-        <div class="metric-value">{format_number(@total_value)}</div>
+        <div class="metric-label">Total Market Value</div>
+        <div class="metric-value">${format_number(@total_market_value)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Unrealized G/L</div>
+        <div class={"metric-value #{if Money.gte?(@gains.aggregate.total_unrealized, 0), do: "num-positive", else: "num-negative"}"}>
+          ${format_number(@gains.aggregate.total_unrealized)}
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Realized G/L</div>
+        <div class={"metric-value #{if Money.gte?(@gains.aggregate.total_realized, 0), do: "num-positive", else: "num-negative"}"}>
+          ${format_number(@gains.aggregate.total_realized)}
+        </div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Asset Types</div>
@@ -288,6 +304,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
               <th>Unit</th>
               <th style="cursor: pointer;" phx-click="sort" phx-value-field="type">Type{sort_indicator(assigns, "type")}</th>
               <th style="cursor: pointer;" phx-click="sort" phx-value-field="currency">Currency{sort_indicator(assigns, "currency")}</th>
+              <th class="th-num">Market Value</th>
               <th style="cursor: pointer;" phx-click="sort" phx-value-field="company">Company{sort_indicator(assigns, "company")}</th>
               <th></th>
             </tr>
@@ -303,6 +320,7 @@ defmodule HoldcoWeb.HoldingsLive.Index do
                 <td>{h.unit}</td>
                 <td><span class="tag tag-ink">{h.asset_type}</span></td>
                 <td>{h.currency}</td>
+                <td class="td-num">${format_number(Portfolio.holding_value(h))}</td>
                 <td>
                   <%= if h.company do %>
                     <.link navigate={~p"/companies/#{h.company.id}"} class="td-link">{h.company.name}</.link>

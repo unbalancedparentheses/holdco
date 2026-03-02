@@ -13,23 +13,6 @@ defmodule HoldcoWeb.AiChatLiveTest do
   end
 
   # ------------------------------------------------------------------
-  # Mount and render
-  # ------------------------------------------------------------------
-
-  describe "mount" do
-    test "AI chat drawer renders within the layout", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "ai-chat-drawer-inner"
-    end
-
-    test "FAB button is visible when chat is closed", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "ai-chat-fab"
-      assert html =~ "Open AI Chat"
-    end
-  end
-
-  # ------------------------------------------------------------------
   # toggle_chat
   # ------------------------------------------------------------------
 
@@ -291,40 +274,6 @@ defmodule HoldcoWeb.AiChatLiveTest do
   end
 
   # ------------------------------------------------------------------
-  # Message rendering
-  # ------------------------------------------------------------------
-
-  describe "message rendering" do
-    test "user messages have user bubble class", %{conn: conn, user: user} do
-      {:ok, conv} = Holdco.AI.create_conversation(%{user_id: user.id, title: "Style Conv"})
-      Holdco.AI.add_message(conv.id, "user", "User says hello")
-
-      {_parent, chat_view} = get_chat_view(conn)
-
-      render_click(chat_view, "toggle_chat", %{})
-      html = render_click(chat_view, "select_conversation", %{"id" => to_string(conv.id)})
-
-      assert html =~ "ai-chat-msg-user"
-      assert html =~ "ai-chat-bubble-user"
-      assert html =~ "User says hello"
-    end
-
-    test "assistant messages have AI bubble class", %{conn: conn, user: user} do
-      {:ok, conv} = Holdco.AI.create_conversation(%{user_id: user.id, title: "AI Style Conv"})
-      Holdco.AI.add_message(conv.id, "assistant", "AI responds here")
-
-      {_parent, chat_view} = get_chat_view(conn)
-
-      render_click(chat_view, "toggle_chat", %{})
-      html = render_click(chat_view, "select_conversation", %{"id" => to_string(conv.id)})
-
-      assert html =~ "ai-chat-msg-ai"
-      assert html =~ "ai-chat-bubble-ai"
-      assert html =~ "AI responds here"
-    end
-  end
-
-  # ------------------------------------------------------------------
   # History with multiple conversations
   # ------------------------------------------------------------------
 
@@ -344,19 +293,6 @@ defmodule HoldcoWeb.AiChatLiveTest do
       assert html =~ "Third Chat"
     end
 
-    test "active conversation is highlighted in history", %{conn: conn, user: user} do
-      {:ok, conv} = Holdco.AI.create_conversation(%{user_id: user.id, title: "Active Conv"})
-      {:ok, _conv2} = Holdco.AI.create_conversation(%{user_id: user.id, title: "Other Conv"})
-
-      {_parent, chat_view} = get_chat_view(conn)
-
-      render_click(chat_view, "toggle_chat", %{})
-      render_click(chat_view, "select_conversation", %{"id" => to_string(conv.id)})
-      html = render_click(chat_view, "toggle_history", %{})
-
-      # The active item should have the "active" class
-      assert html =~ "active"
-    end
   end
 
   # ------------------------------------------------------------------

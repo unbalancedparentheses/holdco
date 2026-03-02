@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.HoldingsLive.Show do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Assets, Portfolio, Pricing}
+  alias Holdco.{Assets, Banking, Portfolio, Pricing}
   alias Holdco.Money
 
   @impl true
@@ -14,6 +14,13 @@ defmodule HoldcoWeb.HoldingsLive.Show do
     current_value = Portfolio.holding_value(holding)
     price_history = load_price_history(holding.ticker)
 
+    total_portfolio_value = Enum.reduce(Assets.list_holdings(), Decimal.new(0), fn h, acc -> Money.add(acc, Portfolio.holding_value(h)) end)
+    portfolio_weight = if Money.gt?(total_portfolio_value, 0), do: Money.to_float(Money.round(Money.mult(Money.div(current_value, total_portfolio_value), 100), 1)), else: 0.0
+
+    related_transactions = Banking.list_transactions()
+      |> Enum.filter(&(&1.asset_holding_id == holding.id))
+      |> Enum.take(20)
+
     {:ok,
      assign(socket,
        page_title: holding.asset,
@@ -21,7 +28,9 @@ defmodule HoldcoWeb.HoldingsLive.Show do
        lots: lots,
        gains: gains,
        current_value: current_value,
-       price_history: price_history
+       price_history: price_history,
+       portfolio_weight: portfolio_weight,
+       related_transactions: related_transactions
      )}
   end
 
@@ -38,13 +47,22 @@ defmodule HoldcoWeb.HoldingsLive.Show do
     current_value = Portfolio.holding_value(holding)
     price_history = load_price_history(holding.ticker)
 
+    total_portfolio_value = Enum.reduce(Assets.list_holdings(), Decimal.new(0), fn h, acc -> Money.add(acc, Portfolio.holding_value(h)) end)
+    portfolio_weight = if Money.gt?(total_portfolio_value, 0), do: Money.to_float(Money.round(Money.mult(Money.div(current_value, total_portfolio_value), 100), 1)), else: 0.0
+
+    related_transactions = Banking.list_transactions()
+      |> Enum.filter(&(&1.asset_holding_id == holding.id))
+      |> Enum.take(20)
+
     {:noreply,
      assign(socket,
        holding: holding,
        lots: lots,
        gains: gains,
        current_value: current_value,
-       price_history: price_history
+       price_history: price_history,
+       portfolio_weight: portfolio_weight,
+       related_transactions: related_transactions
      )}
   end
 
@@ -92,6 +110,10 @@ defmodule HoldcoWeb.HoldingsLive.Show do
         <div class="metric-value" style={gain_color(@gains.realized)}>
           {format_gain(@gains.realized)}
         </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Portfolio Weight</div>
+        <div class="metric-value">{@portfolio_weight}%</div>
       </div>
     </div>
 
@@ -223,6 +245,43 @@ defmodule HoldcoWeb.HoldingsLive.Show do
         </div>
       </div>
     </div>
+
+    <%= if @related_transactions != [] do %>
+      <div class="section">
+        <div class="section-head">
+          <h2>Related Transactions</h2>
+          <span class="count">{length(@related_transactions)}</span>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th class="th-num">Amount</th>
+                <th>Currency</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for tx <- @related_transactions do %>
+                <tr>
+                  <td class="td-mono">
+                    <.link navigate={~p"/transactions/#{tx.id}"} class="td-link">{tx.date}</.link>
+                  </td>
+                  <td><span class="tag tag-ink">{tx.transaction_type}</span></td>
+                  <td class="td-name">{tx.description}</td>
+                  <td class={"td-num #{if Money.negative?(tx.amount), do: "num-negative", else: "num-positive"}"}>
+                    {format_usd(tx.amount)}
+                  </td>
+                  <td>{tx.currency}</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
     """
   end
 

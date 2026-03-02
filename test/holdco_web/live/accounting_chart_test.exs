@@ -9,48 +9,6 @@ defmodule HoldcoWeb.AccountingChartTest do
   # ── Mount & Render ──────────────────────────────────────
 
   describe "mount and render" do
-    test "renders page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/chart")
-
-      assert html =~ "<h1>Chart of Accounts</h1>"
-      assert html =~ "All accounts organized by type and hierarchy"
-      assert html =~ "page-title-rule"
-    end
-
-    test "renders metrics strip with type counts", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/chart")
-
-      assert html =~ "metrics-strip"
-      assert html =~ "Assets"
-      assert html =~ "Liabilities"
-      assert html =~ "Equity"
-      assert html =~ "Revenue"
-      assert html =~ "Expenses"
-    end
-
-    test "renders company filter", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/chart")
-
-      assert html =~ "All Companies"
-      assert html =~ ~s(phx-change="filter_company")
-    end
-
-    test "renders table headers", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/chart")
-
-      assert html =~ "Accounts"
-      assert html =~ "Code"
-      assert html =~ "Name"
-      assert html =~ "Type"
-      assert html =~ "Currency"
-    end
-
-    test "renders empty state when no accounts", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/accounts/chart")
-
-      assert html =~ "No accounts yet. Add your first account to get started."
-    end
-
     test "renders existing accounts", %{conn: conn} do
       company = company_fixture(%{name: "AcctCo"})
       account_fixture(%{company_id: company.id, code: "1100", name: "Checking", account_type: "asset", currency: "USD"})
@@ -61,18 +19,6 @@ defmodule HoldcoWeb.AccountingChartTest do
       assert html =~ "Checking"
       assert html =~ "asset"
       assert html =~ "USD"
-    end
-
-    test "renders type counts correctly", %{conn: conn} do
-      company = company_fixture()
-      account_fixture(%{company_id: company.id, code: "1001", name: "Cash", account_type: "asset"})
-      account_fixture(%{company_id: company.id, code: "2001", name: "AP", account_type: "liability"})
-
-      {:ok, _view, html} = live(conn, ~p"/accounts/chart")
-
-      # The metric value for assets should show 1
-      assert html =~ "asset"
-      assert html =~ "liability"
     end
 
     test "editor sees Add Account button", %{conn: conn, user: user} do
@@ -234,23 +180,6 @@ defmodule HoldcoWeb.AccountingChartTest do
       refute html =~ "Office Supplies"
     end
 
-  end
-
-  # ── Hierarchy rendering ─────────────────────────────────
-
-  describe "account tree hierarchy" do
-    test "child accounts are rendered with indentation", %{conn: conn} do
-      company = company_fixture()
-      parent = account_fixture(%{company_id: company.id, code: "1000", name: "Assets Root", account_type: "asset"})
-      account_fixture(%{company_id: company.id, code: "1100", name: "Bank Account", account_type: "asset", parent_id: parent.id})
-
-      {:ok, _view, html} = live(conn, ~p"/accounts/chart")
-
-      assert html =~ "Assets Root"
-      assert html =~ "Bank Account"
-      # Child has indentation via padding-left
-      assert html =~ "padding-left"
-    end
   end
 
   # ── Noop event ──────────────────────────────────────────

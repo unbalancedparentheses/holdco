@@ -173,6 +173,12 @@ defmodule HoldcoWeb.DeferredTaxLive.Index do
   defp type_tag("liability"), do: "tag-coral"
   defp type_tag(_), do: "tag-ink"
 
+  defp source_summary(deferred_taxes) do
+    deferred_taxes
+    |> Enum.group_by(& &1.source)
+    |> Enum.sort_by(fn {source, _} -> source || "zzz" end)
+  end
+
   defp source_label(nil), do: "---"
   defp source_label("depreciation"), do: "Depreciation"
   defp source_label("unrealized_gains"), do: "Unrealized Gains"
@@ -293,6 +299,33 @@ defmodule HoldcoWeb.DeferredTaxLive.Index do
         <% end %>
       </div>
     </div>
+
+    <%= if @deferred_taxes != [] do %>
+      <div class="section">
+        <div class="section-head"><h2>By Source</h2></div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th class="th-num">Count</th>
+                <th class="th-num">Total Deferred Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for {source, items} <- source_summary(@deferred_taxes) do %>
+                <% total = Enum.reduce(items, Decimal.new(0), fn dt, acc -> Money.add(acc, dt.deferred_amount || Decimal.new(0)) end) %>
+                <tr>
+                  <td class="td-name">{source_label(source)}</td>
+                  <td class="td-num">{length(items)}</td>
+                  <td class="td-num">{format_decimal(total)}</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
 
     <div class="section">
       <div class="section-head">

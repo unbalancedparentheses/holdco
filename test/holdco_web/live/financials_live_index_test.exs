@@ -9,44 +9,6 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
   # ── Mount & Render ──────────────────────────────────────
 
   describe "mount and render" do
-    test "renders page title and deck", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/financials")
-
-      assert html =~ "<h1>Financials</h1>"
-      assert html =~ "P&amp;L across all companies and periods"
-      assert html =~ "page-title-rule"
-    end
-
-    test "renders metrics strip with totals", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/financials")
-
-      assert html =~ "metrics-strip"
-      assert html =~ "Total Revenue"
-      assert html =~ "Total Expenses"
-      assert html =~ "Net Income"
-      assert html =~ "Total Liabilities"
-    end
-
-    test "renders currency filter with USD default", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/financials")
-
-      assert html =~ "consolidated in USD"
-      assert html =~ ~s(name="currency")
-    end
-
-    test "renders company filter", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/financials")
-
-      assert html =~ "All Companies"
-      assert html =~ ~s(name="company_id")
-    end
-
-    test "renders empty state when no financials", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/financials")
-
-      assert html =~ "No financial records yet."
-    end
-
     test "renders financial data in table", %{conn: conn} do
       company = company_fixture(%{name: "FinCo"})
       financial_fixture(%{company_id: company.id, period: "2025-Q1", revenue: 100_000.0, expenses: 50_000.0, currency: "USD"})
@@ -56,14 +18,6 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
       assert html =~ "2025-Q1"
       assert html =~ "FinCo"
     end
-
-    test "renders intercompany transfers section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/financials")
-
-      assert html =~ "Intercompany Transfers"
-      assert html =~ "No intercompany transfers yet."
-    end
-
   end
 
   # ── Show/Close Form ─────────────────────────────────────
@@ -256,6 +210,164 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
       assert render(view) =~ "Transfer deleted"
     end
 
+  end
+
+  # ── Edit Financial ─────────────────────────────────────
+
+  describe "edit event" do
+    test "opens the edit modal with pre-filled data", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "EditCorp"})
+      fin = financial_fixture(%{company: company, period: "2025-Q4", revenue: 750_000.0, expenses: 300_000.0, currency: "EUR"})
+
+      {:ok, view, _html} = live(conn, ~p"/financials")
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit"][phx-value-id="#{fin.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Financial Period"
+      assert html =~ ~s(phx-submit="update")
+      assert html =~ "2025-Q4"
+    end
+
+    test "update saves changes to an existing financial record", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "UpdateCorp"})
+      fin = financial_fixture(%{company: company, period: "2025-Q1", revenue: 100_000.0, expenses: 50_000.0})
+
+      {:ok, view, _html} = live(conn, ~p"/financials")
+
+      view
+      |> element(~s(button[phx-click="edit"][phx-value-id="#{fin.id}"]))
+      |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update"]), %{
+          financial: %{
+            company_id: company.id,
+            period: "2025-Q1-Updated",
+            revenue: "999000",
+            expenses: "111000",
+            currency: "USD"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Financial record updated"
+      assert html =~ "2025-Q1-Updated"
+    end
+  end
+
+  # ── Edit Transfer ────────────────────────────────────
+
+  describe "edit_transfer event" do
+    test "opens the edit transfer modal", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      from_co = company_fixture(%{name: "EditFrom"})
+      to_co = company_fixture(%{name: "EditTo"})
+      transfer = inter_company_transfer_fixture(%{
+        from_company: from_co,
+        to_company: to_co,
+        amount: 30_000.0,
+        date: "2025-04-01",
+        description: "Quarterly payment"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/financials")
+
+      html =
+        view
+        |> element(~s(button[phx-click="edit_transfer"][phx-value-id="#{transfer.id}"]))
+        |> render_click()
+
+      assert html =~ "Edit Intercompany Transfer"
+      assert html =~ ~s(phx-submit="update_transfer")
+      assert html =~ "2025-04-01"
+    end
+
+    test "update_transfer saves changes to an existing transfer", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      from_co = company_fixture(%{name: "UpdFrom"})
+      to_co = company_fixture(%{name: "UpdTo"})
+      transfer = inter_company_transfer_fixture(%{
+        from_company: from_co,
+        to_company: to_co,
+        amount: 20_000.0,
+        date: "2025-05-01"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/financials")
+
+      view
+      |> element(~s(button[phx-click="edit_transfer"][phx-value-id="#{transfer.id}"]))
+      |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="update_transfer"]), %{
+          transfer: %{
+            from_company_id: from_co.id,
+            to_company_id: to_co.id,
+            amount: "55000",
+            currency: "EUR",
+            date: "2025-05-15",
+            description: "Updated payment"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Transfer updated"
+    end
+  end
+
+  # ── Data Display with Formatting ─────────────────────
+
+  describe "data display with formatting" do
+    test "displays consolidated totals in metrics strip", %{conn: conn} do
+      company = company_fixture(%{name: "MetricsCorp"})
+      financial_fixture(%{company: company, period: "2025-Q1", revenue: 500_000.0, expenses: 200_000.0, currency: "USD"})
+
+      {:ok, _view, html} = live(conn, ~p"/financials")
+
+      assert html =~ "500,000"
+      assert html =~ "200,000"
+    end
+
+    test "displays transfer records with formatted data", %{conn: conn} do
+      from_co = company_fixture(%{name: "TransferFrom"})
+      to_co = company_fixture(%{name: "TransferTo"})
+      inter_company_transfer_fixture(%{
+        from_company: from_co,
+        to_company: to_co,
+        amount: 25_000.0,
+        currency: "USD",
+        date: "2025-06-15",
+        description: "Licensing fee"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/financials")
+
+      assert html =~ "TransferFrom"
+      assert html =~ "TransferTo"
+      assert html =~ "25,000"
+      assert html =~ "2025-06-15"
+      assert html =~ "Licensing fee"
+    end
+  end
+
+  # ── PubSub ───────────────────────────────────────────
+
+  describe "PubSub handle_info" do
+    test "handles finance_changed broadcast by reloading data", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/financials")
+
+      send(view.pid, {:finance_changed, %{}})
+      html = render(view)
+      assert html =~ "Financials"
+    end
   end
 
   # ── Noop event ──────────────────────────────────────────

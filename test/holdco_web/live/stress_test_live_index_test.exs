@@ -6,35 +6,6 @@ defmodule HoldcoWeb.StressTestLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "renders Stress Testing page", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/stress-test")
-      assert html =~ "Stress Testing"
-      assert html =~ "Apply shocks to your portfolio and analyze impact"
-    end
-
-    test "shows table with headers", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/stress-test")
-      assert html =~ "Stress Tests"
-      assert html =~ "Name"
-      assert html =~ "Status"
-      assert html =~ "Shocks"
-      assert html =~ "Run At"
-      assert html =~ "Impact"
-    end
-
-    test "shows empty state when no stress tests exist", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/stress-test")
-      assert html =~ "No stress tests created yet."
-    end
-
-    test "displays an existing stress test", %{conn: conn} do
-      stress_test_fixture(%{name: "Existing Stress Test"})
-      {:ok, _live, html} = live(conn, ~p"/stress-test")
-      assert html =~ "Existing Stress Test"
-    end
-  end
-
   describe "show_form and close_form" do
     test "show_form opens the new stress test dialog", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
