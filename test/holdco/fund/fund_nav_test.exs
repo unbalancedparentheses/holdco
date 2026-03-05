@@ -85,7 +85,8 @@ defmodule Holdco.Fund.FundNavTest do
                  nav_date: ~D[2024-03-31]
                })
 
-      assert errors_on(changeset)[:company_id] || errors_on(changeset)[:nav_date]
+      errors = errors_on(changeset)
+      assert errors[:company_id] || errors[:nav_date]
     end
   end
 

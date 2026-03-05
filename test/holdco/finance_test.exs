@@ -944,7 +944,7 @@ defmodule Holdco.FinanceTest do
       assert Map.has_key?(bs, :assets)
       # All accounts with no entries should have zero balance
       Enum.each(bs.assets, fn a ->
-        assert d(a.balance) == 0.0 || d(a.balance) != 0.0
+        assert d(a.balance) == 0.0
       end)
     end
   end

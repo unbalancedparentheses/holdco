@@ -165,7 +165,7 @@ defmodule HoldcoWeb.ConsolidatedLiveIndexTest do
       {:ok, _live, html} = live(conn, ~p"/consolidated")
       assert html =~ "Consolidated Balance Sheet"
       # Should show the short names of companies
-      assert html =~ "Consol Paren.." || html =~ "Consol Parent"
+      assert html =~ "Consol Paren"
     end
 
     test "income statement shows revenue and expenses for multiple entities", %{conn: conn} do

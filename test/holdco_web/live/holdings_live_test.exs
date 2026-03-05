@@ -68,7 +68,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
         })
         |> render_submit()
 
-      assert html =~ "Position added" or html =~ "New Test Asset"
+      assert html =~ "Position added"
     end
 
     test "delete removes a holding", %{conn: conn, user: user} do
@@ -345,7 +345,7 @@ defmodule HoldcoWeb.HoldingsLiveTest do
         })
         |> render_submit()
 
-      assert html =~ "Position updated" or html =~ "After Update"
+      assert html =~ "Position updated"
     end
 
   end

@@ -68,22 +68,22 @@ defmodule Holdco.Pricing.YahooClientTest do
     test "attempts to fetch rate for EUR" do
       # This will make an HTTP call that will likely fail in test, but should return a tuple
       result = YahooClient.fetch_fx_rate("EUR")
-      assert match?({:ok, _}, result) or match?({:error, _}, result)
+      assert elem(result, 0) in [:ok, :error]
     end
 
     test "attempts to fetch rate for GBP" do
       result = YahooClient.fetch_fx_rate("GBP")
-      assert match?({:ok, _}, result) or match?({:error, _}, result)
+      assert elem(result, 0) in [:ok, :error]
     end
 
     test "attempts to fetch rate for ARS" do
       result = YahooClient.fetch_fx_rate("ARS")
-      assert match?({:ok, _}, result) or match?({:error, _}, result)
+      assert elem(result, 0) in [:ok, :error]
     end
 
     test "attempts to fetch rate for BRL" do
       result = YahooClient.fetch_fx_rate("BRL")
-      assert match?({:ok, _}, result) or match?({:error, _}, result)
+      assert elem(result, 0) in [:ok, :error]
     end
   end
 
@@ -98,7 +98,7 @@ defmodule Holdco.Pricing.YahooClientTest do
     test "cache miss for unknown ticker triggers HTTP fetch" do
       result = YahooClient.fetch_price("UNKNOWN_YF_TICKER_#{System.unique_integer([:positive])}")
       # Should return either ok or error tuple (HTTP call will likely fail in test)
-      assert match?({:ok, _}, result) or match?({:error, _}, result)
+      assert elem(result, 0) in [:ok, :error]
     end
 
     test "returns cached price for mapped ticker" do
@@ -114,7 +114,7 @@ defmodule Holdco.Pricing.YahooClientTest do
 
       result = YahooClient.fetch_price("EXPIRED_T")
       # Should try to re-fetch, which will likely error in test
-      assert match?({:ok, _}, result) or match?({:error, _}, result)
+      assert elem(result, 0) in [:ok, :error]
     end
 
     test "cache miss for empty ETS returns miss" do
@@ -123,7 +123,7 @@ defmodule Holdco.Pricing.YahooClientTest do
       :ets.delete_all_objects(:yahoo_price_cache)
 
       result = YahooClient.fetch_price(ticker)
-      assert match?({:ok, _}, result) or match?({:error, _}, result)
+      assert elem(result, 0) in [:ok, :error]
     end
   end
 end

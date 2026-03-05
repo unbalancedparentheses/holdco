@@ -135,7 +135,7 @@ defmodule Holdco.Analytics.StressTestTest do
 
       # Verify the impact is negative
       {impact, _} = Decimal.parse(result.results["impact"])
-      assert Decimal.negative?(impact) or Decimal.equal?(impact, Decimal.new(0))
+      assert Decimal.compare(impact, Decimal.new(0)) in [:lt, :eq]
     end
 
     test "with equity shock applies to equity holdings" do

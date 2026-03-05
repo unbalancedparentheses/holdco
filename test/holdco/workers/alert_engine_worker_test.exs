@@ -27,8 +27,7 @@ defmodule Holdco.Workers.AlertEngineWorkerTest do
       # No alerts should have been created
       alerts = Platform.list_alerts()
       # There may be other alerts from other tests but this particular rule shouldn't trigger
-      assert Enum.all?(alerts, fn a -> a.message != "Alert: High NAV Alert" end) ||
-               alerts == []
+      refute Enum.any?(alerts, fn a -> a.message == "Alert: High NAV Alert" end)
     end
 
     test "worker creates alert when condition is met" do

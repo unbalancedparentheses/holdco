@@ -48,7 +48,7 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
 
       assert html =~ "John Owner"
-      assert html =~ "51%" || html =~ "51.0%"
+      assert html =~ "51.0%"
     end
 
     test "displays service provider data when present", %{conn: conn, company: company} do
@@ -1790,21 +1790,21 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
 
       html = render_hook(view, :save_comment, %{"body" => ""})
-      assert html =~ "Failed to post comment" || html =~ company.name
+      assert html =~ "Failed to post comment"
     end
 
     test "save_sanctions with valid data adds check", %{conn: conn, company: company} do
       {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
 
       html = render_hook(view, :save_sanctions, %{"sanctions" => %{"checked_name" => "Test Entity"}})
-      assert html =~ "Sanctions check added" || html =~ company.name
+      assert html =~ "Sanctions check added"
     end
 
     test "update_company with invalid name shows error", %{conn: conn, company: company} do
       {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
 
       html = render_hook(view, :update_company, %{"company" => %{"name" => ""}})
-      assert html =~ "Failed to update company" || html =~ company.name
+      assert html =~ "Failed to update company"
     end
 
     test "delete_journal_entry removes entry and its lines", %{conn: conn, company: company} do

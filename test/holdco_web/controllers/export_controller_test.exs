@@ -10,7 +10,7 @@ defmodule HoldcoWeb.ExportControllerTest do
       company_fixture(%{name: "Export Corp"})
       conn = get(conn, ~p"/export/companies.csv")
       assert response(conn, 200)
-      assert response_content_type(conn, :csv) || get_resp_header(conn, "content-type") |> hd() =~ "csv"
+      assert get_resp_header(conn, "content-type") |> hd() =~ "csv"
     end
 
     test "GET /export/holdings.csv", %{conn: conn} do

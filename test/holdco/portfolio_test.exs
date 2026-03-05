@@ -357,7 +357,6 @@ defmodule Holdco.PortfolioTest do
 
     test "returns valid aggregate structure" do
       gains = Portfolio.calculate_gains()
-      assert f(gains.aggregate.total_unrealized) >= 0.0 || f(gains.aggregate.total_unrealized) < 0.0
       expected_total = Money.add(gains.aggregate.total_unrealized, gains.aggregate.total_realized)
       assert Decimal.equal?(gains.aggregate.total_gain, expected_total)
     end

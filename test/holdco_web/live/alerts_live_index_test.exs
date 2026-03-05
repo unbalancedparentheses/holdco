@@ -194,7 +194,7 @@ defmodule HoldcoWeb.AlertsLiveIndexTest do
       assert render(view) =~ "Acknowledge me"
 
       html = render_click(view, "acknowledge_alert", %{"id" => to_string(alert.id)})
-      assert html =~ "acknowledged" or html =~ "Acknowledge me"
+      assert html =~ "acknowledged"
     end
 
     test "resolves an alert changes its status", %{conn: conn} do
@@ -206,7 +206,7 @@ defmodule HoldcoWeb.AlertsLiveIndexTest do
       assert render(view) =~ "Resolve me"
 
       html = render_click(view, "resolve_alert", %{"id" => to_string(alert.id)})
-      assert html =~ "resolved" or html =~ "Resolve me"
+      assert html =~ "resolved"
     end
 
     test "marks an alert as read", %{conn: conn} do

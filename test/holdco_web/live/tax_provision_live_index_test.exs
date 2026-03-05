@@ -85,7 +85,7 @@ defmodule HoldcoWeb.TaxProvisionLiveIndexTest do
         })
 
       # Tax summary should be shown when both company and year are selected
-      assert html =~ "Current Provision" || html =~ "Effective Rate"
+      assert html =~ "Current Provision"
     end
 
     test "clearing all filters shows all provisions", %{conn: conn} do

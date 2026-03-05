@@ -77,7 +77,9 @@ defmodule Holdco.MultiBookTest do
     test "fails without required fields" do
       assert {:error, changeset} = Finance.create_accounting_book(%{})
       errors = errors_on(changeset)
-      assert errors[:company_id] || errors[:name] || errors[:book_type]
+      assert errors[:company_id]
+      assert errors[:name]
+      assert errors[:book_type]
     end
 
     test "validates book_type inclusion" do
@@ -214,7 +216,10 @@ defmodule Holdco.MultiBookTest do
     test "fails without required fields" do
       assert {:error, changeset} = Finance.create_book_adjustment(%{})
       errors = errors_on(changeset)
-      assert errors[:book_id] || errors[:adjustment_type] || errors[:amount] || errors[:effective_date]
+      assert errors[:book_id]
+      assert errors[:adjustment_type]
+      assert errors[:amount]
+      assert errors[:effective_date]
     end
 
     test "validates adjustment_type inclusion" do

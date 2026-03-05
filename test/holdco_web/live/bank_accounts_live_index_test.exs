@@ -371,7 +371,7 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
           "bank_account" => %{"bank_name" => ""}
         })
 
-      assert html =~ "Failed to add bank account" || html =~ "Bank Accounts"
+      assert html =~ "Failed to add bank account"
     end
 
     test "editor can update a bank account", %{conn: conn} do
@@ -389,7 +389,7 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
           }
         })
 
-      assert html =~ "Bank account updated" || html =~ "Updated Bank Name"
+      assert html =~ "Bank account updated"
     end
 
     test "update failure shows error", %{conn: conn} do
@@ -404,7 +404,7 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
           "bank_account" => %{"bank_name" => ""}
         })
 
-      assert html =~ "Failed to update bank account" || html =~ "Bank Accounts"
+      assert html =~ "Failed to update bank account"
     end
 
     test "save_pool failure shows error", %{conn: conn} do
@@ -416,7 +416,7 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
           "pool" => %{"name" => ""}
         })
 
-      assert html =~ "Failed to add cash pool" || html =~ "Bank Accounts"
+      assert html =~ "Failed to add cash pool"
     end
   end
 

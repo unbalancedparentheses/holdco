@@ -79,7 +79,9 @@ defmodule Holdco.FundraisingTest do
     test "fails without required fields" do
       assert {:error, changeset} = Fund.create_fundraising_pipeline(%{})
       errors = errors_on(changeset)
-      assert errors[:company_id] || errors[:fund_name] || errors[:target_amount]
+      assert errors[:company_id]
+      assert errors[:fund_name]
+      assert errors[:target_amount]
     end
 
     test "validates status inclusion" do
@@ -208,7 +210,8 @@ defmodule Holdco.FundraisingTest do
     test "fails without required fields" do
       assert {:error, changeset} = Fund.create_prospect(%{})
       errors = errors_on(changeset)
-      assert errors[:pipeline_id] || errors[:investor_name]
+      assert errors[:pipeline_id]
+      assert errors[:investor_name]
     end
 
     test "validates status inclusion" do

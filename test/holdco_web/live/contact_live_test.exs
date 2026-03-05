@@ -316,7 +316,7 @@ defmodule HoldcoWeb.ContactLiveTest do
         })
         |> render_submit()
 
-      assert html =~ "Failed to create contact" || html =~ "Contacts"
+      assert html =~ "Failed to create contact"
     end
   end
 
@@ -338,7 +338,7 @@ defmodule HoldcoWeb.ContactLiveTest do
         })
         |> render_submit()
 
-      assert html =~ "Failed to update contact" || html =~ "Contacts"
+      assert html =~ "Failed to update contact"
     end
   end
 

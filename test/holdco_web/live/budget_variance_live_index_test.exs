@@ -127,7 +127,7 @@ defmodule HoldcoWeb.BudgetVarianceLiveIndexTest do
 
       {:ok, _live, html} = live(conn, ~p"/budgets/variance")
       # Variance is +20%, should show some percentage
-      assert html =~ "%" || html =~ "Variance"
+      assert html =~ "%"
     end
   end
 end

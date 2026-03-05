@@ -11,7 +11,7 @@ defmodule HoldcoWeb.HoldingsLiveShowTest do
       holding = holding_fixture()
       cost_basis_lot_fixture(%{holding: holding})
       {:ok, _view, html} = live(conn, ~p"/holdings/#{holding.id}")
-      assert html =~ "Cost Basis" or html =~ "cost"
+      assert html =~ "Cost Basis"
     end
   end
 
