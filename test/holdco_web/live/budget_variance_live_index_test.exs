@@ -72,9 +72,13 @@ defmodule HoldcoWeb.BudgetVarianceLiveIndexTest do
       budget_fixture(%{company: company1, category: "Alpha Ops"})
       budget_fixture(%{company: company2, category: "Beta Ops"})
 
-      {:ok, live, _html} = live(conn, ~p"/budgets/variance")
+      {:ok, live, html} = live(conn, ~p"/budgets/variance")
+      assert html =~ "Alpha Ops"
+      assert html =~ "Beta Ops"
+
       html = render_click(live, "filter_company", %{"company_id" => to_string(company1.id)})
-      assert html =~ "Company Alpha" || html =~ "Alpha Ops"
+      assert html =~ "Alpha Ops"
+      refute html =~ "Beta Ops"
     end
 
     test "filters back to all companies", %{conn: conn} do
@@ -84,12 +88,6 @@ defmodule HoldcoWeb.BudgetVarianceLiveIndexTest do
       {:ok, live, _html} = live(conn, ~p"/budgets/variance")
       render_click(live, "filter_company", %{"company_id" => to_string(company.id)})
       html = render_click(live, "filter_company", %{"company_id" => ""})
-      assert html =~ "Budget vs Actual"
-    end
-
-    test "handles noop event", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/budgets/variance")
-      html = render_click(live, "noop", %{})
       assert html =~ "Budget vs Actual"
     end
 

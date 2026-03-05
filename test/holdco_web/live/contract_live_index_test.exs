@@ -120,12 +120,18 @@ defmodule HoldcoWeb.ContractLiveIndexTest do
 
   describe "filter_company" do
     test "filters contracts by company", %{conn: conn} do
-      company = company_fixture(%{name: "Filter Contract Corp"})
-      contract_fixture(%{company: company, title: "Filtered Contract"})
+      company1 = company_fixture(%{name: "Alpha Legal Inc"})
+      company2 = company_fixture(%{name: "Beta Legal Inc"})
+      contract_fixture(%{company: company1, title: "Alpha Service Agreement"})
+      contract_fixture(%{company: company2, title: "Beta Lease Agreement"})
 
-      {:ok, view, _html} = live(conn, ~p"/contracts")
-      html = render_click(view, "filter_company", %{"company_id" => to_string(company.id)})
-      assert html =~ "Filtered Contract"
+      {:ok, view, html} = live(conn, ~p"/contracts")
+      assert html =~ "Alpha Service Agreement"
+      assert html =~ "Beta Lease Agreement"
+
+      html = render_click(view, "filter_company", %{"company_id" => to_string(company1.id)})
+      assert html =~ "Alpha Service Agreement"
+      refute html =~ "Beta Lease Agreement"
     end
 
     test "clears company filter with empty string", %{conn: conn} do

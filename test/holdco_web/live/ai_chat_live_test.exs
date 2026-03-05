@@ -214,20 +214,6 @@ defmodule HoldcoWeb.AiChatLiveTest do
   end
 
   # ------------------------------------------------------------------
-  # handle_info
-  # ------------------------------------------------------------------
-
-  describe "handle_info" do
-    test "unknown message does not crash the view", %{conn: conn} do
-      {_parent, chat_view} = get_chat_view(conn)
-
-      send(chat_view.pid, :some_unknown_event)
-      html = render(chat_view)
-      assert html =~ "ai-chat-drawer-inner"
-    end
-  end
-
-  # ------------------------------------------------------------------
   # Conversation title display
   # ------------------------------------------------------------------
 

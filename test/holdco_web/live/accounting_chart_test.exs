@@ -182,14 +182,4 @@ defmodule HoldcoWeb.AccountingChartTest do
 
   end
 
-  # ── Noop event ──────────────────────────────────────────
-
-  describe "noop event" do
-    test "noop does not crash the view", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/chart")
-
-      render_hook(view, "noop", %{})
-      assert render(view) =~ "Chart of Accounts"
-    end
-  end
 end

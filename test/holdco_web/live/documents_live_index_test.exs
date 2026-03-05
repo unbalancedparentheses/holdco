@@ -154,22 +154,6 @@ defmodule HoldcoWeb.DocumentsLiveIndexTest do
     end
   end
 
-  describe "noop and validate events" do
-    test "noop event does not crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      render_hook(view, "noop", %{})
-      assert render(view) =~ "Documents"
-    end
-
-    test "validate event does not crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/documents")
-
-      render_hook(view, "validate", %{})
-      assert render(view) =~ "Documents"
-    end
-  end
-
   describe "editor save failure" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")

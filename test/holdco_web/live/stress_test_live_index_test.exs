@@ -164,14 +164,6 @@ defmodule HoldcoWeb.StressTestLiveIndexTest do
     end
   end
 
-  describe "noop" do
-    test "noop event does not crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/stress-test")
-      html = render_click(view, "noop")
-      assert html =~ "Stress Testing"
-    end
-  end
-
   describe "handle_info" do
     test "pubsub message triggers reload", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/stress-test")

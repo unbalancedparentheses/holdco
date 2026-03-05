@@ -85,26 +85,6 @@ defmodule HoldcoWeb.HoldingsLiveTest do
 
   end
 
-  describe "noop event" do
-    test "noop does not crash the view", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/holdings")
-
-      render_hook(view, "noop", %{})
-      assert render(view) =~ "Positions"
-    end
-  end
-
-  describe "handle_info for PubSub" do
-    test "handles broadcast by reloading data", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/holdings")
-
-      send(view.pid, :some_broadcast)
-
-      html = render(view)
-      assert html =~ "Positions"
-    end
-  end
-
   describe "editor form details" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")

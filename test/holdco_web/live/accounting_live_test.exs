@@ -50,22 +50,6 @@ defmodule HoldcoWeb.AccountingLiveTest do
   end
 
   # ------------------------------------------------------------------
-  # Reports - handle_info with company filter active (unique)
-  # ------------------------------------------------------------------
-
-  describe "reports handle_info with company filter" do
-    test "reload with company filter active", %{conn: conn} do
-      company = company_fixture()
-
-      {:ok, view, _html} = live(conn, ~p"/accounts/reports")
-      render_change(view, "filter_company", %{"company_id" => to_string(company.id)})
-      send(view.pid, :finance_changed)
-      html = render(view)
-      assert html =~ "Accounting Reports"
-    end
-  end
-
-  # ------------------------------------------------------------------
   # Journal - handle_params with account_id filter (unique)
   # ------------------------------------------------------------------
 

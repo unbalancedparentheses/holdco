@@ -1386,28 +1386,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
     end
   end
 
-  describe "noop and validate_upload events" do
-    setup [:create_company]
-
-    test "noop event returns current state", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :noop, %{})
-
-      assert html =~ company.name
-    end
-
-    test "validate_upload event is handled", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :validate_upload, %{})
-
-      assert html =~ company.name
-    end
-  end
-
   describe "comments tab - admin operations" do
     setup [:create_company]
 

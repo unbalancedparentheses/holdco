@@ -16,7 +16,7 @@ defmodule HoldcoWeb.CapitalGainsLiveIndexTest do
     test "defaults to FIFO method on mount", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/tax/capital-gains")
       # FIFO should be selected by default
-      assert html =~ "fifo" || html =~ "FIFO"
+      assert html =~ "FIFO"
     end
 
     test "switches back to FIFO from LIFO", %{conn: conn} do

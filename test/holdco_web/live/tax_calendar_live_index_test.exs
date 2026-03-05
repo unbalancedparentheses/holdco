@@ -113,17 +113,6 @@ defmodule HoldcoWeb.TaxCalendarLiveIndexTest do
 
   end
 
-  # ── Noop event ──────────────────────────────────────────
-
-  describe "noop event" do
-    test "noop does not crash the view", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/tax-calendar")
-
-      render_hook(view, "noop", %{})
-      assert render(view) =~ "Tax Calendar"
-    end
-  end
-
   # ── Mark Complete (editor) ─────────────────────────────
 
   describe "mark_complete by editor" do

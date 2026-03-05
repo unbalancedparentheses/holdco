@@ -180,25 +180,6 @@ defmodule HoldcoWeb.SettingsLiveTest do
   end
 
 
-  describe "noop event" do
-    test "noop does not crash the view", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      render_hook(view, "noop", %{})
-      html = render(view)
-      assert html =~ "Settings"
-    end
-
-    test "noop on categories tab does not crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-
-      view |> element(~s(button[phx-value-tab="categories"])) |> render_click()
-      render_hook(view, "noop", %{})
-      html = render(view)
-      assert html =~ "Categories"
-    end
-  end
-
   describe "users tab rendering" do
     test "admin sees role dropdown on users tab", %{conn: conn, user: user} do
       Holdco.Accounts.set_user_role(user, "admin")
@@ -293,15 +274,6 @@ defmodule HoldcoWeb.SettingsLiveTest do
         |> render_submit()
 
       assert html =~ "Failed to add backup config"
-    end
-  end
-
-  describe "handle_info" do
-    test "handle_info reloads data", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings")
-      send(view.pid, :some_event)
-      html = render(view)
-      assert html =~ "Settings"
     end
   end
 

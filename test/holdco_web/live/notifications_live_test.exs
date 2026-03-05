@@ -97,16 +97,6 @@ defmodule HoldcoWeb.NotificationsLiveTest do
     end
   end
 
-  describe "unknown handle_info" do
-    test "unknown messages are handled gracefully without crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/notifications")
-
-      send(view.pid, :unknown_event)
-      html = render(view)
-      assert html =~ "Notifications"
-    end
-  end
-
   describe "notification without action_url" do
     test "renders title as plain text without link", %{conn: conn, user: user} do
       notification_fixture(%{

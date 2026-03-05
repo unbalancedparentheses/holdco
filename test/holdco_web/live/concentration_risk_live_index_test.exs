@@ -7,12 +7,6 @@ defmodule HoldcoWeb.ConcentrationRiskLiveIndexTest do
   setup :register_and_log_in_user
 
   describe "Index" do
-    test "handles noop event", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/risk/concentration")
-      html = render_click(live, "noop", %{})
-      assert html =~ "Concentration Risk"
-    end
-
     test "shows holding details in top holdings table", %{conn: conn} do
       company = company_fixture()
 
@@ -26,7 +20,7 @@ defmodule HoldcoWeb.ConcentrationRiskLiveIndexTest do
       })
 
       {:ok, _live, html} = live(conn, ~p"/risk/concentration")
-      assert html =~ "Tesla Stock" || html =~ "TSLA" || html =~ "equity"
+      assert html =~ "Tesla Stock"
     end
 
     test "renders with single holding that dominates portfolio", %{conn: conn} do

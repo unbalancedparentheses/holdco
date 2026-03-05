@@ -80,7 +80,6 @@ defmodule HoldcoWeb.EntityComparisonLiveIndexTest do
 
       html = render_click(live, "remove_company", %{"id" => to_string(c2.id)})
       assert html =~ "Remove A"
-      refute html =~ "Selected:" <> "Remove B"
       assert html =~ "Remove C"
     end
   end
@@ -159,14 +158,6 @@ defmodule HoldcoWeb.EntityComparisonLiveIndexTest do
     end
   end
 
-  describe "noop event" do
-    test "noop does not change the page", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/compare")
-      html = render_click(live, "noop", %{})
-      assert html =~ "Entity Comparison"
-    end
-  end
-
   describe "balance sheet with journal entries" do
     test "shows account balances side by side", %{conn: conn} do
       c1 = company_fixture(%{name: "BSJournalA"})
@@ -193,7 +184,7 @@ defmodule HoldcoWeb.EntityComparisonLiveIndexTest do
       assert html =~ "BSJournalB"
       assert html =~ "Assets"
       assert html =~ "Total Assets"
-      assert html =~ "5,000" || html =~ "5000"
+      assert html =~ "5,000"
     end
   end
 

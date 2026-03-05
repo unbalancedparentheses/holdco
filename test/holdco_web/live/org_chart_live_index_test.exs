@@ -22,7 +22,7 @@ defmodule HoldcoWeb.OrgChartLiveIndexTest do
 
       {:ok, _live, html} = live(conn, ~p"/org-chart")
       assert html =~ "Owned Sub"
-      assert html =~ "75" || html =~ "owned"
+      assert html =~ "75%"
     end
 
     test "renders company with winding_down status", %{conn: conn} do

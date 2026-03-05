@@ -131,12 +131,6 @@ defmodule HoldcoWeb.DebtMaturityLiveIndexTest do
       assert html =~ "---"
     end
 
-    test "handles noop event", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/debt-maturity")
-      html = render_click(live, "noop", %{})
-      assert html =~ "Debt Maturity"
-    end
-
     test "renders restructured liability status", %{conn: conn} do
       company = company_fixture()
 

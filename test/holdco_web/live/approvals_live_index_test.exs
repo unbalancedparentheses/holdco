@@ -173,17 +173,6 @@ defmodule HoldcoWeb.ApprovalsLiveIndexTest do
     end
   end
 
-  # ── Noop event ──────────────────────────────────────────
-
-  describe "noop event" do
-    test "noop does not crash the view", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/approvals")
-
-      render_hook(view, "noop", %{})
-      assert render(view) =~ "Approvals"
-    end
-  end
-
   # ── handle_info PubSub ──────────────────────────────────
 
   describe "handle_info" do

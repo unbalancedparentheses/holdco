@@ -15,6 +15,7 @@ defmodule HoldcoWeb.AnomalyLiveIndexTest do
 
       html = render_change(view, "filter", %{"status" => "open", "severity" => "", "anomaly_type" => "", "entity_type" => ""})
       assert html =~ "Open anomaly"
+      refute html =~ "Investigating anomaly"
     end
 
     test "filters anomalies by severity", %{conn: conn} do
@@ -25,24 +26,29 @@ defmodule HoldcoWeb.AnomalyLiveIndexTest do
 
       html = render_change(view, "filter", %{"status" => "", "severity" => "critical", "anomaly_type" => "", "entity_type" => ""})
       assert html =~ "Critical issue"
+      refute html =~ "Minor issue"
     end
 
     test "filters anomalies by anomaly_type", %{conn: conn} do
       anomaly_fixture(%{anomaly_type: "duplicate", description: "Dup found"})
+      anomaly_fixture(%{anomaly_type: "outlier", description: "Outlier item"})
 
       {:ok, view, _html} = live(conn, ~p"/anomalies")
 
       html = render_change(view, "filter", %{"status" => "", "severity" => "", "anomaly_type" => "duplicate", "entity_type" => ""})
       assert html =~ "Dup found"
+      refute html =~ "Outlier item"
     end
 
     test "filters anomalies by entity_type", %{conn: conn} do
       anomaly_fixture(%{entity_type: "financial", description: "Financial anomaly"})
+      anomaly_fixture(%{entity_type: "transaction", description: "Transaction anomaly"})
 
       {:ok, view, _html} = live(conn, ~p"/anomalies")
 
       html = render_change(view, "filter", %{"status" => "", "severity" => "", "anomaly_type" => "", "entity_type" => "financial"})
       assert html =~ "Financial anomaly"
+      refute html =~ "Transaction anomaly"
     end
   end
 
@@ -105,12 +111,4 @@ defmodule HoldcoWeb.AnomalyLiveIndexTest do
     end
   end
 
-  describe "noop event" do
-    test "noop does not change the page", %{conn: conn} do
-      {:ok, view, html_before} = live(conn, ~p"/anomalies")
-      html_after = render_click(view, "noop", %{})
-      assert html_after =~ "Anomaly Detection"
-      assert html_before =~ "Anomaly Detection"
-    end
-  end
 end

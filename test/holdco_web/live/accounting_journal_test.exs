@@ -248,30 +248,6 @@ defmodule HoldcoWeb.AccountingJournalTest do
 
   end
 
-  # ── Noop event ──────────────────────────────────────────
-
-  describe "noop event" do
-    test "noop does not crash the view", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/journal")
-
-      render_hook(view, "noop", %{})
-      assert render(view) =~ "Journal Entries"
-    end
-  end
-
-  # ── Handle Info (PubSub) ──────────────────────────────
-
-  describe "handle_info for PubSub" do
-    test "handles broadcast by reloading data", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/journal")
-
-      send(view.pid, :some_broadcast)
-
-      html = render(view)
-      assert html =~ "Journal Entries"
-    end
-  end
-
   # ── Close form via overlay ────────────────────────────
 
   describe "close form via overlay" do

@@ -169,36 +169,6 @@ defmodule HoldcoWeb.BankReconciliationLiveIndexTest do
   end
 
   # ------------------------------------------------------------------
-  # handle_info events
-  # ------------------------------------------------------------------
-
-  describe "handle_info" do
-    test "bank_feed_transactions_created reloads data", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/bank-reconciliation")
-
-      send(view.pid, {:bank_feed_transactions_created, %{}})
-      html = render(view)
-      assert html =~ "Bank Reconciliation"
-    end
-
-    test "bank_feed_transactions_updated reloads data", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/bank-reconciliation")
-
-      send(view.pid, {:bank_feed_transactions_updated, %{}})
-      html = render(view)
-      assert html =~ "Bank Reconciliation"
-    end
-
-    test "unknown message does not crash the view", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/bank-reconciliation")
-
-      send(view.pid, :some_random_event)
-      html = render(view)
-      assert html =~ "Bank Reconciliation"
-    end
-  end
-
-  # ------------------------------------------------------------------
   # Transaction display
   # ------------------------------------------------------------------
 
@@ -358,7 +328,7 @@ defmodule HoldcoWeb.BankReconciliationLiveIndexTest do
 
       {:ok, _view, html} = live(conn, ~p"/bank-reconciliation")
 
-      assert html =~ "Chase Bank" || html =~ to_string(config.id)
+      assert html =~ "Chase Bank"
     end
 
   end

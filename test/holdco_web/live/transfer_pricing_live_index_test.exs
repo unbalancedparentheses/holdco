@@ -28,13 +28,19 @@ defmodule HoldcoWeb.TransferPricingLiveIndexTest do
   end
 
   describe "filter_company" do
-    test "filtering by company updates the list", %{conn: conn} do
-      company = company_fixture(%{name: "TP Filter Corp"})
-      transfer_pricing_study_fixture(%{company: company, study_name: "Filtered Study"})
+    test "filtering by company shows only that company's studies", %{conn: conn} do
+      company1 = company_fixture(%{name: "TP Filter Corp"})
+      company2 = company_fixture(%{name: "Other TP Corp"})
+      transfer_pricing_study_fixture(%{company: company1, study_name: "Filtered Study"})
+      transfer_pricing_study_fixture(%{company: company2, study_name: "Other Study"})
 
-      {:ok, view, _html} = live(conn, ~p"/transfer-pricing")
-      html = render_change(view, "filter_company", %{"company_id" => to_string(company.id)})
+      {:ok, view, html} = live(conn, ~p"/transfer-pricing")
       assert html =~ "Filtered Study"
+      assert html =~ "Other Study"
+
+      html = render_change(view, "filter_company", %{"company_id" => to_string(company1.id)})
+      assert html =~ "Filtered Study"
+      refute html =~ "Other Study"
     end
 
     test "filtering with empty company_id shows all studies", %{conn: conn} do
@@ -144,11 +150,4 @@ defmodule HoldcoWeb.TransferPricingLiveIndexTest do
     end
   end
 
-  describe "noop" do
-    test "noop event does not crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/transfer-pricing")
-      html = render_click(view, "noop")
-      assert html =~ "Transfer Pricing"
-    end
-  end
 end

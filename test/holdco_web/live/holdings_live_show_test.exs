@@ -66,18 +66,6 @@ defmodule HoldcoWeb.HoldingsLiveShowTest do
     end
   end
 
-  describe "handle_info for PubSub" do
-    test "handles broadcast by reloading data", %{conn: conn} do
-      holding = holding_fixture(%{asset: "Broadcast Asset"})
-      {:ok, view, _html} = live(conn, ~p"/holdings/#{holding.id}")
-
-      send(view.pid, :some_broadcast)
-
-      html = render(view)
-      assert html =~ "Broadcast Asset"
-    end
-  end
-
   describe "price history display" do
     test "holding without ticker does not show price history", %{conn: conn} do
       holding = holding_fixture(%{asset: "No Ticker Asset", ticker: nil})

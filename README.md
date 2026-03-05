@@ -1,177 +1,142 @@
 # Holdco
 
-Open-source holding company management system built on Elixir, Phoenix, and LiveView.
-
-<!-- TODO: add screenshot of dashboard -->
+Open-source holding company management system built with Elixir, Phoenix LiveView, and PostgreSQL.
 
 If you run a holding company or any multi-entity corporate group, you need to
 track which companies you own, how they relate to each other, what assets they
 hold, where those assets are custodied, what tax deadlines are coming up, and
 what the financials look like across the whole structure. Holdco does all of
-that in a single self-hosted application backed by PostgreSQL.
+that in a single self-hosted application.
 
-No SaaS, no vendor lock-in, no subscription. You own your data. Everything
-runs locally or on your own server.
+No SaaS, no vendor lock-in, no subscription. You own your data.
 
-## Features
+## What It Actually Does
 
-**Portfolio dashboard.** Net Asset Value calculated from liquid assets (bank
-balances), marketable assets (stocks and crypto with live prices), illiquid
-assets (real estate, private equity), minus liabilities. Interactive Chart.js
-charts for allocation and NAV history.
+### Portfolio Intelligence
 
-**Corporate structure.** Model your entire holding company tree with any depth
-of nesting. Track ownership percentages, beneficial owners, key personnel,
-service providers, and ownership changes per entity.
+The dashboard is not a dumb list of numbers. It computes:
 
-**Asset holdings and custody.** Equities, crypto, commodities, real estate,
-private equity, or any custom asset type. Link each holding to a custodian
-account with bank name, account number, and authorized persons. Cost basis lot
-tracking for tax reporting.
+- **Net Asset Value** segmented into liquid (bank balances), marketable (stocks,
+  crypto, commodities with live prices from Yahoo Finance), and illiquid (real
+  estate, private equity, funds), minus liabilities.
+- **Return metrics** — total return %, unrealized and realized gains, computed
+  from cost basis lots with FIFO/LIFO/specific lot support.
+- **Period-over-period comparison** — NAV change vs 1 week, 1 month, 3 months,
+  YTD, and 1 year ago using historical snapshots.
+- **90-day cash flow forecast** — projects future cash from recurring
+  transactions (expanded by frequency) and upcoming debt maturities, with a
+  running balance chart.
+- **Financial ratios** — debt-to-equity, current ratio, liquidity ratio,
+  weighted average interest rate on debt.
+- **Entity-level performance** — per-company breakdown of cash, holdings,
+  liabilities, NAV, and return percentage. Answers "which subsidiary is
+  performing best?"
 
-**Live prices.** Yahoo Finance integration for any ticker (stocks, ETFs,
-BTC-USD, GC=F, EURUSD=X). ETS-cached with configurable TTL. Price history
-snapshots via Oban background jobs.
+All values convert to a single display currency via live FX rates.
 
-**Bank accounts.** Operating, savings, FX, custody, and escrow accounts per
-entity. IBAN, SWIFT/BIC, currency, balance, and authorized signers.
+### Corporate Structure
 
-**Transactions.** Buy/sell, dividends, fees, distributions, capital calls.
-Amount, currency, counterparty, date, linked to holdings and bank accounts.
+Model your entire holding company tree with any depth of nesting. Track
+ownership percentages, beneficial owners, key personnel, service providers,
+and ownership changes per entity. The company detail page consolidates
+holdings, bank accounts, transactions, documents, governance records,
+compliance items, financials, and accounting into tabbed views.
 
-**Liabilities.** Bank loans, bonds, credit lines, intercompany loans.
-Principal, interest rate, maturity date, currency, and status tracking.
+### Double-Entry Accounting
 
-**Financial tracking.** Revenue and expenses per entity per period with
-multi-currency support. Inter-company transfers, dividends, capital
-contributions, tax payments, and budgets.
-
-**Double-entry accounting.** Full chart of accounts, journal entries with
+Full chart of accounts with hierarchical structure, journal entries with
 balanced debit/credit lines, trial balance, balance sheet, and income
-statement. All accounting data is entity-scoped: each company owns its own
-accounts and journal entries, global pages show consolidated views with company
-filter dropdowns. QuickBooks Online integration syncs accounts and journal
-entries into a specific company.
+statement. Each company owns its own accounts; global pages show consolidated
+views with company filter dropdowns. Period locks prevent edits to closed
+periods. Recurring transactions auto-generate journal entries via Oban
+background jobs.
 
-**Consolidated financial statements.** Automatic elimination of intercompany
-balances and transactions for group-level reporting.
+### Bank Reconciliation
 
-**Governance.** Board meetings, corporate actions, statutory registers, share
-classes, and related party transaction tracking.
+A real scoring engine matches book entries against bank feed transactions:
+50 points for exact amount match (partial credit within 5%), 30 points for
+date proximity, 20 points for Jaro-Winkler description similarity. Auto-match
+at 60+ points. Manual override for exceptions. Bank feeds sync via Plaid.
 
-**Compliance.** Regulatory filings, licenses, insurance policies, compliance
-checklists, and transfer pricing documentation.
+### Risk and Analytics
 
-**Tax visibility.** Tax provisions, deferred taxes, capital gains tracking,
-tax calendar with filing deadlines per company and jurisdiction, and transfer
-pricing documentation for multi-entity structures.
+- **Concentration risk** — HHI index, max position %, per-holding % of NAV,
+  alerts when any position exceeds 25%.
+- **Stress testing** — apply ticker-level, asset-type, or FX shocks to the
+  portfolio and see per-holding impact on NAV.
+- **Anomaly detection** — 3-sigma outlier detection, duplicate detection,
+  10x-median unusual amount flagging, and 50%+ period-over-period revenue/expense
+  change detection.
+- **Debt maturity ladder** — bucket liabilities by time horizon (0-1yr, 1-3yr,
+  3-5yr, 5+yr), weighted average interest rate, upcoming maturity alerts.
+- **Cash forecast** — 12-month projection from detected recurring patterns,
+  liability maturities, and tax deadline outflows with Chart.js visualization.
+- **Budget variance** — actual vs budget by category with $ and % variance,
+  grouped bar charts.
 
-**Risk analytics.** Concentration risk, counterparty risk scoring, covenant
-monitoring, stress testing, liquidity coverage, debt maturity ladder, cash
-flow forecasting, anomaly detection, and benchmarking.
+### Tax
 
-**DeFi positions.** On-chain position tracking with value by chain and
-protocol, automatic price fetching via CoinGecko.
+- **Capital gains** — FIFO, LIFO, or specific lot identification. Short-term vs
+  long-term classification (365-day rule). Realized and unrealized gains per lot.
+  Tax estimate at 37%/20%.
+- **Tax provisions** per entity per jurisdiction.
+- **Deferred taxes** — book vs tax basis differences with inline calculator.
+- **Tax calendar** — filing deadlines across entities and jurisdictions with
+  status tracking.
+- **Transfer pricing** — arm's-length variance computation, color-coded by
+  deviation severity.
 
-**Contracts.** Cross-entity contract registry with expiry calendar,
-counterparty concentration, and renewal alerts.
+### Integrations
 
-**Documents.** Contracts, articles of incorporation, tax filings, agreements.
-Document versioning and file uploads per company.
+- **QuickBooks Online** — OAuth2 connection with automatic token refresh. Sync
+  chart of accounts and journal entries per company.
+- **Plaid** — bank feed sync for automatic transaction import.
+- **Yahoo Finance** — live prices for any ticker (stocks, ETFs, crypto,
+  commodities, FX pairs). ETS-cached with configurable TTL.
 
-**Scenario modeling.** Financial projections with linear or compound growth
-rates, recurrence, and probability weighting. Monthly projection charts.
+### AI Assistant
 
-**Audit log.** Every create, update, and delete is logged and streamed in
-real-time via Phoenix PubSub.
+LLM-powered chat available as a persistent slide-out drawer from any page.
+Supports Anthropic Claude and OpenAI. Conversations are persisted per user.
+The system prompt is automatically populated with live portfolio data (NAV,
+holdings, companies, allocation, liabilities, transactions, tax deadlines)
+so the LLM has full context.
 
-**Approval workflows.** Require N-of-M approvals for transactions above a
-threshold, dividend declarations, or new entity creation.
+### Background Workers
 
-**Role-based access control.** Three roles: admin (full access), editor
-(create and update), viewer (read-only). Enforced at the LiveView level.
-Authentication via email and password with optional TOTP two-factor
-authentication.
+Oban-powered scheduled jobs that run automatically:
 
-**Notifications and alerts.** In-app notification center for system events,
-deadline reminders, and approval requests. Configurable rule-based alerts.
+| Worker | What it does |
+|---|---|
+| `SnapshotPricesWorker` | Fetches live prices for all holding tickers |
+| `PortfolioSnapshotWorker` | Records daily NAV snapshots for historical charts |
+| `BackupWorker` | `pg_dump` to disk with retention cleanup, optional S3/R2 upload |
+| `RecurringTransactionWorker` | Posts journal entries for due recurring transactions |
+| `InterestAccrualWorker` | Generates interest accrual entries for intercompany loans |
+| `BankFeedSyncWorker` | Syncs transactions from Plaid-connected bank accounts |
+| `AlertEngineWorker` | Evaluates alert rules against live metrics |
+| `SanctionsCheckWorker` | Screens company names against sanctions lists (Jaro similarity) |
+| `TaxReminderWorker` | Sends notifications for tax deadlines due within 14 days |
+| `ScheduledReportWorker` | Generates and emails HTML reports (portfolio, trial balance, compliance) |
+| `EmailDigestWorker` | Weekly email summaries of portfolio, deadlines, and activity |
 
-**Settings.** User management, org config, preferences, API keys, and
-notification settings. Admin-only.
+### Everything Else
 
-**QuickBooks Online integration.** OAuth2 connection with automatic token
-refresh. Sync chart of accounts and journal entries from QBO into a specific
-company entity. Each subsidiary connects independently from its company detail
-page; the global integrations page shows a summary dashboard of all connections.
-
-**Automated backups.** Daily PostgreSQL `pg_dump` backups to a configured path
-with retention-based cleanup. Backup logs visible in settings.
-
-**Email digests.** Weekly email summaries including portfolio NAV, upcoming
-deadlines, recent audit activity, and transactions. Configurable per user.
-
-**Gains tracking.** Unrealized and realized gain/loss calculations per holding
-based on cost basis lots. Aggregate portfolio-level gains.
-
-**Dynamic FX rates.** Live currency conversion via Yahoo Finance with automatic
-fallback to hardcoded rates. Used across all portfolio calculations.
-
-**JSON API.** Read-only REST API authenticated via API keys. Endpoints for
-portfolio NAV, asset allocation, FX exposure, companies, holdings, and
-transactions.
-
-**CSV export.** Download companies, holdings, transactions, chart of accounts,
-or journal entries as CSV from any list page. Accounting exports accept an
-optional company filter.
-
-**Search.** Full-text search across companies, holdings, transactions, and
-documents from the nav bar.
-
-**Background workers.** Oban-powered scheduled jobs: daily price snapshots,
-portfolio NAV snapshots, database backups, tax deadline reminders, and email
-digests.
-
-**Contacts and relationship management.** Track key people across the holding
-structure: lawyers, accountants, bankers, regulators, advisors, and business
-contacts. Link contacts to entities and documents with role tags and notes.
-
-**Budget variance analysis.** Compare budgets to actuals with drill-down by
-entity, period, and account.
-
-**Cash flow forecasting.** Project future cash positions per entity based on
-recurring revenues, expenses, loan repayments, and tax deadlines.
-
-**KPI tracking.** Define and track custom key performance indicators per entity
-with targets, trends, and threshold alerts.
-
-**Concentration risk dashboard.** Alerts when a single asset, sector, currency,
-or counterparty exceeds a configurable percentage of NAV.
-
-**Debt maturity ladder.** Visual timeline of upcoming maturities across all
-entities.
-
-**Entity comparison.** Side-by-side financials and metrics across companies.
-
-**Capital gains tax reports.** Generate FIFO, LIFO, or specific-lot reports per
-jurisdiction with short-term vs long-term classification.
-
-**Interactive org chart.** Visual entity structure diagram with click-through to
-entity details.
-
-**Unified calendar.** Merge tax deadlines, board meetings, compliance dates,
-loan maturities, and filing deadlines into one calendar view.
-
-**CSV/data import.** Import data from CSV files with column mapping and
-validation.
-
-**AI assistant.** LLM-powered chat available as a persistent slide-out drawer
-from any page via a floating button. Configurable provider (Anthropic Claude,
-OpenAI) with API key and model selection in Settings. Conversations are
-persisted per user. The dashboard includes an inline AI Insights card that
-generates a brief portfolio health summary on page load. The system prompt is
-automatically populated with live portfolio data (NAV, holdings, companies,
-allocation, liabilities, transactions, and tax deadlines) so the LLM has full
-context to answer accurately.
+- **Audit log** — every create, update, delete is logged and streamed in
+  real-time via PubSub.
+- **Approval workflows** — N-of-M approvals for sensitive actions.
+- **Role-based access** — admin, editor, viewer. Enforced at the LiveView
+  level. Email/password auth with optional TOTP 2FA.
+- **Consolidated statements** — automatic elimination of intercompany balances.
+- **CSV import/export** — companies, holdings, transactions, chart of accounts,
+  journal entries.
+- **JSON API** — read-only REST endpoints for NAV, allocation, FX exposure,
+  companies, holdings, transactions.
+- **Search** — cross-table search across companies, holdings, transactions,
+  documents.
+- **Contracts** — cross-entity registry with counterparty tracking.
+- **Contacts** — people and organizations across the holding structure.
+- **Documents** — file uploads per company with versioning.
 
 ## Quickstart
 
@@ -220,8 +185,6 @@ make reset          # mix ecto.reset
 make precommit      # format + compile + test
 ```
 
-All local dev targets run through `nix develop --command`.
-
 ### Environment Variables
 
 | Variable | Default | Description |
@@ -238,10 +201,7 @@ All local dev targets run through `nix develop --command`.
 ### Docker (recommended)
 
 ```bash
-# Generate a secret
 export SECRET_KEY_BASE=$(mix phx.gen.secret)
-
-# Build and run
 make docker-build
 make docker-up
 ```
@@ -268,12 +228,10 @@ nix build              # OTP release in ./result
 nix build .#docker     # Docker image via dockerTools
 ```
 
-The BackupWorker runs automated daily `pg_dump` backups if configured in Settings.
-
 ## API
 
-Holdco exposes a read-only JSON API authenticated via API keys. Create a key
-in Settings, then pass it as the `X-API-Key` header.
+Read-only JSON API authenticated via API keys. Create a key in Settings, then
+pass it as the `X-API-Key` header.
 
 | Endpoint | Description |
 |---|---|
@@ -286,24 +244,15 @@ in Settings, then pass it as the `X-API-Key` header.
 | `GET /api/holdings` | List holdings |
 | `GET /api/transactions` | List transactions |
 
-Example:
-
 ```bash
 curl -H "X-API-Key: your-key-here" http://localhost:4000/api/portfolio
 ```
 
-## CI
-
-GitHub Actions runs on every push and PR to `main`:
-
-1. **test** — compile with warnings-as-errors, format check, full test suite
-2. **docker** — builds the Docker image on push to main (with layer caching)
-
 ## Testing
 
 ```bash
-make test                    # run full suite
-mix test --trace             # verbose output
+make test             # ~4,000 tests
+mix test --trace      # verbose output
 ```
 
 ## Architecture
@@ -312,8 +261,8 @@ mix test --trace             # verbose output
 |---|---|
 | Web framework | Phoenix 1.8 |
 | UI | Phoenix LiveView 1.1 |
-| Database | PostgreSQL via postgrex |
-| Authentication | phx.gen.auth |
+| Database | PostgreSQL via Ecto |
+| Authentication | phx.gen.auth + TOTP |
 | Background jobs | Oban |
 | Price data | Yahoo Finance via Req |
 | Live updates | Phoenix PubSub |
@@ -322,185 +271,126 @@ mix test --trace             # verbose output
 
 ### Single-Tenant Design
 
-Holdco is designed as a **single-tenant, self-hosted application**. There is no
+Holdco is a **single-tenant, self-hosted application**. There is no
 multi-tenancy layer. One instance serves one holding company. All users share
-the same data set, distinguished only by role (admin / editor / viewer). This is
-intentional: holding company data is sensitive and should not be co-located with
-other tenants. Deploy a separate instance per organization.
+the same data set, distinguished only by role. Holding company data is
+sensitive and should not be co-located with other tenants. Deploy a separate
+instance per organization.
 
 ### Pages
 
 | Route | Description |
 |---|---|
-| `/` | Dashboard: NAV, allocation chart, NAV history, corporate structure, recent activity |
-| `/companies` | Company list with tree view, CSV export |
+| `/` | Dashboard: NAV, returns, period comparison, ratios, cash forecast, entity performance |
+| `/companies` | Company list with tree view |
 | `/companies/:id` | Company detail: holdings, bank accounts, transactions, documents, governance, compliance, financials, accounting |
-| `/holdings` | All holdings with allocation chart, CSV export |
-| `/holdings/:id` | Holding detail |
-| `/transactions` | Transaction list with inflow/outflow summary, CSV export |
+| `/holdings` | All holdings with allocation chart |
+| `/holdings/:id` | Holding detail with cost basis lots |
+| `/transactions` | Transaction list with inflow/outflow summary |
 | `/transactions/:id` | Transaction detail |
-| `/bank-accounts` | Bank accounts with balances, currency breakdown |
+| `/bank-accounts` | Bank accounts with balances and currency breakdown |
 | `/bank-accounts/:id` | Bank account detail |
 | `/documents` | Document library with file uploads |
 | `/financials` | P&L with trend charts, budgets, intercompany transfers |
-| `/contacts` | Contact management with role tags |
+| `/contacts` | Contact management |
+| `/contracts` | Cross-entity contract registry |
 | `/calendar` | Unified calendar (deadlines, meetings, maturities) |
-| `/org-chart` | Interactive org chart with click-through to entities |
-| `/search` | Cross-table search (companies, holdings, transactions, documents) |
-| `/governance` | Board composition, policies, resolutions |
-| `/compliance` | Regulatory filings, licenses, insurance |
-| `/board-meetings` | Agenda, minutes, resolutions, attendance |
-| `/corporate-actions` | Dividends, share issues, mergers, spin-offs |
-| `/registers` | Statutory shareholder/director/charge registers |
-| `/share-classes` | Cap table with ownership percentages |
-| `/related-party-transactions` | Intercompany transaction disclosure |
-| `/accounts/chart` | Chart of accounts with company filter |
-| `/accounts/journal` | Journal entries with balanced lines, company filter |
+| `/tax-calendar` | Tax filing deadlines by entity and jurisdiction |
+| `/org-chart` | Interactive org chart |
+| `/search` | Cross-table search |
+| `/accounts/chart` | Chart of accounts |
+| `/accounts/journal` | Journal entries |
 | `/accounts/reports` | Trial balance, balance sheet, income statement |
-| `/accounts/integrations` | QuickBooks Online connection status per company |
-| `/consolidated` | Consolidated financial statements with elimination entries |
+| `/accounts/integrations` | QuickBooks Online / Xero connection status |
+| `/consolidated` | Consolidated financial statements |
 | `/bank-reconciliation` | Match book entries to bank statements |
 | `/period-locks` | Close periods to prevent edits |
 | `/recurring-transactions` | Auto-generated repeating entries |
 | `/budgets/variance` | Budget vs actual variance analysis |
 | `/tax-provisions` | Tax liability per entity per jurisdiction |
 | `/deferred-taxes` | Book vs tax basis differences |
-| `/tax/capital-gains` | Cost basis tracking, realized/unrealized gains |
-| `/tax-calendar` | Filing deadlines across entities and jurisdictions |
-| `/transfer-pricing` | Arm's-length documentation, margin analysis |
+| `/tax/capital-gains` | FIFO/LIFO cost basis, realized/unrealized gains |
+| `/transfer-pricing` | Arm's-length documentation |
 | `/risk/concentration` | Exposure by type/counterparty/geography |
-| `/counterparty-risk` | Weighted risk score per counterparty |
-| `/covenants` | Financial ratio monitoring, breach detection |
 | `/stress-test` | Apply shocks to portfolio, see impact on NAV |
-| `/liquidity` | LCR calculation with HQLA tiering |
-| `/debt-maturity` | Amortization schedules, upcoming maturities |
-| `/cash-forecast` | Projected cash position from known flows |
 | `/anomalies` | Statistical outlier and duplicate detection |
-| `/benchmarks` | Portfolio return vs index, alpha computation |
-| `/scenarios` | Financial projections with variable assumptions |
-| `/defi-positions` | On-chain position tracking by chain/protocol |
-| `/reports` | Report builder for board-ready output |
-| `/kpis` | Configurable KPIs with trends |
+| `/debt-maturity` | Maturity ladder and upcoming maturities |
+| `/cash-forecast` | 12-month projected cash position |
 | `/compare` | Side-by-side entity comparison |
 | `/scheduled-reports` | Auto-generate and email reports on a schedule |
-| `/contracts` | Cross-entity contract registry with expiry alerts |
-| `/settings` | App settings, categories, backups, AI config |
-| `/settings/notifications` | Notification preferences per user |
-| `/audit-log` | Real-time audit stream via PubSub |
-| `/approvals` | Approval workflows (N-of-M) |
-| `/notifications` | Notification center |
 | `/alerts` | Rule-based alert engine |
-| `/import` | CSV/data import with column mapping |
-| — | AI chat: persistent slide-out drawer accessible from any page |
+| `/approvals` | Approval workflows |
+| `/audit-log` | Real-time audit stream |
+| `/notifications` | Notification center |
+| `/settings` | App settings, categories, backups, AI config |
+| `/import` | CSV import with column mapping |
+| `/reports` | Report builder |
+| — | AI chat: persistent drawer accessible from any page |
 
 ### Project Layout
 
 ```
 lib/holdco/              Bounded contexts and Ecto schemas
-  accounts/              User, UserRole, ApiKey
-  corporate/             Company tree, beneficial owners, key personnel
-  governance/            Board meetings, resolutions
-  assets/                Holdings, custodian accounts, cost basis lots
+  accounts/              User, UserRole, ApiKey, TOTP
+  corporate/             Company tree, beneficial owners, key personnel, governance
+  assets/                Holdings, custodian accounts, cost basis lots, snapshots
   banking/               Bank accounts, transactions
-  finance/               Chart of accounts, journals, budgets, liabilities
-  compliance/            Regulatory filings, insurance, sanctions
+  finance/               Chart of accounts, journals, budgets, liabilities, leases
+  compliance/            Regulatory filings, insurance, sanctions, tax deadlines
   documents/             Documents, versions, uploads
-  treasury/              Cash pools
+  tax/                   Tax provisions, deferred taxes, capital gains
   pricing/               Price history, Yahoo Finance client (ETS cache)
-  platform/              Settings, audit log, approvals
-  integrations/          QuickBooks Online sync, bank feeds
+  platform/              Settings, audit log, approvals, alerts
+  integrations/          QuickBooks sync, Xero sync, Plaid bank feeds, reconciliation
   ai/                    LLM client, data context, conversations
-  scenarios/             Scenario modeling with projection engine
-  analytics/             KPIs, snapshots
   notifications/         In-app notification system
-  depreciation/          Depreciation schedules (context, no UI)
-  tax/                   Tax provisions, deferred taxes
+  analytics/             Anomaly detection, stress testing
+  portfolio.ex           NAV, returns, ratios, cash forecast, entity performance
+  money.ex               Decimal arithmetic helpers
   search.ex              Cross-table search
-  portfolio.ex           NAV calculation, asset allocation, FX exposure, gains
-  workers/               Oban workers (prices, snapshots, backups, tax reminders)
+  workers/               11 Oban workers
 lib/holdco_web/
   controllers/api/       JSON API controllers
-  controllers/           Health check, CSV export, auth, reports
-  plugs/                 API key authentication plug
-  live/                  52 LiveView modules
+  controllers/           Health, CSV export, auth, reports, QBO/Xero OAuth
+  plugs/                 API key authentication
+  live/                  ~45 LiveView modules
   components/            Layout, design system, Chart.js hook
   router.ex              All routes
-Makefile                 Nix-wrapped dev commands
-Dockerfile               Multi-stage production build
-docker-compose.yml       Multi-service deployment with PostgreSQL
-.github/workflows/ci.yml GitHub Actions CI (test + docker build)
-flake.nix                Nix devShell + package build + Docker image
-assets/css/app.css       Tailwind CSS 4 + daisyUI v5
-priv/repo/migrations/    Migration files
-priv/repo/seeds.exs      Example data
 ```
 
 ## Roadmap
 
-Planned features organized by priority. Contributions welcome.
+### Automation
 
-### Deepening existing pages
-
-These pages exist but need more logic to be truly useful:
-
-- **Cash Forecast** — Pull recurring transactions and known future cash flows,
-  project daily/weekly cash position forward 90 days.
-- **Debt Maturity** — Amortization schedule calculation, interest accrual,
-  "what's due in 30/60/90 days" view.
-- **Budget Variance** — Actual vs budget with variance % and drill-down by
-  account/entity.
-- **Bank Reconciliation** — Auto-match high-confidence entries, flag exceptions.
-- **Alerts** — Verify Oban worker fires and alerts deliver via email/Slack.
-- **Contracts** — Calendar view of expirations, auto-alerts at 30/60/90 days,
-  counterparty concentration dashboard.
-- **Scheduled Reports** — Email delivery, PDF generation, support for all
-  report types.
-- **Benchmarks** — Time-weighted returns, multiple benchmark support, period
-  comparison.
-
-### Automation and integrations
-
-- **Bank feed via Plaid or GoCardless.** Auto-import transactions and reconcile.
 - **Open banking (PSD2).** EU bank connections for automatic balance and
   transaction retrieval.
-- **Mercury, Wise, and Revolut Business APIs.** Direct bank balance and
-  transaction sync.
-- **Xero integration.** Cover the other major accounting platform alongside
-  QuickBooks.
-- **Intercompany loan interest accrual.** Automatic interest calculations at
-  arm's length rates with journal entry generation.
-- **Backup to S3 or R2.** Push encrypted backups to object storage.
-- **Import from Excel and Google Sheets.** Beyond CSV, handle `.xlsx` files.
-- **Intercompany netting.** Net out payables and receivables across entities
-  before settling.
-- **Slack integration.** Push alerts to channels, query portfolio data.
+- **Mercury, Wise, Revolut Business APIs.** Direct bank balance sync.
+- **Intercompany netting.** Net payables/receivables across entities before
+  settling.
+- **Slack integration.** Push alerts to channels.
+- **Scheduled anomaly detection.** Run statistical detection nightly via Oban
+  instead of requiring manual trigger.
 
-### Advanced analytics
+### Analytics
 
-- **Valuation models.** DCF, comparables, and cap rate models for illiquid
-  and private holdings.
-- **Point-in-time snapshots.** View the corporate structure and portfolio as
-  it was on any historical date.
-- **Tax loss harvesting.** Identify positions to sell for tax losses based on
-  cost basis lots and wash sale rules.
-- **FX hedging tracker.** Log forward contracts, options, and swaps against FX
+- **Valuation models.** DCF, comparables, and cap rate for illiquid holdings.
+- **Point-in-time snapshots.** View corporate structure and portfolio as of any
+  historical date.
+- **Tax loss harvesting.** Identify positions to sell based on cost basis lots
+  and wash sale rules.
+- **FX hedging tracker.** Forward contracts, options, and swaps against
   exposures.
+- **Time-weighted returns.** IRR and TWR calculations per holding and portfolio.
+- **Monte Carlo simulation.** Probabilistic stress testing beyond linear shocks.
 
-### Real assets and crypto
+### Platform
 
-- **Real estate management.** Lease schedules, tenant tracking, rent rolls,
-  and property-level P&L.
-- **On-chain verification.** Pull balances directly from blockchain RPCs to
-  verify custodial reports.
-
-### Platform improvements
-
-- **Write API.** Full read-write REST API for programmatic data entry and
-  automation scripts.
-- **Mobile-responsive dashboard.** Simplified mobile layout for checking NAV
-  on the go.
-- **Keyboard shortcuts.** Power-user navigation across all pages.
-- **Dark mode.**
+- **Write API.** Full read-write REST API for programmatic data entry.
+- **Mobile-responsive dashboard.**
+- **Keyboard shortcuts.**
+- **Double-entry validation.** Enforce debits = credits at the UI layer.
+- **Streaming AI responses.** Token-by-token output instead of waiting for full
+  response.
 
 ## License
 

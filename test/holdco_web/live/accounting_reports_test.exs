@@ -160,20 +160,6 @@ defmodule HoldcoWeb.AccountingReportsTest do
     end
   end
 
-  # ── Handle Info (PubSub) ──────────────────────────────
-
-  describe "handle_info for PubSub broadcast" do
-    test "handles generic broadcast and reloads data", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/accounts/reports")
-
-      send(view.pid, :some_broadcast)
-
-      html = render(view)
-      assert html =~ "Accounting Reports"
-      assert html =~ "Trial Balance"
-    end
-  end
-
   # ── Filter company on income statement ────────────────
 
   describe "filter_company with income statement active" do

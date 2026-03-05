@@ -35,6 +35,13 @@ defmodule HoldcoWeb.DashboardLive do
       send(self(), :load_ai_insight)
     end
 
+    # New analytics
+    returns = Portfolio.return_metrics()
+    period_comp = Portfolio.period_comparison()
+    ratios = Portfolio.financial_ratios()
+    cash_forecast = Portfolio.cash_flow_forecast(90)
+    entities = Portfolio.entity_performance()
+
     {:ok,
      assign(socket,
        page_title: "Dashboard",
@@ -49,7 +56,12 @@ defmodule HoldcoWeb.DashboardLive do
        pending_approvals: pending_approvals,
        upcoming_deadlines: upcoming_deadlines,
        ai_insight: nil,
-       ai_insight_loading: ai_configured
+       ai_insight_loading: ai_configured,
+       returns: returns,
+       period_comp: period_comp,
+       ratios: ratios,
+       cash_forecast: cash_forecast,
+       entities: entities
      )}
   end
 
@@ -118,6 +130,7 @@ defmodule HoldcoWeb.DashboardLive do
       </div>
     <% end %>
 
+    <%!-- === NAV Metrics Strip === --%>
     <% sym = currency_symbol(@display_currency) %>
     <div class="metrics-strip">
       <div class="metric-cell">
@@ -145,6 +158,54 @@ defmodule HoldcoWeb.DashboardLive do
       </div>
     </div>
 
+    <%!-- === Returns & Period Comparison === --%>
+    <div class="metrics-strip" id="returns-strip">
+      <div class="metric-cell">
+        <div class="metric-label">Total Return</div>
+        <div class={"metric-value #{gain_class(@returns.total_gain)}"}>
+          {format_pct(@returns.total_return_pct)}
+        </div>
+        <div class="metric-note">
+          {sym}{format_number(Money.mult(@returns.total_gain, @fx_rate))} gain
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Unrealized</div>
+        <div class={"metric-value #{gain_class(@returns.unrealized_gain)}"}>
+          {sym}{format_signed(Money.mult(@returns.unrealized_gain, @fx_rate))}
+        </div>
+        <div class="metric-note">{format_pct(@returns.unrealized_return_pct)}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Realized</div>
+        <div class={"metric-value #{gain_class(@returns.realized_gain)}"}>
+          {sym}{format_signed(Money.mult(@returns.realized_gain, @fx_rate))}
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Cost Basis</div>
+        <div class="metric-value">
+          {sym}{format_number(Money.mult(@returns.total_cost_basis, @fx_rate))}
+        </div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">NAV Change</div>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.25rem;">
+          <%= for p <- @period_comp do %>
+            <%= if p.change_pct do %>
+              <span style="display: inline-flex; flex-direction: column; align-items: center;">
+                <span style="font-size: 0.7rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em;">{p.label}</span>
+                <span class={"tag #{period_tag(p.change_pct)}"} style="margin-top: 2px;">
+                  {format_pct(p.change_pct)}
+                </span>
+              </span>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <%!-- === Asset Allocation & NAV History === --%>
     <div class="grid-2">
       <div class="section">
         <div class="section-head">
@@ -201,6 +262,186 @@ defmodule HoldcoWeb.DashboardLive do
       </div>
     </div>
 
+    <%!-- === Financial Ratios & Cash Flow Forecast === --%>
+    <div class="grid-2">
+      <div class="section">
+        <div class="section-head">
+          <h2>Financial Ratios</h2>
+        </div>
+        <div class="panel" style="padding: 1.25rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <div>
+              <div class="metric-label">Debt-to-Equity</div>
+              <div class="metric-value" style="font-size: 1.5rem;">
+                {format_ratio(@ratios.debt_to_equity)}
+              </div>
+              <div class="metric-note">
+                <%= cond do %>
+                  <% @ratios.debt_to_equity == nil -> %>
+                    No equity data
+                  <% @ratios.debt_to_equity < 0.5 -> %>
+                    Conservative leverage
+                  <% @ratios.debt_to_equity < 1.0 -> %>
+                    Moderate leverage
+                  <% true -> %>
+                    High leverage
+                <% end %>
+              </div>
+            </div>
+            <div>
+              <div class="metric-label">Current Ratio</div>
+              <div class="metric-value" style="font-size: 1.5rem;">
+                {format_ratio(@ratios.current_ratio)}
+              </div>
+              <div class="metric-note">
+                <%= cond do %>
+                  <% @ratios.current_ratio == nil -> %>
+                    No short-term debt
+                  <% @ratios.current_ratio > 2.0 -> %>
+                    Strong liquidity
+                  <% @ratios.current_ratio > 1.0 -> %>
+                    Adequate liquidity
+                  <% true -> %>
+                    Liquidity concern
+                <% end %>
+              </div>
+            </div>
+            <div>
+              <div class="metric-label">Liquidity Ratio</div>
+              <div class="metric-value" style="font-size: 1.5rem;">
+                {format_pct(@ratios.liquid_to_total_pct)}
+              </div>
+              <div class="metric-note">Cash / total assets</div>
+            </div>
+            <div>
+              <div class="metric-label">Avg Interest Rate</div>
+              <div class="metric-value" style="font-size: 1.5rem;">
+                <%= if @ratios.weighted_avg_interest_rate do %>
+                  {format_pct(@ratios.weighted_avg_interest_rate)}
+                <% else %>
+                  --
+                <% end %>
+              </div>
+              <div class="metric-note">Weighted by principal</div>
+            </div>
+          </div>
+          <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; font-size: 0.85rem;">
+            <span>Total Assets: <strong>{sym}{format_number(Money.mult(@ratios.total_assets, @fx_rate))}</strong></span>
+            <span>Equity: <strong>{sym}{format_number(Money.mult(@ratios.equity, @fx_rate))}</strong></span>
+            <span>Debt: <strong>{sym}{format_number(Money.mult(@ratios.total_liabilities, @fx_rate))}</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>90-Day Cash Forecast</h2>
+          <.link navigate={~p"/cash-forecast"} class="count" style="text-decoration: none;">Full Forecast &rarr;</.link>
+        </div>
+        <div class="panel" style="padding: 1.25rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <div class="metric-label">Starting Cash</div>
+              <div style="font-family: var(--font-display); font-size: 1.1rem; font-weight: 600;">
+                {sym}{format_number(Money.mult(@cash_forecast.starting_balance, @fx_rate))}
+              </div>
+            </div>
+            <div>
+              <div class="metric-label">Net Flow</div>
+              <div style={"font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: #{if Money.negative?(@cash_forecast.net_flow), do: "var(--crimson)", else: "var(--jade)"};"}>
+                {sym}{format_signed(Money.mult(@cash_forecast.net_flow, @fx_rate))}
+              </div>
+            </div>
+            <div>
+              <div class="metric-label">Ending Cash</div>
+              <div style="font-family: var(--font-display); font-size: 1.1rem; font-weight: 600;">
+                {sym}{format_number(Money.mult(@cash_forecast.ending_balance, @fx_rate))}
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 1.5rem; font-size: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--rule);">
+            <span>Inflows: <strong class="num-positive">{sym}{format_number(Money.mult(@cash_forecast.total_inflows, @fx_rate))}</strong></span>
+            <span>Outflows: <strong class="num-negative">{sym}{format_number(Money.mult(@cash_forecast.total_outflows, @fx_rate))}</strong></span>
+            <span>{length(@cash_forecast.flows)} scheduled items</span>
+          </div>
+          <%= if @cash_forecast.flows != [] do %>
+            <div
+              id="cashflow-chart"
+              phx-hook="ChartHook"
+              data-chart-type="line"
+              data-chart-data={Jason.encode!(cashflow_chart_data(@cash_forecast))}
+              data-chart-options={Jason.encode!(%{
+                plugins: %{legend: %{display: false}},
+                scales: %{y: %{beginAtZero: false}}
+              })}
+              style="height: 150px; margin-top: 1rem;"
+            >
+              <canvas></canvas>
+            </div>
+          <% else %>
+            <div class="empty-state" style="margin-top: 1rem;">
+              No scheduled cash flows in the next 90 days
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <%!-- === Entity Performance === --%>
+    <%= if length(@entities) > 1 do %>
+      <div class="section">
+        <div class="section-head">
+          <h2>Entity Performance</h2>
+          <span class="count">{length(@entities)} entities</span>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Entity</th>
+                <th>Category</th>
+                <th class="th-num">Cash</th>
+                <th class="th-num">Holdings</th>
+                <th class="th-num">Liabilities</th>
+                <th class="th-num">NAV</th>
+                <th class="th-num">Return</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for entity <- @entities do %>
+                <tr>
+                  <td>
+                    <.link navigate={~p"/companies/#{entity.id}"} class="td-link td-name">{entity.name}</.link>
+                  </td>
+                  <td><span class="tag tag-ink">{entity.category}</span></td>
+                  <td class="td-num">{sym}{format_number(Money.mult(entity.liquid, @fx_rate))}</td>
+                  <td class="td-num">{sym}{format_number(Money.mult(entity.holdings_value, @fx_rate))}</td>
+                  <td class="td-num num-negative">
+                    <%= if Money.gt?(entity.liabilities, 0) do %>
+                      {sym}{format_number(Money.mult(entity.liabilities, @fx_rate))}
+                    <% else %>
+                      --
+                    <% end %>
+                  </td>
+                  <td class="td-num" style="font-weight: 600;">
+                    {sym}{format_number(Money.mult(entity.nav, @fx_rate))}
+                  </td>
+                  <td class={"td-num #{if entity.return_pct && entity.return_pct >= 0, do: "num-positive", else: "num-negative"}"}>
+                    <%= if entity.return_pct do %>
+                      {format_pct(entity.return_pct)}
+                    <% else %>
+                      --
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
+
+    <%!-- === Corporate Structure & Recent Activity === --%>
     <div class="grid-2">
       <div class="section">
         <div class="section-head">
@@ -273,6 +514,7 @@ defmodule HoldcoWeb.DashboardLive do
       </div>
     </div>
 
+    <%!-- === Deadlines & Approvals === --%>
     <div class="grid-2">
       <div class="section">
         <div class="section-head">
@@ -330,6 +572,7 @@ defmodule HoldcoWeb.DashboardLive do
       </div>
     </div>
 
+    <%!-- === Tools Grid === --%>
     <div class="section">
       <div class="section-head">
         <h2>Tools & Analysis</h2>
@@ -386,6 +629,7 @@ defmodule HoldcoWeb.DashboardLive do
       </div>
     </div>
 
+    <%!-- === AI Insights === --%>
     <%= if @ai_insight_loading or @ai_insight do %>
       <div class="section">
         <div class="section-head">
@@ -402,6 +646,7 @@ defmodule HoldcoWeb.DashboardLive do
       </div>
     <% end %>
 
+    <%!-- === Recent Transactions === --%>
     <div class="section">
       <div class="section-head">
         <h2>Recent Transactions</h2>
@@ -437,6 +682,8 @@ defmodule HoldcoWeb.DashboardLive do
     """
   end
 
+  # --- Helpers ---
+
   defp currencies, do: @currencies
 
   defp currency_symbol("USD"), do: "$"
@@ -466,6 +713,44 @@ defmodule HoldcoWeb.DashboardLive do
     "#{sign}#{format_number(Money.abs(amount))} #{currency}"
   end
 
+  defp format_signed(%Decimal{} = n) do
+    if Money.negative?(n) do
+      "-#{format_number(Money.abs(n))}"
+    else
+      "+#{format_number(n)}"
+    end
+  end
+
+  defp format_signed(_), do: "0"
+
+  defp format_pct(nil), do: "--"
+
+  defp format_pct(n) when is_float(n) do
+    sign = if n >= 0, do: "+", else: ""
+    "#{sign}#{:erlang.float_to_binary(n, decimals: 1)}%"
+  end
+
+  defp format_pct(n) when is_integer(n), do: format_pct(n * 1.0)
+  defp format_pct(_), do: "--"
+
+  defp format_ratio(nil), do: "--"
+  defp format_ratio(n) when is_float(n), do: :erlang.float_to_binary(n, decimals: 2)
+  defp format_ratio(_), do: "--"
+
+  defp gain_class(%Decimal{} = n) do
+    cond do
+      Money.positive?(n) -> "num-positive"
+      Money.negative?(n) -> "num-negative"
+      true -> ""
+    end
+  end
+
+  defp gain_class(_), do: ""
+
+  defp period_tag(pct) when is_float(pct) and pct >= 0, do: "tag-jade"
+  defp period_tag(pct) when is_float(pct), do: "tag-crimson"
+  defp period_tag(_), do: "tag-ink"
+
   defp format_time(nil), do: ""
   defp format_time(dt), do: Calendar.strftime(dt, "%H:%M:%S")
 
@@ -492,7 +777,6 @@ defmodule HoldcoWeb.DashboardLive do
   defp audit_link(_, id), do: ~p"/audit-log?table_name=&record=#{id}"
 
   defp build_company_tree(companies) do
-    # Put parent companies (no parent_id) first, then children grouped under their parent
     {roots, children} = Enum.split_with(companies, &is_nil(&1.parent_id))
     by_parent = Enum.group_by(children, & &1.parent_id)
 
@@ -514,6 +798,30 @@ defmodule HoldcoWeb.DashboardLive do
           backgroundColor: "rgba(74, 140, 135, 0.1)",
           fill: true,
           tension: 0.3
+        }
+      ]
+    }
+  end
+
+  defp cashflow_chart_data(forecast) do
+    flows = forecast.flows
+    starting = Money.to_float(forecast.starting_balance)
+
+    # Build data points: start with starting balance, then running balances
+    dates = ["Today" | Enum.map(flows, & &1.date)]
+    balances = [starting | Enum.map(flows, &Money.to_float(&1.running_balance))]
+
+    %{
+      labels: dates,
+      datasets: [
+        %{
+          label: "Cash Balance",
+          data: balances,
+          borderColor: "#4a8c87",
+          backgroundColor: "rgba(74, 140, 135, 0.1)",
+          fill: true,
+          tension: 0.3,
+          pointRadius: 2
         }
       ]
     }

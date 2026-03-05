@@ -120,30 +120,37 @@ defmodule HoldcoWeb.DeferredTaxLiveIndexTest do
 
   describe "filter" do
     test "filters by company", %{conn: conn} do
-      company = company_fixture(%{name: "Filter DT Corp"})
-      deferred_tax_fixture(%{company: company, description: "Filtered DT Item"})
+      company1 = company_fixture(%{name: "Filter DT Corp"})
+      company2 = company_fixture(%{name: "Other DT Corp"})
+      deferred_tax_fixture(%{company: company1, description: "Filtered DT Item"})
+      deferred_tax_fixture(%{company: company2, description: "Other DT Item"})
 
       {:ok, view, _html} = live(conn, ~p"/deferred-taxes")
-      html = render_click(view, "filter", %{"company_id" => to_string(company.id), "year" => "", "deferred_type" => ""})
+      html = render_click(view, "filter", %{"company_id" => to_string(company1.id), "year" => "", "deferred_type" => ""})
       assert html =~ "Filtered DT Item"
+      refute html =~ "Other DT Item"
     end
 
     test "filters by year", %{conn: conn} do
       company = company_fixture()
       deferred_tax_fixture(%{company: company, tax_year: 2024, description: "Year 2024 DT"})
+      deferred_tax_fixture(%{company: company, tax_year: 2023, description: "Year 2023 DT"})
 
       {:ok, view, _html} = live(conn, ~p"/deferred-taxes")
       html = render_click(view, "filter", %{"company_id" => "", "year" => "2024", "deferred_type" => ""})
       assert html =~ "Year 2024 DT"
+      refute html =~ "Year 2023 DT"
     end
 
     test "filters by deferred type", %{conn: conn} do
       company = company_fixture()
       deferred_tax_fixture(%{company: company, deferred_type: "asset", description: "Asset Type DT"})
+      deferred_tax_fixture(%{company: company, deferred_type: "liability", description: "Liability Type DT"})
 
       {:ok, view, _html} = live(conn, ~p"/deferred-taxes")
       html = render_click(view, "filter", %{"company_id" => "", "year" => "", "deferred_type" => "asset"})
       assert html =~ "Asset Type DT"
+      refute html =~ "Liability Type DT"
     end
 
     test "clears all filters with empty values", %{conn: conn} do

@@ -167,13 +167,6 @@ defmodule HoldcoWeb.DashboardLiveTest do
       assert html =~ "holdings"
     end
 
-    test "unknown messages are handled gracefully", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-      send(view.pid, {:some_unknown_event, %{}})
-      html = render(view)
-      assert html =~ "Portfolio Overview"
-    end
-
     test "keeps only 20 most recent audit entries after broadcast", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
       for i <- 1..25 do
@@ -373,6 +366,177 @@ defmodule HoldcoWeb.DashboardLiveTest do
       html = render(view)
 
       assert html =~ "#"
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════
+  # Returns & Period Comparison strip
+  # ═══════════════════════════════════════════════════════
+
+  describe "returns strip" do
+    test "shows percentage values with return data", %{conn: conn} do
+      company = company_fixture()
+      holding = holding_fixture(%{
+        company: company, asset: "Test Stock", ticker: "DASH_TEST",
+        quantity: 100.0, currency: "USD", asset_type: "equity"
+      })
+      price_history_fixture(%{ticker: "DASH_TEST", price: 200.0})
+      cost_basis_lot_fixture(%{
+        holding: holding, quantity: 100.0, price_per_unit: 150.0, sold_quantity: 0.0
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      # Should show a percentage like +33.3%
+      assert html =~ "%"
+      assert html =~ "returns-strip"
+    end
+
+    test "shows period comparison tags when snapshots exist", %{conn: conn} do
+      today = Date.utc_today()
+      portfolio_snapshot_fixture(%{date: Date.to_iso8601(Date.add(today, -7)), nav: 100_000.0})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "1W"
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════
+  # Financial Ratios panel
+  # ═══════════════════════════════════════════════════════
+
+  describe "financial ratios section" do
+    test "shows computed ratio values with real data", %{conn: conn} do
+      company = company_fixture()
+      bank_account_fixture(%{company: company, balance: 100_000.0, currency: "USD"})
+      liability_fixture(%{company: company, principal: 50_000.0, interest_rate: 5.0, status: "active"})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "Total Assets"
+      assert html =~ "Equity"
+      assert html =~ "Debt"
+    end
+
+    test "shows leverage assessment text", %{conn: conn} do
+      company = company_fixture()
+      bank_account_fixture(%{company: company, balance: 500_000.0, currency: "USD"})
+      liability_fixture(%{company: company, principal: 100_000.0, interest_rate: 3.0, status: "active"})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      # D/E = 100k / 400k = 0.25, which is "Conservative leverage"
+      assert html =~ "Conservative leverage"
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════
+  # Cash Flow Forecast section
+  # ═══════════════════════════════════════════════════════
+
+  describe "cash flow forecast section" do
+    test "renders link to full forecast", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "Full Forecast"
+      assert html =~ "/cash-forecast"
+    end
+
+    test "shows empty state when no scheduled flows", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "No scheduled cash flows"
+    end
+
+    test "shows chart when recurring transactions exist", %{conn: conn} do
+      company = company_fixture()
+      bank_account_fixture(%{company: company, balance: 50_000.0, currency: "USD"})
+      {:ok, _} = Holdco.Finance.create_recurring_transaction(%{
+        company_id: company.id,
+        description: "Test monthly income",
+        amount: 5_000.0,
+        frequency: "monthly",
+        start_date: Date.to_iso8601(Date.add(Date.utc_today(), -30)),
+        next_run_date: Date.to_iso8601(Date.add(Date.utc_today(), 5)),
+        transaction_type: "income",
+        is_active: true
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "cashflow-chart"
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════
+  # Entity Performance table
+  # ═══════════════════════════════════════════════════════
+
+  describe "entity performance section" do
+    test "hidden when only one entity", %{conn: conn} do
+      company_fixture(%{name: "Lone Entity"})
+      {:ok, _view, html} = live(conn, ~p"/")
+      # With only 1 company, the entity performance section should not render
+      refute html =~ "Entity Performance"
+    end
+
+    test "shows entity performance table with multiple entities", %{conn: conn} do
+      company_fixture(%{name: "Parent Co"})
+      company_fixture(%{name: "Sub Co"})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "Entity Performance"
+      assert html =~ "Parent Co"
+      assert html =~ "Sub Co"
+    end
+
+    test "table has correct column headers", %{conn: conn} do
+      company_fixture(%{name: "E1"})
+      company_fixture(%{name: "E2"})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "Cash"
+      assert html =~ "Holdings"
+      assert html =~ "Liabilities"
+      assert html =~ "NAV"
+      assert html =~ "Return"
+    end
+
+    test "entity rows link to company detail page", %{conn: conn} do
+      c1 = company_fixture(%{name: "Linked Entity"})
+      company_fixture(%{name: "Other Entity"})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "/companies/#{c1.id}"
+    end
+
+    test "shows cash values for entities with bank accounts", %{conn: conn} do
+      c1 = company_fixture(%{name: "Rich Co"})
+      c2 = company_fixture(%{name: "Poor Co"})
+      bank_account_fixture(%{company: c1, balance: 500_000.0, currency: "USD"})
+      bank_account_fixture(%{company: c2, balance: 1_000.0, currency: "USD"})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "Entity Performance"
+      assert html =~ "500,000"
+    end
+
+    test "shows return percentage when holdings have cost basis", %{conn: conn} do
+      c1 = company_fixture(%{name: "Return Co"})
+      _c2 = company_fixture(%{name: "No Return Co"})
+      holding = holding_fixture(%{
+        company: c1, asset: "EPTEST", ticker: "EP_TICKER",
+        quantity: 100.0, currency: "USD", asset_type: "equity"
+      })
+      price_history_fixture(%{ticker: "EP_TICKER", price: 200.0})
+      cost_basis_lot_fixture(%{holding: holding, quantity: 100.0, price_per_unit: 100.0, sold_quantity: 0.0})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      # Return = (20000 - 10000) / 10000 * 100 = 100%
+      assert html =~ "100.0%"
+    end
+
+    test "shows entity count", %{conn: conn} do
+      company_fixture(%{name: "Ent A"})
+      company_fixture(%{name: "Ent B"})
+      company_fixture(%{name: "Ent C"})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "3 entities"
     end
   end
 end

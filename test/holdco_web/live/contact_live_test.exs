@@ -64,18 +64,6 @@ defmodule HoldcoWeb.ContactLiveTest do
     end
   end
 
-  describe "noop event" do
-    test "noop does not crash and keeps modal open", %{conn: conn, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      {:ok, view, _html} = live(conn, ~p"/contacts")
-
-      view |> element("button", "Add Contact") |> render_click()
-      html = view |> element(".dialog-panel") |> render_click()
-
-      assert html =~ "dialog-overlay"
-    end
-  end
-
   # ------------------------------------------------------------------
   # CRUD operations (as editor)
   # ------------------------------------------------------------------

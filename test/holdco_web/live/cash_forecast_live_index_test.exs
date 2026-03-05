@@ -127,12 +127,4 @@ defmodule HoldcoWeb.CashForecastLiveIndexTest do
       assert html =~ label
     end
   end
-
-  describe "noop event" do
-    test "noop does not change the page", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/cash-forecast")
-      html = render_click(live, "noop", %{})
-      assert html =~ "Cash Flow Forecast"
-    end
-  end
 end

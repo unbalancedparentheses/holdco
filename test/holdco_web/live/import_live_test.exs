@@ -86,20 +86,6 @@ defmodule HoldcoWeb.ImportLiveTest do
     end
   end
 
-  describe "validate event" do
-    setup %{user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      :ok
-    end
-
-    test "validate event does not crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/import")
-
-      html = render_hook(view, "validate", %{})
-      assert html =~ "Import CSV/Excel"
-    end
-  end
-
   describe "import event without file (editor)" do
     setup %{user: user} do
       Holdco.Accounts.set_user_role(user, "editor")

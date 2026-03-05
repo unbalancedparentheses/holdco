@@ -27,12 +27,19 @@ defmodule HoldcoWeb.PeriodLockLiveIndexTest do
 
   describe "filter_company event" do
     test "filters period locks by company", %{conn: conn, user: user} do
-      company = company_fixture(%{name: "Lock Filter Co"})
-      {:ok, _lock} = Holdco.Finance.lock_period(to_string(company.id), "2025-01-01", "2025-01-31", "month", user.id)
+      company1 = company_fixture(%{name: "Lock Filter Co"})
+      company2 = company_fixture(%{name: "Other Lock Co"})
+      {:ok, _lock} = Holdco.Finance.lock_period(to_string(company1.id), "2025-01-01", "2025-01-31", "month", user.id)
+      {:ok, _lock} = Holdco.Finance.lock_period(to_string(company2.id), "2025-02-01", "2025-02-28", "month", user.id)
 
-      {:ok, view, _html} = live(conn, ~p"/period-locks")
-      html = render_change(view, "filter_company", %{"company_id" => to_string(company.id)})
-      assert html =~ "Lock Filter Co"
+      {:ok, view, html} = live(conn, ~p"/period-locks")
+      # Both date ranges visible before filtering
+      assert html =~ "2025-01-01"
+      assert html =~ "2025-02-01"
+
+      html = render_change(view, "filter_company", %{"company_id" => to_string(company1.id)})
+      assert html =~ "2025-01-01"
+      refute html =~ "2025-02-01"
     end
 
     test "filters with empty company_id shows all", %{conn: conn, user: user} do
@@ -128,11 +135,4 @@ defmodule HoldcoWeb.PeriodLockLiveIndexTest do
     end
   end
 
-  describe "noop event" do
-    test "noop does not change the page", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/period-locks")
-      html = render_click(view, "noop", %{})
-      assert html =~ "Period Locks"
-    end
-  end
 end

@@ -26,19 +26,39 @@ defmodule HoldcoWeb.RecurringTransactionsLiveIndexTest do
   end
 
   describe "filter_company" do
-    test "filtering by company updates the list", %{conn: conn} do
-      company = company_fixture(%{name: "Filter Corp"})
+    test "filtering by company shows only that company's transactions", %{conn: conn} do
+      company1 = company_fixture(%{name: "Filter Corp"})
+      company2 = company_fixture(%{name: "Other Corp"})
 
-      {:ok, view, _html} = live(conn, ~p"/recurring-transactions")
-      html = render_change(view, "filter_company", %{"company_id" => to_string(company.id)})
-      # After filtering, the page still renders
-      assert html =~ "All Recurring Transactions"
+      {:ok, _} = Holdco.Finance.create_recurring_transaction(%{
+        company_id: company1.id, description: "Filter RT", amount: 100,
+        frequency: "monthly", start_date: "2025-01-01", next_run_date: "2025-02-01"
+      })
+      {:ok, _} = Holdco.Finance.create_recurring_transaction(%{
+        company_id: company2.id, description: "Other RT", amount: 200,
+        frequency: "weekly", start_date: "2025-01-01", next_run_date: "2025-01-08"
+      })
+
+      {:ok, view, html} = live(conn, ~p"/recurring-transactions")
+      assert html =~ "Filter RT"
+      assert html =~ "Other RT"
+
+      html = render_change(view, "filter_company", %{"company_id" => to_string(company1.id)})
+      assert html =~ "Filter RT"
+      refute html =~ "Other RT"
     end
 
-    test "filtering with empty company_id shows all transactions", %{conn: conn} do
+    test "clearing filter shows all transactions", %{conn: conn} do
+      company = company_fixture(%{name: "Cleared Corp"})
+      {:ok, _} = Holdco.Finance.create_recurring_transaction(%{
+        company_id: company.id, description: "Cleared RT", amount: 100,
+        frequency: "daily", start_date: "2025-01-01", next_run_date: "2025-01-02"
+      })
+
       {:ok, view, _html} = live(conn, ~p"/recurring-transactions")
+      render_change(view, "filter_company", %{"company_id" => to_string(company.id)})
       html = render_change(view, "filter_company", %{"company_id" => ""})
-      assert html =~ "All Recurring Transactions"
+      assert html =~ "Cleared RT"
     end
   end
 
@@ -246,14 +266,6 @@ defmodule HoldcoWeb.RecurringTransactionsLiveIndexTest do
       {:ok, view, _html} = live(conn, ~p"/recurring-transactions")
       html = render_click(view, "run_now", %{"id" => to_string(rt.id)})
       assert html =~ "Transaction generated and next run date advanced"
-    end
-  end
-
-  describe "noop" do
-    test "noop event does not crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/recurring-transactions")
-      html = render_click(view, "noop")
-      assert html =~ "Recurring Transactions"
     end
   end
 

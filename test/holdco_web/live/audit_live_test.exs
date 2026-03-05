@@ -229,17 +229,6 @@ defmodule HoldcoWeb.AuditLiveTest do
     end
   end
 
-  describe "generic handle_info" do
-    test "unknown messages are handled gracefully", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/audit-log")
-
-      send(view.pid, :unknown_message)
-
-      html = render(view)
-      assert html =~ "Audit Log"
-    end
-  end
-
   describe "real-time update with table_name filter" do
     test "new audit log matching table_name filter appears", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/audit-log")

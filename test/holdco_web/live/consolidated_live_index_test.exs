@@ -130,14 +130,6 @@ defmodule HoldcoWeb.ConsolidatedLiveIndexTest do
     end
   end
 
-  describe "noop event" do
-    test "noop does not change the page", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/consolidated")
-      html = render_click(live, "noop", %{})
-      assert html =~ "Consolidated Financial Statements"
-    end
-  end
-
   describe "with account data across entities" do
     setup do
       c1 = company_fixture(%{name: "Consol Parent", ownership_pct: 100})

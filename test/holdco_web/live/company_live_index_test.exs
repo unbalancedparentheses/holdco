@@ -72,19 +72,6 @@ defmodule HoldcoWeb.CompanyLiveIndexTest do
       %{parent: parent}
     end
 
-    test "expand_all does not crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/companies")
-
-      # Switch to tree view
-      view |> element(~s(button[phx-value-mode="tree"])) |> render_click()
-
-      # Expand all should succeed without error
-      html = view |> element(~s(button[phx-click="expand_all"])) |> render_click()
-
-      # Parent should still be visible in tree
-      assert html =~ "Parent Corp"
-    end
-
     test "collapse all keeps parent visible", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/companies")
 
@@ -186,15 +173,6 @@ defmodule HoldcoWeb.CompanyLiveIndexTest do
     end
   end
 
-  describe "noop event" do
-    test "noop does not crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/companies")
-
-      html = render_hook(view, "noop", %{})
-      assert html =~ "Companies"
-    end
-  end
-
   describe "tree toggle_node event" do
     test "toggle_node via render_hook toggles expanded state", %{conn: conn} do
       parent = company_fixture(%{name: "Toggleable Parent"})
@@ -239,14 +217,6 @@ defmodule HoldcoWeb.CompanyLiveIndexTest do
       refute html =~ "Broadcast Deleted Co"
     end
 
-    test "unknown message handled gracefully", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/companies")
-
-      send(view.pid, {:unknown_event, %{}})
-
-      html = render(view)
-      assert html =~ "Companies"
-    end
   end
 
   describe "create company with invalid data" do

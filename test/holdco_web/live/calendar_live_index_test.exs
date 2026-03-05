@@ -20,7 +20,7 @@ defmodule HoldcoWeb.CalendarLiveIndexTest do
       })
 
       {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "US" || html =~ "tax" || html =~ "Quarterly filing"
+      assert html =~ "Quarterly filing"
     end
 
     test "shows board meeting events", %{conn: conn} do
@@ -30,7 +30,7 @@ defmodule HoldcoWeb.CalendarLiveIndexTest do
       board_meeting_fixture(%{company: company, scheduled_date: today_str})
 
       {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "meeting" || html =~ "Meeting Corp"
+      assert html =~ "Meeting Corp"
     end
 
     test "shows liability maturity events", %{conn: conn} do
@@ -45,7 +45,7 @@ defmodule HoldcoWeb.CalendarLiveIndexTest do
       })
 
       {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "liability" || html =~ "Maturity Bank" || html =~ "Liability Co"
+      assert html =~ "Maturity Bank"
     end
 
     test "shows insurance renewal events", %{conn: conn} do
@@ -60,7 +60,7 @@ defmodule HoldcoWeb.CalendarLiveIndexTest do
       })
 
       {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "insurance" || html =~ "Insurer XYZ" || html =~ "renewal"
+      assert html =~ "Insurer XYZ"
     end
 
     test "shows regulatory filing events", %{conn: conn} do
@@ -75,7 +75,7 @@ defmodule HoldcoWeb.CalendarLiveIndexTest do
       })
 
       {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "filing" || html =~ "UK" || html =~ "Annual Return"
+      assert html =~ "Annual Return"
     end
 
     test "filters events by tax type", %{conn: conn} do
@@ -87,7 +87,7 @@ defmodule HoldcoWeb.CalendarLiveIndexTest do
 
       {:ok, live, _html} = live(conn, ~p"/calendar")
       html = render_click(live, "filter_type", %{"type" => "tax"})
-      assert html =~ "tax" || html =~ "Calendar"
+      assert html =~ "tax"
     end
 
     test "filters events by meeting type", %{conn: conn} do
@@ -98,41 +98,79 @@ defmodule HoldcoWeb.CalendarLiveIndexTest do
 
       {:ok, live, _html} = live(conn, ~p"/calendar")
       html = render_click(live, "filter_type", %{"type" => "meeting"})
-      assert html =~ "meeting" || html =~ "Calendar"
+      assert html =~ "meeting"
     end
 
     test "filters events by liability type", %{conn: conn} do
+      liab_co = company_fixture(%{name: "LiabFilterCo"})
+      meet_co = company_fixture(%{name: "MeetFilterCo"})
+      # Both events in current month; the "Next 7 Days" section uses @all_events (unfiltered)
+      # so push excluded event far away so its company name doesn't appear anywhere
+      future_date = Date.utc_today() |> Date.add(3) |> Date.to_iso8601()
+      far_date = Date.utc_today() |> Date.add(90) |> Date.to_iso8601()
+      liability_fixture(%{company: liab_co, maturity_date: future_date, principal: 10_000.0, creditor: "Liability Filter Bank"})
+      board_meeting_fixture(%{company: meet_co, scheduled_date: far_date})
+
       {:ok, live, _html} = live(conn, ~p"/calendar")
       html = render_click(live, "filter_type", %{"type" => "liability"})
-      assert html =~ "Calendar"
+      assert html =~ "Liability Filter Bank"
+      refute html =~ "MeetFilterCo"
     end
 
     test "filters events by insurance type", %{conn: conn} do
+      ins_co = company_fixture(%{name: "InsFilterCo"})
+      tax_co = company_fixture(%{name: "TaxFilterCo"})
+      future_date = Date.utc_today() |> Date.add(3) |> Date.to_iso8601()
+      far_date = Date.utc_today() |> Date.add(90) |> Date.to_iso8601()
+      insurance_policy_fixture(%{company: ins_co, expiry_date: future_date, policy_type: "D&O", provider: "Insurance Filter Co"})
+      tax_deadline_fixture(%{company: tax_co, due_date: far_date})
+
       {:ok, live, _html} = live(conn, ~p"/calendar")
       html = render_click(live, "filter_type", %{"type" => "insurance"})
-      assert html =~ "Calendar"
+      assert html =~ "Insurance Filter Co"
+      refute html =~ "TaxFilterCo"
     end
 
     test "filters events by filing type", %{conn: conn} do
+      file_co = company_fixture(%{name: "FileFilterCo"})
+      meet_co = company_fixture(%{name: "MeetFilterCo2"})
+      today_str = Date.utc_today() |> Date.to_iso8601()
+      far_date = Date.utc_today() |> Date.add(90) |> Date.to_iso8601()
+      regulatory_filing_fixture(%{company: file_co, due_date: today_str, jurisdiction: "UK", filing_type: "Filing Filter Return"})
+      board_meeting_fixture(%{company: meet_co, scheduled_date: far_date})
+
       {:ok, live, _html} = live(conn, ~p"/calendar")
       html = render_click(live, "filter_type", %{"type" => "filing"})
-      assert html =~ "Calendar"
+      assert html =~ "Filing Filter Return"
+      refute html =~ "MeetFilterCo2"
     end
 
     test "filter back to all events shows everything", %{conn: conn} do
+      tax_co = company_fixture(%{name: "AllTaxEvtCo"})
+      meet_co = company_fixture(%{name: "AllMeetEvtCo"})
+      today_str = Date.utc_today() |> Date.to_iso8601()
+      tax_deadline_fixture(%{company: tax_co, due_date: today_str, description: "All Events Tax"})
+      board_meeting_fixture(%{company: meet_co, scheduled_date: today_str})
+
       {:ok, live, _html} = live(conn, ~p"/calendar")
       render_click(live, "filter_type", %{"type" => "tax"})
       html = render_click(live, "filter_type", %{"type" => "all"})
-      assert html =~ "Calendar"
+      assert html =~ "All Events Tax"
+      assert html =~ "AllMeetEvtCo"
     end
 
     test "navigates months with prev/next", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/calendar")
+      {:ok, live, html} = live(conn, ~p"/calendar")
+      today = Date.utc_today()
+      current_month_name = Calendar.strftime(today, "%B %Y")
+      assert html =~ current_month_name
+
       html = render_click(live, "next_month", %{})
-      assert html =~ "Calendar"
+      next_month = Date.utc_today() |> Date.add(Date.days_in_month(today)) |> Date.beginning_of_month()
+      assert html =~ Calendar.strftime(next_month, "%B %Y")
 
       html = render_click(live, "prev_month", %{})
-      assert html =~ "Calendar"
+      assert html =~ current_month_name
     end
 
     test "navigating to next month changes displayed month name", %{conn: conn} do

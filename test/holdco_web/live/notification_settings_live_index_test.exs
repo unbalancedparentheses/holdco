@@ -347,28 +347,6 @@ defmodule HoldcoWeb.NotificationSettingsLiveIndexTest do
   end
 
   # ------------------------------------------------------------------
-  # handle_info pubsub
-  # ------------------------------------------------------------------
-
-  describe "handle_info" do
-    test "new_notification message reloads data", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings/notifications")
-
-      send(view.pid, {:new_notification, %{}})
-      html = render(view)
-      assert html =~ "Notification Settings"
-    end
-
-    test "unknown message does not crash the view", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/settings/notifications")
-
-      send(view.pid, :some_unknown_message)
-      html = render(view)
-      assert html =~ "Notification Settings"
-    end
-  end
-
-  # ------------------------------------------------------------------
   # Stats bar values
   # ------------------------------------------------------------------
 

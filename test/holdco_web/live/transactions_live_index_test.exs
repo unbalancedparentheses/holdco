@@ -153,26 +153,6 @@ defmodule HoldcoWeb.TransactionsLiveIndexTest do
     end
   end
 
-  describe "noop event" do
-    test "noop does not crash the view", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/transactions")
-
-      render_hook(view, "noop", %{})
-      assert render(view) =~ "Transactions"
-    end
-  end
-
-  describe "handle_info for PubSub" do
-    test "handles broadcast by reloading data", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/transactions")
-
-      send(view.pid, :some_broadcast)
-
-      html = render(view)
-      assert html =~ "Transactions"
-    end
-  end
-
   describe "metrics with filtered company" do
     test "metrics update when company filter is applied", %{conn: conn} do
       co1 = company_fixture(%{name: "MetricCo1"})

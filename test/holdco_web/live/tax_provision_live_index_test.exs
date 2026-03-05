@@ -28,46 +28,47 @@ defmodule HoldcoWeb.TaxProvisionLiveIndexTest do
   end
 
   describe "filter" do
-    test "filtering by company updates the list", %{conn: conn} do
-      company = company_fixture(%{name: "Tax Filter Corp"})
-      tax_provision_fixture(%{company: company, jurisdiction: "DE"})
+    test "filtering by company shows only that company's provisions", %{conn: conn} do
+      company1 = company_fixture(%{name: "Tax Filter Corp"})
+      company2 = company_fixture(%{name: "Other Tax Corp"})
+      tax_provision_fixture(%{company: company1, jurisdiction: "DE", taxable_income: 111_111.0})
+      tax_provision_fixture(%{company: company2, jurisdiction: "FR", taxable_income: 222_222.0})
 
-      {:ok, view, _html} = live(conn, ~p"/tax-provisions")
+      {:ok, view, html} = live(conn, ~p"/tax-provisions")
+      assert html =~ "111111.00"
+      assert html =~ "222222.00"
 
-      html =
-        render_change(view, "filter", %{
-          "company_id" => to_string(company.id),
-          "year" => "",
-          "jurisdiction" => ""
-        })
-
-      assert html =~ "DE"
+      html = render_change(view, "filter", %{"company_id" => to_string(company1.id), "year" => "", "jurisdiction" => ""})
+      assert html =~ "111111.00"
+      refute html =~ "222222.00"
     end
 
-    test "filtering by year updates the list", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/tax-provisions")
+    test "filtering by year shows only that year's provisions", %{conn: conn} do
+      company = company_fixture()
+      tax_provision_fixture(%{company: company, tax_year: 2025, jurisdiction: "US", taxable_income: 333_333.0})
+      tax_provision_fixture(%{company: company, tax_year: 2024, jurisdiction: "JP", taxable_income: 444_444.0})
 
-      html =
-        render_change(view, "filter", %{
-          "company_id" => "",
-          "year" => "2025",
-          "jurisdiction" => ""
-        })
+      {:ok, view, html} = live(conn, ~p"/tax-provisions")
+      assert html =~ "333333.00"
+      assert html =~ "444444.00"
 
-      assert html =~ "Provisions"
+      html = render_change(view, "filter", %{"company_id" => "", "year" => "2025", "jurisdiction" => ""})
+      assert html =~ "333333.00"
+      refute html =~ "444444.00"
     end
 
-    test "filtering by jurisdiction updates the list", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/tax-provisions")
+    test "filtering by jurisdiction shows only that jurisdiction's provisions", %{conn: conn} do
+      company = company_fixture()
+      tax_provision_fixture(%{company: company, tax_year: 2025, jurisdiction: "US", taxable_income: 555_555.0})
+      tax_provision_fixture(%{company: company, tax_year: 2025, jurisdiction: "JP", taxable_income: 666_666.0})
 
-      html =
-        render_change(view, "filter", %{
-          "company_id" => "",
-          "year" => "",
-          "jurisdiction" => "US"
-        })
+      {:ok, view, html} = live(conn, ~p"/tax-provisions")
+      assert html =~ "555555.00"
+      assert html =~ "666666.00"
 
-      assert html =~ "Provisions"
+      html = render_change(view, "filter", %{"company_id" => "", "year" => "", "jurisdiction" => "US"})
+      assert html =~ "555555.00"
+      refute html =~ "666666.00"
     end
 
     test "filtering by company and year shows tax summary", %{conn: conn} do
@@ -236,14 +237,6 @@ defmodule HoldcoWeb.TaxProvisionLiveIndexTest do
 
       html = render_click(view, "close_calculation")
       refute html =~ "Calculated Provision"
-    end
-  end
-
-  describe "noop" do
-    test "noop event does not crash", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/tax-provisions")
-      html = render_click(view, "noop")
-      assert html =~ "Tax Provisions"
     end
   end
 

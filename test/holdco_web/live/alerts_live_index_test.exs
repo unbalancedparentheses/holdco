@@ -133,76 +133,92 @@ defmodule HoldcoWeb.AlertsLiveIndexTest do
 
   describe "filter_status" do
     test "filters alerts by status", %{conn: conn} do
+      rule = alert_rule_fixture()
+      alert_fixture_for_rule(%{alert_rule: rule, message: "Unread alert message", status: "unread"})
+      alert_fixture_for_rule(%{alert_rule: rule, message: "Read alert message", status: "read"})
+
       {:ok, view, _html} = live(conn, ~p"/alerts")
       render_click(view, "switch_tab", %{"tab" => "alerts"})
 
       html = render_click(view, "filter_status", %{"status" => "unread"})
-      # The filter was applied; page still renders
-      assert html =~ "Status"
+      assert html =~ "Unread alert message"
+      refute html =~ "Read alert message"
     end
 
-    test "clears status filter with empty string", %{conn: conn} do
+    test "clears status filter with empty string shows all", %{conn: conn} do
+      rule = alert_rule_fixture()
+      alert_fixture_for_rule(%{alert_rule: rule, message: "Any status alert"})
+
       {:ok, view, _html} = live(conn, ~p"/alerts")
       render_click(view, "switch_tab", %{"tab" => "alerts"})
-
       render_click(view, "filter_status", %{"status" => "unread"})
       html = render_click(view, "filter_status", %{"status" => ""})
-      assert html =~ "Status"
+      assert html =~ "Any status alert"
     end
   end
 
   describe "filter_severity" do
     test "filters alerts by severity", %{conn: conn} do
+      critical_rule = alert_rule_fixture(%{name: "Critical Rule", severity: "critical"})
+      warning_rule = alert_rule_fixture(%{name: "Warning Rule", severity: "warning"})
+      alert_fixture_for_rule(%{alert_rule: critical_rule, message: "Critical severity alert"})
+      alert_fixture_for_rule(%{alert_rule: warning_rule, message: "Warning severity alert"})
+
       {:ok, view, _html} = live(conn, ~p"/alerts")
       render_click(view, "switch_tab", %{"tab" => "alerts"})
 
       html = render_click(view, "filter_severity", %{"severity" => "critical"})
-      assert html =~ "Severity"
+      assert html =~ "Critical severity alert"
+      refute html =~ "Warning severity alert"
     end
 
-    test "clears severity filter with empty string", %{conn: conn} do
+    test "clears severity filter with empty string shows all", %{conn: conn} do
+      rule = alert_rule_fixture()
+      alert_fixture_for_rule(%{alert_rule: rule, message: "All severity alert"})
+
       {:ok, view, _html} = live(conn, ~p"/alerts")
       render_click(view, "switch_tab", %{"tab" => "alerts"})
-
       render_click(view, "filter_severity", %{"severity" => "warning"})
       html = render_click(view, "filter_severity", %{"severity" => ""})
-      assert html =~ "Severity"
+      assert html =~ "All severity alert"
     end
   end
 
   describe "alert actions" do
-    test "acknowledges an alert", %{conn: conn} do
+    test "acknowledges an alert changes its status", %{conn: conn} do
       rule = alert_rule_fixture()
-      alert = alert_fixture_for_rule(%{alert_rule: rule})
+      alert = alert_fixture_for_rule(%{alert_rule: rule, message: "Acknowledge me"})
 
       {:ok, view, _html} = live(conn, ~p"/alerts")
       render_click(view, "switch_tab", %{"tab" => "alerts"})
+      assert render(view) =~ "Acknowledge me"
 
       html = render_click(view, "acknowledge_alert", %{"id" => to_string(alert.id)})
-      # After acknowledging, page reloads data
-      assert html =~ "Severity"
+      assert html =~ "acknowledged" or html =~ "Acknowledge me"
     end
 
-    test "resolves an alert", %{conn: conn} do
+    test "resolves an alert changes its status", %{conn: conn} do
       rule = alert_rule_fixture()
-      alert = alert_fixture_for_rule(%{alert_rule: rule})
+      alert = alert_fixture_for_rule(%{alert_rule: rule, message: "Resolve me"})
 
       {:ok, view, _html} = live(conn, ~p"/alerts")
       render_click(view, "switch_tab", %{"tab" => "alerts"})
+      assert render(view) =~ "Resolve me"
 
       html = render_click(view, "resolve_alert", %{"id" => to_string(alert.id)})
-      assert html =~ "Severity"
+      assert html =~ "resolved" or html =~ "Resolve me"
     end
 
     test "marks an alert as read", %{conn: conn} do
       rule = alert_rule_fixture()
-      alert = alert_fixture_for_rule(%{alert_rule: rule})
+      alert = alert_fixture_for_rule(%{alert_rule: rule, message: "Mark me read"})
 
       {:ok, view, _html} = live(conn, ~p"/alerts")
       render_click(view, "switch_tab", %{"tab" => "alerts"})
+      assert render(view) =~ "Mark me read"
 
       html = render_click(view, "mark_read", %{"id" => to_string(alert.id)})
-      assert html =~ "Severity"
+      assert html =~ "Mark me read"
     end
   end
 

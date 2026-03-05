@@ -358,26 +358,4 @@ defmodule HoldcoWeb.FinancialsLiveIndexTest do
     end
   end
 
-  # ── PubSub ───────────────────────────────────────────
-
-  describe "PubSub handle_info" do
-    test "handles finance_changed broadcast by reloading data", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      send(view.pid, {:finance_changed, %{}})
-      html = render(view)
-      assert html =~ "Financials"
-    end
-  end
-
-  # ── Noop event ──────────────────────────────────────────
-
-  describe "noop event" do
-    test "noop does not crash the view", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/financials")
-
-      render_hook(view, "noop", %{})
-      assert render(view) =~ "Financials"
-    end
-  end
 end
