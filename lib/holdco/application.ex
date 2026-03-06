@@ -21,7 +21,12 @@ defmodule Holdco.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Holdco.Supervisor]
-    Supervisor.start_link(children, opts)
+    result = Supervisor.start_link(children, opts)
+
+    # Sync mailer config from DB settings (after Repo is up)
+    Holdco.Config.sync_mailer!()
+
+    result
   end
 
   # Tell Phoenix to update the endpoint configuration

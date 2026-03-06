@@ -10,7 +10,7 @@ defmodule Holdco.Workers.S3Upload do
   Returns the S3 configuration from application config.
   """
   def config do
-    Application.get_env(:holdco, __MODULE__, [])
+    Holdco.Config.s3()
   end
 
   @doc """

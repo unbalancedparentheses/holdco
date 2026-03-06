@@ -92,7 +92,8 @@ config :holdco, Oban,
        {"0 */4 * * *", Holdco.Workers.BankFeedSyncWorker},
        {"0 6 * * *", Holdco.Workers.ScheduledReportWorker},
        {"0 2 1 * *", Holdco.Workers.InterestAccrualWorker},
-       {"*/15 * * * *", Holdco.Workers.AlertEngineWorker}
+       {"*/15 * * * *", Holdco.Workers.AlertEngineWorker},
+       {"0 */6 * * *", Holdco.Workers.AccountingSyncWorker}
      ]}
   ]
 

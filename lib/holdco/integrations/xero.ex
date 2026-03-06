@@ -342,7 +342,7 @@ defmodule Holdco.Integrations.Xero do
   end
 
   defp config do
-    Application.get_env(:holdco, __MODULE__, [])
+    Holdco.Config.xero()
   end
 
   defp basic_auth(config) do

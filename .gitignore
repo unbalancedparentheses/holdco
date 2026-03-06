@@ -43,6 +43,9 @@ npm-debug.log
 *.db
 *.db-*
 
+# Secrets config (contains credentials)
+/config/secrets.exs
+
 # Playwright E2E
 /node_modules/
 /e2e/.auth/

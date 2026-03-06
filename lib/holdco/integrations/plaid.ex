@@ -279,7 +279,7 @@ defmodule Holdco.Integrations.Plaid do
   end
 
   defp config do
-    Application.get_env(:holdco, __MODULE__, [])
+    Holdco.Config.plaid()
   end
 
   defp client_id, do: config()[:client_id] || ""

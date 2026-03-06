@@ -42,7 +42,7 @@ defmodule Holdco.Workers.EmailDigestWorker do
     email =
       new()
       |> to(user.email)
-      |> from({"Holdco", "noreply@holdco.local"})
+      |> from(Holdco.Config.mail_from())
       |> subject("Holdco Digest - #{Date.utc_today()}")
       |> text_body(sections)
 

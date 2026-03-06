@@ -84,7 +84,7 @@ defmodule Holdco.Workers.ScheduledReportWorker do
     email =
       new()
       |> to(recipient)
-      |> from({"Holdco Reports", "noreply@holdco.local"})
+      |> from(Holdco.Config.mail_from())
       |> subject(subject)
 
     case report.format do

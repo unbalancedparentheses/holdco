@@ -294,7 +294,7 @@ defmodule Holdco.Integrations.Quickbooks do
   end
 
   defp config do
-    Application.get_env(:holdco, __MODULE__, [])
+    Holdco.Config.quickbooks()
   end
 
   defp api_base do

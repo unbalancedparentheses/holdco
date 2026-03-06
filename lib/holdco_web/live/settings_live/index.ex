@@ -1,9 +1,9 @@
 defmodule HoldcoWeb.SettingsLive.Index do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Platform, Accounts, AI}
+  alias Holdco.{Platform, Accounts, AI, Config}
 
-  @tabs ~w(settings categories webhooks backups users ai)
+  @tabs ~w(settings services categories webhooks backups users ai)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -186,6 +186,32 @@ defmodule HoldcoWeb.SettingsLive.Index do
     end
   end
 
+  # --- Services ---
+  def handle_event("save_services", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("save_services", %{"services" => params}, socket) do
+    keys = [
+      "email_provider", "postmark_api_key", "resend_api_key",
+      "smtp_relay", "smtp_port", "smtp_username", "smtp_password",
+      "mail_from_name", "mail_from_address",
+      "xero_client_id", "xero_client_secret", "xero_redirect_uri",
+      "quickbooks_client_id", "quickbooks_client_secret", "quickbooks_redirect_uri",
+      "quickbooks_environment",
+      "plaid_client_id", "plaid_secret", "plaid_environment",
+      "s3_bucket", "s3_endpoint", "s3_region", "s3_access_key_id", "s3_secret_access_key"
+    ]
+
+    for key <- keys, value = Map.get(params, key, ""), value != "" do
+      Platform.upsert_setting(key, value)
+    end
+
+    # Sync mailer config immediately so emails start working
+    Config.sync_mailer!()
+
+    {:noreply, put_flash(socket, :info, "Service settings saved")}
+  end
+
   # --- User Role Update ---
   def handle_event("update_role", %{"user_id" => user_id, "role" => role}, socket) do
     user = Accounts.get_user!(String.to_integer(user_id))
@@ -257,6 +283,7 @@ defmodule HoldcoWeb.SettingsLive.Index do
   defp format_webhook_events(_), do: "All events"
 
   defp tab_label("settings"), do: "Settings"
+  defp tab_label("services"), do: "Services"
   defp tab_label("categories"), do: "Categories"
   defp tab_label("webhooks"), do: "Webhooks"
   defp tab_label("backups"), do: "Backups"
@@ -337,6 +364,163 @@ defmodule HoldcoWeb.SettingsLive.Index do
     <% end %>
     """
   end
+
+  defp render_tab(%{active_tab: "services"} = assigns) do
+    ~H"""
+    <div class="section">
+      <div class="section-head">
+        <h2>Service Credentials</h2>
+      </div>
+      <div class="panel" style="padding: 1.5rem;">
+        <form phx-submit="save_services">
+          <h3 style="margin-top: 0;">Email</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label">Provider</label>
+              <select name="services[email_provider]" class="form-select">
+                <option value="">Not configured</option>
+                <option value="postmark" selected={sv("email_provider") == "postmark"}>Postmark (Recommended)</option>
+                <option value="resend" selected={sv("email_provider") == "resend"}>Resend</option>
+                <option value="smtp" selected={sv("email_provider") == "smtp"}>SMTP</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Postmark Server Token</label>
+              <input type="password" name="services[postmark_api_key]" class="form-input"
+                value={sv("postmark_api_key")} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Resend API Key</label>
+              <input type="password" name="services[resend_api_key]" class="form-input"
+                value={sv("resend_api_key")} placeholder="re_..." autocomplete="off" />
+            </div>
+            <div class="form-group">
+            </div>
+            <div class="form-group">
+              <label class="form-label">From Name</label>
+              <input type="text" name="services[mail_from_name]" class="form-input"
+                value={sv("mail_from_name")} placeholder="Holdco" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">From Address</label>
+              <input type="email" name="services[mail_from_address]" class="form-input"
+                value={sv("mail_from_address")} placeholder="reports@yourdomain.com" />
+            </div>
+          </div>
+          <p style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">
+            Only fill in the API key for your chosen provider. SMTP fields are for advanced use (Gmail, etc).
+          </p>
+
+          <h3>Xero</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label">Client ID</label>
+              <input type="text" name="services[xero_client_id]" class="form-input"
+                value={sv("xero_client_id")} />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Client Secret</label>
+              <input type="password" name="services[xero_client_secret]" class="form-input"
+                value={sv("xero_client_secret")} autocomplete="off" />
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label class="form-label">Redirect URI</label>
+              <input type="url" name="services[xero_redirect_uri]" class="form-input"
+                value={sv("xero_redirect_uri")} placeholder="http://localhost:4000/auth/xero/callback" />
+            </div>
+          </div>
+
+          <h3>QuickBooks</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label">Client ID</label>
+              <input type="text" name="services[quickbooks_client_id]" class="form-input"
+                value={sv("quickbooks_client_id")} />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Client Secret</label>
+              <input type="password" name="services[quickbooks_client_secret]" class="form-input"
+                value={sv("quickbooks_client_secret")} autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Redirect URI</label>
+              <input type="url" name="services[quickbooks_redirect_uri]" class="form-input"
+                value={sv("quickbooks_redirect_uri")} placeholder="http://localhost:4000/auth/quickbooks/callback" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Environment</label>
+              <select name="services[quickbooks_environment]" class="form-select">
+                <option value="sandbox" selected={sv("quickbooks_environment") != "production"}>Sandbox</option>
+                <option value="production" selected={sv("quickbooks_environment") == "production"}>Production</option>
+              </select>
+            </div>
+          </div>
+
+          <h3>Plaid</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label">Client ID</label>
+              <input type="text" name="services[plaid_client_id]" class="form-input"
+                value={sv("plaid_client_id")} />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Secret</label>
+              <input type="password" name="services[plaid_secret]" class="form-input"
+                value={sv("plaid_secret")} autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Environment</label>
+              <select name="services[plaid_environment]" class="form-select">
+                <option value="sandbox" selected={sv("plaid_environment") != "production"}>Sandbox</option>
+                <option value="production" selected={sv("plaid_environment") == "production"}>Production</option>
+              </select>
+            </div>
+          </div>
+
+          <h3>S3 / R2 Backup Storage</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label">Bucket</label>
+              <input type="text" name="services[s3_bucket]" class="form-input"
+                value={sv("s3_bucket")} />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Endpoint</label>
+              <input type="text" name="services[s3_endpoint]" class="form-input"
+                value={sv("s3_endpoint")} placeholder="s3.amazonaws.com" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Region</label>
+              <input type="text" name="services[s3_region]" class="form-input"
+                value={sv("s3_region")} placeholder="us-east-1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Access Key ID</label>
+              <input type="text" name="services[s3_access_key_id]" class="form-input"
+                value={sv("s3_access_key_id")} />
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label class="form-label">Secret Access Key</label>
+              <input type="password" name="services[s3_secret_access_key]" class="form-input"
+                value={sv("s3_secret_access_key")} autocomplete="off" />
+            </div>
+          </div>
+
+          <%= if @can_admin do %>
+            <div class="form-actions" style="margin-top: 1rem;">
+              <button type="submit" class="btn btn-primary">Save All</button>
+            </div>
+          <% end %>
+        </form>
+        <p style="font-size: 0.8rem; color: #666; margin-top: 1rem;">
+          Only fill in the services you use. Leave fields blank to skip.
+        </p>
+      </div>
+    </div>
+    """
+  end
+
+  defp sv(key), do: Platform.get_setting_value(key, "")
 
   defp render_tab(%{active_tab: "categories"} = assigns) do
     ~H"""

@@ -19,7 +19,7 @@ defmodule Holdco.Notifications.Providers.Email do
     email =
       new()
       |> to(channel.config["email"])
-      |> from({"Holdco", "noreply@holdco.app"})
+      |> from(Holdco.Config.mail_from())
       |> subject(notification.title)
       |> text_body(notification.body || "")
 
