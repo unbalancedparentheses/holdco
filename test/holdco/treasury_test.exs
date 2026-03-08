@@ -134,9 +134,4 @@ defmodule Holdco.TreasuryTest do
     end
   end
 
-  describe "subscribe/0" do
-    test "subscribes to treasury PubSub topic" do
-      assert :ok = Treasury.subscribe()
-    end
-  end
 end

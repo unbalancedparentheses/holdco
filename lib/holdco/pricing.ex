@@ -46,6 +46,6 @@ defmodule Holdco.Pricing do
   end
 
   # PubSub
-  def subscribe, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "prices")
+
   defp broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "prices", message)
 end

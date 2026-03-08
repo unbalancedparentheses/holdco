@@ -149,9 +149,6 @@ defmodule Holdco.Collaboration do
 
   # --- Tasks ---
 
-  def subscribe_tasks do
-    Phoenix.PubSub.subscribe(Holdco.PubSub, "tasks")
-  end
 
   def list_tasks(opts \\ %{}) do
     query = from(t in Task, order_by: [asc: t.due_date, desc: t.inserted_at], preload: [:assignee, :company])

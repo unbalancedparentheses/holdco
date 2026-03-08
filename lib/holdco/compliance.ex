@@ -301,7 +301,7 @@ defmodule Holdco.Compliance do
   end
 
   # PubSub
-  def subscribe, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "compliance")
+
   defp broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "compliance", message)
 
   defp audit_and_broadcast(result, table, action) do

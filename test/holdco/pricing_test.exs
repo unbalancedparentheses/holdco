@@ -39,7 +39,7 @@ defmodule Holdco.PricingTest do
     end
 
     test "broadcasts price_recorded event on success" do
-      Pricing.subscribe()
+      Phoenix.PubSub.subscribe(Holdco.PubSub, "prices")
       {:ok, ph} = Pricing.record_price("BCAST_T", 200.0, "USD")
       assert_receive {:price_recorded, ^ph}
     end
@@ -168,15 +168,4 @@ defmodule Holdco.PricingTest do
     end
   end
 
-  describe "subscribe/0" do
-    test "subscribes to prices topic" do
-      assert :ok == Pricing.subscribe()
-    end
-
-    test "receives broadcasts after subscribing" do
-      Pricing.subscribe()
-      {:ok, ph} = Pricing.record_price("SUB_T", 100.0, "USD")
-      assert_receive {:price_recorded, ^ph}
-    end
-  end
 end

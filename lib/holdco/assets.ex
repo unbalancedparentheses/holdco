@@ -236,7 +236,7 @@ defmodule Holdco.Assets do
   end
 
   # PubSub
-  def subscribe, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "portfolio")
+
   defp broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "portfolio", message)
 
   defp audit_and_broadcast(result, table, action) do

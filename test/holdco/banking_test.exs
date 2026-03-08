@@ -178,7 +178,7 @@ defmodule Holdco.BankingTest do
     end
 
     test "broadcasts PubSub message on successful create" do
-      Banking.subscribe()
+      Phoenix.PubSub.subscribe(Holdco.PubSub, "banking")
       company = company_fixture()
       {:ok, ba} = Banking.create_bank_account(%{company_id: company.id, bank_name: "PubSub Bank"})
       assert_receive {:bank_accounts_created, ^ba}
@@ -210,7 +210,7 @@ defmodule Holdco.BankingTest do
     end
 
     test "broadcasts PubSub message on successful update" do
-      Banking.subscribe()
+      Phoenix.PubSub.subscribe(Holdco.PubSub, "banking")
       ba = bank_account_fixture()
       {:ok, updated} = Banking.update_bank_account(ba, %{bank_name: "Broadcast Updated"})
       assert_receive {:bank_accounts_updated, ^updated}
@@ -225,7 +225,7 @@ defmodule Holdco.BankingTest do
     end
 
     test "broadcasts PubSub message on successful delete" do
-      Banking.subscribe()
+      Phoenix.PubSub.subscribe(Holdco.PubSub, "banking")
       ba = bank_account_fixture()
       {:ok, deleted} = Banking.delete_bank_account(ba)
       assert_receive {:bank_accounts_deleted, ^deleted}
@@ -393,7 +393,7 @@ defmodule Holdco.BankingTest do
     end
 
     test "broadcasts PubSub message on successful create" do
-      Banking.subscribe()
+      Phoenix.PubSub.subscribe(Holdco.PubSub, "banking")
       company = company_fixture()
 
       {:ok, t} =
@@ -434,7 +434,7 @@ defmodule Holdco.BankingTest do
     end
 
     test "broadcasts PubSub message on successful update" do
-      Banking.subscribe()
+      Phoenix.PubSub.subscribe(Holdco.PubSub, "banking")
       t = transaction_fixture()
       {:ok, updated} = Banking.update_transaction(t, %{description: "Broadcast updated"})
       assert_receive {:transactions_updated, ^updated}
@@ -449,7 +449,7 @@ defmodule Holdco.BankingTest do
     end
 
     test "broadcasts PubSub message on successful delete" do
-      Banking.subscribe()
+      Phoenix.PubSub.subscribe(Holdco.PubSub, "banking")
       t = transaction_fixture()
       {:ok, deleted} = Banking.delete_transaction(t)
       assert_receive {:transactions_deleted, ^deleted}
@@ -589,18 +589,4 @@ defmodule Holdco.BankingTest do
     end
   end
 
-  # ── PubSub ─────────────────────────────────────────────
-
-  describe "subscribe/0" do
-    test "subscribes to the banking PubSub topic" do
-      assert :ok = Banking.subscribe()
-    end
-
-    test "receives messages after subscribing" do
-      Banking.subscribe()
-      company = company_fixture()
-      {:ok, ba} = Banking.create_bank_account(%{company_id: company.id, bank_name: "SubTest"})
-      assert_receive {:bank_accounts_created, ^ba}
-    end
-  end
 end

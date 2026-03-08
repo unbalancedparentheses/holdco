@@ -64,7 +64,7 @@ defmodule Holdco.Treasury do
   end
 
   # PubSub
-  def subscribe, do: Phoenix.PubSub.subscribe(Holdco.PubSub, "treasury")
+
   defp broadcast(message), do: Phoenix.PubSub.broadcast(Holdco.PubSub, "treasury", message)
 
   defp audit_and_broadcast(result, table, action) do

@@ -63,9 +63,4 @@ defmodule Holdco.DocumentsTest do
     end
   end
 
-  describe "subscribe/0" do
-    test "subscribes to documents PubSub topic" do
-      assert :ok = Documents.subscribe()
-    end
-  end
 end
