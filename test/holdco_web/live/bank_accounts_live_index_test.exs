@@ -327,6 +327,34 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
       assert html =~ "debit"
     end
 
+    test "shows Import Statement button", %{conn: conn} do
+      account = bank_account_fixture(%{bank_name: "ImportTestBank"})
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      assert html =~ "Import Statement"
+    end
+
+    test "clicking Import Statement opens upload dialog", %{conn: conn} do
+      account = bank_account_fixture(%{bank_name: "ImportDialogBank"})
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      html = view |> element("button", "Import Statement") |> render_click()
+
+      assert html =~ "Import Bank Statement"
+      assert html =~ "dialog-overlay"
+      assert html =~ "Parse Statement"
+    end
+
+    test "closing import dialog returns to idle", %{conn: conn} do
+      account = bank_account_fixture(%{bank_name: "CloseDialogBank"})
+      {:ok, view, _html} = live(conn, ~p"/bank-accounts/#{account.id}")
+
+      view |> element("button", "Import Statement") |> render_click()
+      html = view |> element("button", "Cancel") |> render_click()
+
+      refute html =~ "dialog-overlay"
+    end
+
     test "handles account with nil balance", %{conn: conn} do
       account =
         bank_account_fixture(%{
@@ -434,6 +462,32 @@ defmodule HoldcoWeb.BankAccountsLiveIndexTest do
       send(view.pid, {:banking_changed, %{}})
       html = render(view)
       assert html =~ "PubSub Bank"
+    end
+  end
+
+  describe "stored statements" do
+    test "shows imported statements section when documents exist", %{conn: conn} do
+      company = company_fixture()
+      ba = bank_account_fixture(%{company: company, bank_name: "StatementBank"})
+
+      {:ok, doc} =
+        Holdco.Documents.create_document(%{
+          name: "Bank Statement - StatementBank - 2025-01-15",
+          doc_type: "bank_statement",
+          company_id: company.id
+        })
+
+      Holdco.Documents.create_document_upload(%{
+        document_id: doc.id,
+        file_path: "/tmp/test.csv",
+        file_name: "january-2025.csv",
+        file_size: 1234,
+        content_type: "text/csv"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/bank-accounts/#{ba.id}")
+      assert html =~ "Imported Statements"
+      assert html =~ "january-2025.csv"
     end
   end
 end

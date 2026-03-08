@@ -2,6 +2,7 @@ defmodule HoldcoWeb.ExportController do
   use HoldcoWeb, :controller
 
   alias Holdco.{Corporate, Assets, Banking, Finance, Platform}
+  alias Holdco.Finance.Consolidation
 
   def audit_package(conn, params) do
     company_id = parse_company_id(params)
@@ -136,6 +137,103 @@ defmodule HoldcoWeb.ExportController do
 
     send_csv(conn, "journal-entries.csv", csv)
   end
+
+  def financials(conn, params) do
+    company_id = parse_company_id(params)
+    financials = Finance.list_financials(company_id)
+
+    csv =
+      [["Period", "Company", "Revenue", "Expenses", "Net Income", "Currency", "Notes"]]
+      |> Enum.concat(
+        Enum.map(financials, fn f ->
+          net = if f.revenue && f.expenses, do: Decimal.sub(f.revenue, f.expenses), else: Decimal.new(0)
+
+          [
+            f.period,
+            if(f.company, do: f.company.name, else: ""),
+            f.revenue || 0,
+            f.expenses || 0,
+            net,
+            f.currency,
+            f.notes || ""
+          ]
+        end)
+      )
+      |> csv_encode()
+
+    send_csv(conn, "financials.csv", csv)
+  end
+
+  def consolidated(conn, _params) do
+    data = Consolidation.build()
+    companies = data.companies
+    bs = data.balance_sheet
+    is = data.income_statement
+
+    entity_names = Enum.map(companies, & &1.name)
+
+    header = ["Section", "Account"] ++ entity_names ++ ["Elimination", "NCI", "Consolidated"]
+
+    asset_rows = section_rows("Assets", bs.assets, companies)
+    asset_total = total_row("Total Assets", bs.assets, companies, data.entity_data, :assets, bs.total_assets)
+
+    liability_rows = section_rows("Liabilities", bs.liabilities, companies)
+    liability_total = total_row("Total Liabilities", bs.liabilities, companies, data.entity_data, :liabilities, bs.total_liabilities)
+
+    equity_rows = section_rows("Equity", bs.equity, companies)
+    equity_total = total_row("Total Equity", bs.equity, companies, data.entity_data, :equity, bs.total_equity)
+
+    revenue_rows = section_rows("Revenue", is.revenue, companies)
+    revenue_total = total_row_is("Total Revenue", is.revenue, companies, data.entity_data, :total_revenue, is.total_revenue)
+
+    expense_rows = section_rows("Expenses", is.expenses, companies)
+    expense_total = total_row_is("Total Expenses", is.expenses, companies, data.entity_data, :total_expenses, is.total_expenses)
+
+    net_income_row = ["Income Statement", "Net Income"] ++ List.duplicate("", length(companies)) ++ ["", "", fmt(is.net_income)]
+
+    csv =
+      [header]
+      |> Enum.concat(asset_rows)
+      |> Enum.concat([asset_total, []])
+      |> Enum.concat(liability_rows)
+      |> Enum.concat([liability_total, []])
+      |> Enum.concat(equity_rows)
+      |> Enum.concat([equity_total, []])
+      |> Enum.concat(revenue_rows)
+      |> Enum.concat([revenue_total, []])
+      |> Enum.concat(expense_rows)
+      |> Enum.concat([expense_total, []])
+      |> Enum.concat([net_income_row])
+      |> csv_encode()
+
+    send_csv(conn, "consolidated.csv", csv)
+  end
+
+  defp section_rows(section, rows, companies) do
+    Enum.map(rows, fn row ->
+      entity_vals = Enum.map(companies, fn c -> fmt(Map.get(row.by_entity, c.id, 0)) end)
+      [section, row.name] ++ entity_vals ++ [fmt(row.elimination), fmt(row.nci), fmt(row.consolidated)]
+    end)
+  end
+
+  defp total_row(label, rows, companies, entity_data, bs_section, total) do
+    entity_vals = Enum.map(companies, fn c -> fmt(Consolidation.entity_bs_total(entity_data, c.id, bs_section)) end)
+    elim = fmt(Consolidation.sum_field_list(rows, :elimination))
+    nci = fmt(Consolidation.sum_field_list(rows, :nci))
+    ["", label] ++ entity_vals ++ [elim, nci, fmt(total)]
+  end
+
+  defp total_row_is(label, rows, companies, entity_data, is_field, total) do
+    entity_vals = Enum.map(companies, fn c -> fmt(Consolidation.entity_is_total(entity_data, c.id, is_field)) end)
+    elim = fmt(Consolidation.sum_field_list(rows, :elimination))
+    nci = fmt(Consolidation.sum_field_list(rows, :nci))
+    ["", label] ++ entity_vals ++ [elim, nci, fmt(total)]
+  end
+
+  defp fmt(%Decimal{} = n), do: Decimal.to_string(Decimal.round(n, 2))
+  defp fmt(n) when is_float(n), do: :erlang.float_to_binary(n, decimals: 2)
+  defp fmt(n) when is_integer(n), do: Integer.to_string(n)
+  defp fmt(_), do: "0"
 
   def audit_log(conn, params) do
     logs = Platform.list_audit_logs(params)

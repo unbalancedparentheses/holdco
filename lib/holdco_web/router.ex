@@ -53,6 +53,8 @@ defmodule HoldcoWeb.Router do
     get "/journal-entries.csv", ExportController, :journal_entries
     get "/audit-log.csv", ExportController, :audit_log
     get "/audit-package.zip", ExportController, :audit_package
+    get "/consolidated.csv", ExportController, :consolidated
+    get "/financials.csv", ExportController, :financials
     get "/xbrl/:id", XbrlController, :export
 
     get "/tax-provisions.csv", TaxExportController, :tax_provisions_csv
@@ -93,21 +95,6 @@ defmodule HoldcoWeb.Router do
 
     get "/downloads/:id", DownloadController, :show
     get "/downloads/:id/preview", DownloadController, :preview
-  end
-
-  # Plaid (authenticated)
-  scope "/auth/plaid", HoldcoWeb do
-    pipe_through [:browser, :require_authenticated_user]
-
-    post "/link-token", PlaidController, :create_link_token
-    post "/exchange-token", PlaidController, :exchange_token
-  end
-
-  # Plaid webhooks (no auth - verified via webhook_verification)
-  scope "/webhooks", HoldcoWeb do
-    pipe_through [:api]
-
-    post "/plaid", PlaidController, :webhook
   end
 
   # Public routes (no auth required)
@@ -161,7 +148,6 @@ defmodule HoldcoWeb.Router do
       live "/bank-accounts/:id", BankAccountsLive.Show, :show
       live "/documents", DocumentsLive.Index, :index
       live "/calendar", CalendarLive.Index, :index
-      live "/tax-calendar", TaxCalendarLive.Index, :index
       live "/financials", FinancialsLive.Index, :index
       live "/accounts/chart", AccountingLive.ChartOfAccounts, :index
       live "/accounts/journal", AccountingLive.Journal, :index
@@ -170,18 +156,13 @@ defmodule HoldcoWeb.Router do
       live "/approvals", ApprovalsLive.Index, :index
       live "/import", ImportLive, :index
       live "/notifications", NotificationsLive, :index
-      live "/settings/notifications", NotificationSettingsLive.Index, :index
+
       live "/search", SearchLive, :index
       live "/contacts", ContactLive.Index, :index
       live "/audit-log", AuditLive.Index, :index
-      live "/reports", ReportsLive, :index
+
       live "/settings", SettingsLive.Index, :index
       live "/users/settings/2fa", TotpSetupLive, :index
-
-      # Phase 1 — Portfolio & Risk
-      live "/risk/concentration", ConcentrationRiskLive.Index, :index
-      live "/debt-maturity", DebtMaturityLive.Index, :index
-      live "/cash-forecast", CashForecastLive.Index, :index
 
       # Phase 1 — Corporate
       live "/org-chart", OrgChartLive.Index, :index
@@ -189,35 +170,28 @@ defmodule HoldcoWeb.Router do
       # Phase 1 — Accounting & Finance
       live "/budgets/variance", BudgetVarianceLive.Index, :index
       live "/consolidated", ConsolidatedLive.Index, :index
-      live "/compare", EntityComparisonLive.Index, :index
-
-
       # Phase 1 — Reports & Analytics
-      live "/tax/capital-gains", CapitalGainsLive.Index, :index
+      live "/tax", TaxLive.Index, :index
 
       # Phase 2 — Period Close & Recurring
+      live "/period-close", PeriodCloseLive.Index, :index
       live "/period-locks", PeriodLockLive.Index, :index
       live "/recurring-transactions", RecurringTransactionsLive.Index, :index
 
       # Phase 2 — Bank Reconciliation
       live "/bank-reconciliation", BankReconciliationLive.Index, :index
 
-      # Phase 2 — Scheduled Reports
-      live "/scheduled-reports", ScheduledReportsLive.Index, :index
-
       # Phase 2 — Alerts
       live "/alerts", AlertsLive.Index, :index
 
-      # Phase 2 — Stress Testing
-      live "/stress-test", StressTestLive.Index, :index
+
 
       # Phase 2 — Anomaly Detection
       live "/anomalies", AnomalyLive.Index, :index
 
-      # Tax
-      live "/tax-provisions", TaxProvisionLive.Index, :index
-      live "/deferred-taxes", DeferredTaxLive.Index, :index
-      live "/transfer-pricing", TransferPricingLive.Index, :index
+      # Tax (merged provisions + capital gains at /tax)
+
+
 
 
       # Contracts

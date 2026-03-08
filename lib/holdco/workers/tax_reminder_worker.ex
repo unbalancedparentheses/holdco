@@ -35,7 +35,7 @@ defmodule Holdco.Workers.TaxReminderWorker do
         type: "warning",
         entity_type: "tax_deadlines",
         entity_id: deadline.id,
-        action_url: "/tax-calendar"
+        action_url: "/calendar"
       )
     end
 

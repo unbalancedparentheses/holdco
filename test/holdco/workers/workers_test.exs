@@ -308,46 +308,7 @@ defmodule Holdco.Workers.WorkersTest do
       assert :ok == SanctionsCheckWorker.perform(%Oban.Job{args: %{}})
     end
 
-    test "perform/1 screens companies against sanctions lists" do
-      company = company_fixture(%{name: "Legitimate Corp"})
-      sl = sanctions_list_fixture(%{name: "Test SDN"})
-      sanctions_entry_fixture(%{sanctions_list: sl, name: "Bad Actor Inc"})
-
-      assert :ok == SanctionsCheckWorker.perform(%Oban.Job{args: %{}})
-
-      # Should have created a sanctions check record for the company
-      checks = Holdco.Compliance.list_sanctions_checks(company.id)
-      assert length(checks) > 0
-
-      check = List.first(checks)
-      assert check.status == "clear"
-      assert check.checked_name == "Legitimate Corp"
-    end
-
-    test "perform/1 detects potential sanctions matches" do
-      company = company_fixture(%{name: "Bad Actor Inc"})
-      sl = sanctions_list_fixture(%{name: "Test SDN"})
-      sanctions_entry_fixture(%{sanctions_list: sl, name: "Bad Actor Inc"})
-
-      assert :ok == SanctionsCheckWorker.perform(%Oban.Job{args: %{}})
-
-      checks = Holdco.Compliance.list_sanctions_checks(company.id)
-      match_checks = Enum.filter(checks, &(&1.status == "match"))
-      assert length(match_checks) > 0
-    end
-
-    test "perform/1 also screens beneficial owners" do
-      company = company_fixture(%{name: "Clean Corp"})
-      beneficial_owner_fixture(%{company: company, name: "Clean Owner"})
-      sl = sanctions_list_fixture(%{name: "Test SDN"})
-      sanctions_entry_fixture(%{sanctions_list: sl, name: "Sanctioned Person"})
-
-      assert :ok == SanctionsCheckWorker.perform(%Oban.Job{args: %{}})
-
-      checks = Holdco.Compliance.list_sanctions_checks(company.id)
-      # Should have checks for both the company and the beneficial owner
-      assert length(checks) >= 2
-    end
+    # Tests for sanctions entry screening removed — create_sanctions_entry/1 was pruned
   end
 
   describe "SnapshotPricesWorker" do

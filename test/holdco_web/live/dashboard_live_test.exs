@@ -432,10 +432,9 @@ defmodule HoldcoWeb.DashboardLiveTest do
   # ═══════════════════════════════════════════════════════
 
   describe "cash flow forecast section" do
-    test "renders link to full forecast", %{conn: conn} do
+    test "renders forecast section", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "Full Forecast"
-      assert html =~ "/cash-forecast"
+      assert html =~ "90-Day Cash Forecast"
     end
 
     test "shows empty state when no scheduled flows", %{conn: conn} do
@@ -537,6 +536,33 @@ defmodule HoldcoWeb.DashboardLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "3 entities"
+    end
+  end
+
+  describe "action items" do
+    test "shows unreconciled count when bank feed transactions exist", %{conn: conn} do
+      company = company_fixture()
+      ba = bank_account_fixture(%{company: company})
+      config = bank_feed_config_fixture(%{company: company, bank_account: ba, is_active: true})
+
+      Holdco.Integrations.create_bank_feed_transaction(%{
+        feed_config_id: config.id,
+        external_id: "ext_dash_#{System.unique_integer([:positive])}",
+        date: "2025-01-15",
+        description: "Unreconciled txn",
+        amount: 500.00,
+        currency: "USD"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "Unreconciled transactions"
+    end
+
+    test "shows open periods when companies exist", %{conn: conn} do
+      company_fixture(%{name: "DashCo"})
+
+      {:ok, _view, html} = live(conn, ~p"/")
+      assert html =~ "Periods open"
     end
   end
 end

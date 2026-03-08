@@ -461,4 +461,96 @@ defmodule HoldcoWeb.SettingsLiveTest do
     end
   end
 
+  # ------------------------------------------------------------------
+  # Notifications tab
+  # ------------------------------------------------------------------
+
+  describe "notifications tab" do
+    test "shows channels and deliveries sections", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      html = view |> element(~s(button[phx-value-tab="notifications"])) |> render_click()
+      assert html =~ "Notification Channels"
+      assert html =~ "Recent Deliveries"
+      assert html =~ "total deliveries"
+      assert html =~ "No channels configured."
+    end
+
+    test "admin can add a slack channel", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      view |> element(~s(button[phx-value-tab="notifications"])) |> render_click()
+      view |> element("button", "Add Channel") |> render_click()
+      render_click(view, "select_provider", %{"provider" => "slack"})
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save_channel"]), %{
+          "channel" => %{
+            "provider" => "slack",
+            "webhook_url" => "https://hooks.slack.com/services/T00/B00/test",
+            "notes" => "Test channel"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Channel created"
+      assert html =~ "Slack"
+    end
+
+    test "admin can toggle and delete a channel", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      channel = notification_channel_fixture(%{user: user, provider: "slack", is_active: true})
+
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      html = view |> element(~s(button[phx-value-tab="notifications"])) |> render_click()
+      assert html =~ "Active"
+
+      html = render_click(view, "toggle_channel", %{"id" => to_string(channel.id)})
+      assert html =~ "Inactive"
+
+      html = render_click(view, "delete_channel", %{"id" => to_string(channel.id)})
+      assert html =~ "Channel deleted"
+    end
+
+    test "admin can edit a channel", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      channel = notification_channel_fixture(%{user: user, provider: "telegram",
+        config: %{"bot_token" => "tok123", "chat_id" => "-999"}})
+
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      view |> element(~s(button[phx-value-tab="notifications"])) |> render_click()
+
+      html = render_click(view, "edit_channel", %{"id" => to_string(channel.id)})
+      assert html =~ "Edit Channel"
+      assert html =~ "tok123"
+    end
+
+    test "select_provider shows provider-specific fields", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      view |> element(~s(button[phx-value-tab="notifications"])) |> render_click()
+      render_click(view, "show_form", %{})
+
+      html = render_click(view, "select_provider", %{"provider" => "email"})
+      assert html =~ "Email Address"
+
+      html = render_click(view, "select_provider", %{"provider" => "telegram"})
+      assert html =~ "Bot Token"
+      assert html =~ "Chat ID"
+    end
+
+    test "new_notification pubsub reloads data", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "admin")
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      view |> element(~s(button[phx-value-tab="notifications"])) |> render_click()
+
+      send(view.pid, {:new_notification, %{}})
+      html = render(view)
+      assert html =~ "Notification Channels"
+    end
+  end
+
 end

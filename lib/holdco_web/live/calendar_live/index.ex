@@ -1,72 +1,142 @@
 defmodule HoldcoWeb.CalendarLive.Index do
   use HoldcoWeb, :live_view
 
-  import Ecto.Query
-
-  alias Holdco.Repo
-  alias Holdco.Money
-
-  @event_types ~w(all tax meeting liability insurance filing)
+  alias Holdco.{Compliance, Corporate}
 
   @impl true
   def mount(_params, _session, socket) do
-    deadlines =
-      Repo.all(from td in Holdco.Compliance.TaxDeadline, preload: :company)
+    deadlines = Compliance.list_tax_deadlines()
+    annual_filings = Compliance.list_annual_filings()
+    companies = Corporate.list_companies()
 
-    meetings =
-      Repo.all(from bm in Holdco.Governance.BoardMeeting, preload: :company)
+    deadlines = Enum.sort_by(deadlines, & &1.due_date)
 
-    liabilities =
-      Repo.all(from l in Holdco.Finance.Liability, preload: :company)
-
-    insurance =
-      Repo.all(from ip in Holdco.Compliance.InsurancePolicy, preload: :company)
-
-    filings =
-      Repo.all(from rf in Holdco.Compliance.RegulatoryFiling, preload: :company)
+    pending = Enum.count(deadlines, &(&1.status == "pending"))
+    overdue = Enum.count(deadlines, &(&1.status == "overdue"))
 
     today = Date.utc_today()
-    month = Date.beginning_of_month(today)
-    events = build_events(deadlines, meetings, liabilities, insurance, filings)
+    thirty_days = Date.add(today, 30)
+
+    upcoming_30 =
+      Enum.count(deadlines, fn d ->
+        case parse_date(d.due_date) do
+          {:ok, dd} -> Date.compare(dd, today) in [:gt, :eq] and Date.compare(dd, thirty_days) in [:lt, :eq]
+          _ -> false
+        end
+      end)
 
     {:ok,
      assign(socket,
        page_title: "Calendar",
-       all_events: events,
-       events: events,
-       current_month: month,
-       filter_type: "all"
+       deadlines: deadlines,
+       annual_filings: annual_filings,
+       companies: companies,
+       pending: pending,
+       overdue: overdue,
+       upcoming_30: upcoming_30,
+       today: today,
+       show_form: false,
+       editing_item: nil
      )}
   end
 
   @impl true
-  def handle_event("prev_month", _, socket) do
-    new_month = Date.add(socket.assigns.current_month, -1) |> Date.beginning_of_month()
+  def handle_event("noop", _, socket), do: {:noreply, socket}
 
-    {:noreply,
-     assign(socket,
-       current_month: new_month,
-       events: filter_events(socket.assigns.all_events, socket.assigns.filter_type)
-     )}
+  def handle_event("show_form", _, socket) do
+    {:noreply, assign(socket, show_form: :add, editing_item: nil)}
   end
 
-  def handle_event("next_month", _, socket) do
-    days = Date.days_in_month(socket.assigns.current_month)
-    new_month = Date.add(socket.assigns.current_month, days) |> Date.beginning_of_month()
-
-    {:noreply,
-     assign(socket,
-       current_month: new_month,
-       events: filter_events(socket.assigns.all_events, socket.assigns.filter_type)
-     )}
+  def handle_event("close_form", _, socket) do
+    {:noreply, assign(socket, show_form: false, editing_item: nil)}
   end
 
-  def handle_event("filter_type", %{"type" => type}, socket) do
+  def handle_event("save", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("mark_complete", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("delete", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("update", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("edit", %{"id" => id}, socket) do
+    deadline = Compliance.get_tax_deadline!(String.to_integer(id))
+    {:noreply, assign(socket, show_form: :edit, editing_item: deadline)}
+  end
+
+  def handle_event("save", %{"tax_deadline" => params}, socket) do
+    case Compliance.create_tax_deadline(params) do
+      {:ok, _} ->
+        deadlines = Compliance.list_tax_deadlines()
+        pending = Enum.count(deadlines, &(&1.status == "pending"))
+        overdue = Enum.count(deadlines, &(&1.status == "overdue"))
+
+        {:noreply,
+         assign(socket,
+           deadlines: deadlines,
+           pending: pending,
+           overdue: overdue,
+           show_form: false,
+           editing_item: nil
+         )
+         |> put_flash(:info, "Deadline added")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add deadline")}
+    end
+  end
+
+  def handle_event("update", %{"tax_deadline" => params}, socket) do
+    case Compliance.update_tax_deadline(socket.assigns.editing_item.id, params) do
+      {:ok, _} ->
+        deadlines = Compliance.list_tax_deadlines()
+        pending = Enum.count(deadlines, &(&1.status == "pending"))
+        overdue = Enum.count(deadlines, &(&1.status == "overdue"))
+
+        {:noreply,
+         assign(socket,
+           deadlines: deadlines,
+           pending: pending,
+           overdue: overdue,
+           show_form: false,
+           editing_item: nil
+         )
+         |> put_flash(:info, "Deadline updated")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update deadline")}
+    end
+  end
+
+  def handle_event("mark_complete", %{"id" => id}, socket) do
+    Compliance.update_tax_deadline(id, %{status: "completed"})
+    deadlines = Compliance.list_tax_deadlines()
+    pending = Enum.count(deadlines, &(&1.status == "pending"))
+    overdue = Enum.count(deadlines, &(&1.status == "overdue"))
+
     {:noreply,
-     assign(socket,
-       filter_type: type,
-       events: filter_events(socket.assigns.all_events, type)
-     )}
+     assign(socket, deadlines: deadlines, pending: pending, overdue: overdue)
+     |> put_flash(:info, "Marked as completed")}
+  end
+
+  def handle_event("delete", %{"id" => id}, socket) do
+    tax_deadline = Compliance.get_tax_deadline!(String.to_integer(id))
+    Compliance.delete_tax_deadline(tax_deadline)
+    deadlines = Compliance.list_tax_deadlines()
+    pending = Enum.count(deadlines, &(&1.status == "pending"))
+    overdue = Enum.count(deadlines, &(&1.status == "overdue"))
+
+    {:noreply,
+     assign(socket, deadlines: deadlines, pending: pending, overdue: overdue)
+     |> put_flash(:info, "Deadline deleted")}
   end
 
   @impl true
@@ -76,337 +146,260 @@ defmodule HoldcoWeb.CalendarLive.Index do
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div>
           <h1>Calendar</h1>
-          <p class="deck">
-            Unified view of compliance deadlines, governance meetings, finance liabilities,
-            insurance renewals, and regulatory filings
-          </p>
+          <p class="deck">Tax deadlines, annual filings, and compliance dates</p>
         </div>
-        <form phx-change="filter_type" style="display: flex; align-items: center; gap: 0.5rem;">
-          <label class="form-label" style="margin: 0; font-size: 0.85rem;">Event Type</label>
-          <select name="type" class="form-select" style="width: auto; padding: 0.3rem 0.5rem;">
-            <%= for t <- event_types() do %>
-              <option value={t} selected={t == @filter_type}>{type_label(t)}</option>
-            <% end %>
-          </select>
-        </form>
+        <%= if @can_write do %>
+          <button class="btn btn-primary" phx-click="show_form">Add Deadline</button>
+        <% end %>
       </div>
       <hr class="page-title-rule" />
     </div>
 
     <div class="metrics-strip">
       <div class="metric-cell">
-        <div class="metric-label">Total Events</div>
-        <div class="metric-value">{length(@all_events)}</div>
+        <div class="metric-label">Total Deadlines</div>
+        <div class="metric-value">{length(@deadlines)}</div>
       </div>
       <div class="metric-cell">
-        <div class="metric-label">This Month</div>
-        <div class="metric-value">{count_month_events(@events, @current_month)}</div>
-      </div>
-      <div class="metric-cell">
-        <div class="metric-label">
-          <span class="tag tag-crimson">Tax</span>
-        </div>
-        <div class="metric-value">{count_type(@all_events, "tax")}</div>
-      </div>
-      <div class="metric-cell">
-        <div class="metric-label">
-          <span class="tag tag-jade">Meetings</span>
-        </div>
-        <div class="metric-value">{count_type(@all_events, "meeting")}</div>
-      </div>
-      <div class="metric-cell">
-        <div class="metric-label">
-          <span class="tag tag-lemon">Liabilities</span>
-        </div>
-        <div class="metric-value">{count_type(@all_events, "liability")}</div>
+        <div class="metric-label">Pending</div>
+        <div class="metric-value">{@pending}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Overdue</div>
-        <% today_str = Date.utc_today() |> Date.to_iso8601() %>
-        <% overdue_count = Enum.count(@all_events, fn e -> (e.date || "") < today_str end) %>
-        <div class={"metric-value #{if overdue_count > 0, do: "num-negative"}"}>
-          {overdue_count}
-        </div>
+        <div class="metric-value num-negative">{@overdue}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Upcoming 30 Days</div>
+        <div class="metric-value">{@upcoming_30}</div>
       </div>
     </div>
 
-    <% next_7_days = next_7_day_events(@all_events) %>
-    <%= if next_7_days != [] do %>
-      <div class="section">
-        <div class="section-head">
-          <h2>Next 7 Days</h2>
-          <span class="count">{length(next_7_days)}</span>
-        </div>
-        <div class="panel">
-          <table>
-            <thead>
-              <tr><th>Date</th><th>Type</th><th>Description</th><th>Company</th></tr>
-            </thead>
-            <tbody>
-              <%= for event <- next_7_days do %>
-                <tr>
-                  <td class="td-mono">{event.date}</td>
-                  <td><span class={"tag #{event_tag(event.type)}"}>{event.type}</span></td>
-                  <td class="td-name">{event.description}</td>
-                  <td>
-                    <%= if event.company_id do %>
-                      <.link navigate={~p"/companies/#{event.company_id}"} class="td-link">{event.company_name}</.link>
-                    <% else %>
-                      ---
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    <% end %>
-
     <div class="section">
-      <div class="section-head" style="display: flex; justify-content: space-between; align-items: center;">
-        <h2>{format_month(@current_month)}</h2>
-        <div style="display: flex; gap: 0.5rem;">
-          <button class="btn btn-secondary" phx-click="prev_month">&larr; Prev</button>
-          <button class="btn btn-secondary" phx-click="next_month">Next &rarr;</button>
-        </div>
+      <div class="section-head">
+        <h2>Tax Deadlines</h2>
       </div>
       <div class="panel">
-        <% month_events = events_for_month(@events, @current_month) %>
-        <% grouped = group_by_week(month_events, @current_month) %>
-        <%= if grouped == %{} do %>
-          <div class="empty-state">No events this month.</div>
-        <% else %>
-          <%= for {week_num, week_events} <- Enum.sort(grouped) do %>
-            <div style="margin-bottom: 1.5rem;">
-              <div style="font-size: 0.8rem; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 1rem; border-bottom: 1px solid #eee;">
-                Week {week_num}
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width: 100px;">Date</th>
-                    <th style="width: 100px;">Type</th>
-                    <th>Description</th>
-                    <th>Company</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <%= for event <- week_events do %>
-                    <tr>
-                      <td class="td-mono">{event.date}</td>
-                      <td>
-                        <span class={"tag #{event_tag(event.type)}"}>{event.type}</span>
-                      </td>
-                      <td class="td-name">{event.description}</td>
-                      <td>
-                        <%= if event.company_id do %>
-                          <.link navigate={~p"/companies/#{event.company_id}"} class="td-link">
-                            {event.company_name}
-                          </.link>
-                        <% else %>
-                          ---
-                        <% end %>
-                      </td>
-                    </tr>
+        <table>
+          <thead>
+            <tr>
+              <th>Due Date</th>
+              <th class="th-num">Days Until Due</th>
+              <th>Jurisdiction</th>
+              <th>Description</th>
+              <th>Company</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for td <- @deadlines do %>
+              <% days_until = days_until_due(td.due_date, @today) %>
+              <tr style={row_urgency_style(days_until, td.status)}>
+                <td class="td-mono">{td.due_date}</td>
+                <td class={"td-num #{if days_until && days_until < 0, do: "num-negative", else: ""}"}>
+                  {format_days_until(days_until)}
+                </td>
+                <td>{td.jurisdiction}</td>
+                <td class="td-name">{td.description}</td>
+                <td>
+                  <%= if td.company do %>
+                    <.link navigate={~p"/companies/#{td.company.id}"} class="td-link">{td.company.name}</.link>
+                  <% else %>
+                    ---
                   <% end %>
-                </tbody>
-              </table>
-            </div>
-          <% end %>
+                </td>
+                <td><span class={"tag #{status_tag(td.status)}"}>{td.status}</span></td>
+                <td>
+                  <%= if @can_write do %>
+                    <button
+                      phx-click="edit"
+                      phx-value-id={td.id}
+                      class="btn btn-sm btn-secondary"
+                    >
+                      Edit
+                    </button>
+                    <%= if td.status != "completed" do %>
+                      <button
+                        phx-click="mark_complete"
+                        phx-value-id={td.id}
+                        class="btn btn-sm btn-secondary"
+                      >
+                        Complete
+                      </button>
+                    <% end %>
+                    <button
+                      phx-click="delete"
+                      phx-value-id={td.id}
+                      class="btn btn-danger btn-sm"
+                      data-confirm="Delete?"
+                    >
+                      Del
+                    </button>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <%= if @deadlines == [] do %>
+          <div class="empty-state">
+            <p>No tax deadlines have been created yet.</p>
+            <p class="empty-state-hint">Add upcoming tax filing dates, estimated payment deadlines, and other compliance due dates to keep track of obligations across all your companies.</p>
+            <%= if @can_write do %>
+              <button class="btn btn-primary" phx-click="show_form">Add Your First Deadline</button>
+            <% end %>
+          </div>
         <% end %>
       </div>
     </div>
 
     <div class="section">
       <div class="section-head">
-        <h2>All Upcoming Events</h2>
+        <h2>Annual Filings</h2>
       </div>
       <div class="panel">
-        <% upcoming = upcoming_events(@events) %>
-        <%= if upcoming == [] do %>
-          <div class="empty-state">No upcoming events found.</div>
-        <% else %>
-          <table>
-            <thead>
+        <table>
+          <thead>
+            <tr>
+              <th>Due Date</th>
+              <th>Company</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for af <- @annual_filings do %>
               <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Description</th>
-                <th>Company</th>
+                <td class="td-mono">{af.due_date}</td>
+                <td>
+                  <%= if af.company do %>
+                    <.link navigate={~p"/companies/#{af.company.id}"} class="td-link">{af.company.name}</.link>
+                  <% else %>
+                    ---
+                  <% end %>
+                </td>
+                <td><span class={"tag #{status_tag(af.status)}"}>{af.status}</span></td>
               </tr>
-            </thead>
-            <tbody>
-              <%= for event <- Enum.take(upcoming, 50) do %>
-                <tr>
-                  <td class="td-mono">{event.date}</td>
-                  <td>
-                    <span class={"tag #{event_tag(event.type)}"}>{event.type}</span>
-                  </td>
-                  <td class="td-name">{event.description}</td>
-                  <td>
-                    <%= if event.company_id do %>
-                      <.link navigate={~p"/companies/#{event.company_id}"} class="td-link">
-                        {event.company_name}
-                      </.link>
-                    <% else %>
-                      ---
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
+            <% end %>
+          </tbody>
+        </table>
+        <%= if @annual_filings == [] do %>
+          <div class="empty-state">
+            <p>No annual filings recorded yet.</p>
+            <p class="empty-state-hint">Annual filings such as franchise tax reports and annual returns will appear here once created. These help ensure your companies stay in good standing with their respective jurisdictions.</p>
+          </div>
         <% end %>
       </div>
     </div>
+
+    <%= if @show_form do %>
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
+            <h3>{if @show_form == :edit, do: "Edit Tax Deadline", else: "Add Tax Deadline"}</h3>
+          </div>
+          <div class="dialog-body">
+            <form phx-submit={if @show_form == :edit, do: "update", else: "save"}>
+              <div class="form-group">
+                <label class="form-label">Company *</label>
+                <select name="tax_deadline[company_id]" class="form-select" required>
+                  <option value="">Select company</option>
+                  <%= for c <- @companies do %>
+                    <option
+                      value={c.id}
+                      selected={@editing_item && @editing_item.company_id == c.id}
+                    >
+                      {c.name}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Jurisdiction *</label>
+                <input
+                  type="text"
+                  name="tax_deadline[jurisdiction]"
+                  class="form-input"
+                  value={if @editing_item, do: @editing_item.jurisdiction, else: ""}
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description *</label>
+                <input
+                  type="text"
+                  name="tax_deadline[description]"
+                  class="form-input"
+                  value={if @editing_item, do: @editing_item.description, else: ""}
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Due Date *</label>
+                <input
+                  type="text"
+                  name="tax_deadline[due_date]"
+                  class="form-input"
+                  placeholder="YYYY-MM-DD"
+                  value={if @editing_item, do: @editing_item.due_date, else: ""}
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea
+                  name="tax_deadline[notes]"
+                  class="form-input"
+                >{if @editing_item, do: @editing_item.notes, else: ""}</textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                  {if @show_form == :edit, do: "Update Deadline", else: "Add Deadline"}
+                </button>
+                <button type="button" phx-click="close_form" class="btn btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% end %>
     """
   end
 
-  # -- Helpers --
+  defp status_tag("completed"), do: "tag-jade"
+  defp status_tag("filed"), do: "tag-jade"
+  defp status_tag("pending"), do: "tag-lemon"
+  defp status_tag("overdue"), do: "tag-crimson"
+  defp status_tag(_), do: "tag-ink"
 
-  defp event_types, do: @event_types
+  defp parse_date(nil), do: :error
+  defp parse_date(%Date{} = d), do: {:ok, d}
 
-  defp type_label("all"), do: "All Events"
-  defp type_label("tax"), do: "Tax Deadlines"
-  defp type_label("meeting"), do: "Board Meetings"
-  defp type_label("liability"), do: "Liabilities"
-  defp type_label("insurance"), do: "Insurance"
-  defp type_label("filing"), do: "Filings"
-
-  defp event_tag("tax"), do: "tag-crimson"
-  defp event_tag("meeting"), do: "tag-jade"
-  defp event_tag("liability"), do: "tag-lemon"
-  defp event_tag("insurance"), do: "tag-ink"
-  defp event_tag("filing"), do: "tag-ink"
-  defp event_tag(_), do: "tag-ink"
-
-  defp build_events(deadlines, meetings, liabilities, insurance, filings) do
-    tax_events =
-      Enum.map(deadlines, fn td ->
-        %{
-          date: td.due_date,
-          type: "tax",
-          description: "#{td.jurisdiction} - #{td.description}",
-          company_id: td.company_id,
-          company_name: if(td.company, do: td.company.name, else: nil)
-        }
-      end)
-
-    meeting_events =
-      Enum.map(meetings, fn bm ->
-        %{
-          date: bm.scheduled_date,
-          type: "meeting",
-          description: "#{bm.meeting_type} board meeting",
-          company_id: bm.company_id,
-          company_name: if(bm.company, do: bm.company.name, else: nil)
-        }
-      end)
-
-    liability_events =
-      liabilities
-      |> Enum.filter(&(&1.maturity_date != nil and &1.maturity_date != ""))
-      |> Enum.map(fn l ->
-        %{
-          date: l.maturity_date,
-          type: "liability",
-          description: "#{l.liability_type} - #{l.creditor} (#{format_amount(l.principal, l.currency)})",
-          company_id: l.company_id,
-          company_name: if(l.company, do: l.company.name, else: nil)
-        }
-      end)
-
-    insurance_events =
-      insurance
-      |> Enum.filter(&(&1.expiry_date != nil and &1.expiry_date != ""))
-      |> Enum.map(fn ip ->
-        %{
-          date: ip.expiry_date,
-          type: "insurance",
-          description: "#{ip.policy_type} renewal - #{ip.provider}",
-          company_id: ip.company_id,
-          company_name: if(ip.company, do: ip.company.name, else: nil)
-        }
-      end)
-
-    filing_events =
-      Enum.map(filings, fn rf ->
-        %{
-          date: rf.due_date,
-          type: "filing",
-          description: "#{rf.jurisdiction} - #{rf.filing_type}",
-          company_id: rf.company_id,
-          company_name: if(rf.company, do: rf.company.name, else: nil)
-        }
-      end)
-
-    (tax_events ++ meeting_events ++ liability_events ++ insurance_events ++ filing_events)
-    |> Enum.filter(&(&1.date != nil and &1.date != ""))
-    |> Enum.sort_by(& &1.date)
+  defp parse_date(str) when is_binary(str) do
+    case Date.from_iso8601(str) do
+      {:ok, _} = ok -> ok
+      _ -> :error
+    end
   end
 
-  defp filter_events(events, "all"), do: events
-  defp filter_events(events, type), do: Enum.filter(events, &(&1.type == type))
+  defp parse_date(_), do: :error
 
-  defp events_for_month(events, month) do
-    month_str = Calendar.strftime(month, "%Y-%m")
-
-    Enum.filter(events, fn event ->
-      String.starts_with?(event.date || "", month_str)
-    end)
+  defp days_until_due(due_date, today) do
+    case parse_date(due_date) do
+      {:ok, dd} -> Date.diff(dd, today)
+      _ -> nil
+    end
   end
 
-  defp group_by_week(events, month) do
-    Enum.group_by(events, fn event ->
-      case Date.from_iso8601(event.date) do
-        {:ok, date} ->
-          day_of_month = date.day
-          first_day_weekday = Date.day_of_week(month)
-          div(day_of_month + first_day_weekday - 2, 7) + 1
+  defp format_days_until(nil), do: "---"
+  defp format_days_until(0), do: "Today"
+  defp format_days_until(n) when n < 0, do: "#{abs(n)}d overdue"
+  defp format_days_until(n), do: "#{n}d"
 
-        _ ->
-          1
-      end
-    end)
-  end
-
-  defp next_7_day_events(events) do
-    today = Date.utc_today()
-    week_end = Date.add(today, 7)
-    today_str = Date.to_iso8601(today)
-    week_str = Date.to_iso8601(week_end)
-    Enum.filter(events, fn e -> (e.date || "") >= today_str and (e.date || "") <= week_str end)
-  end
-
-  defp upcoming_events(events) do
-    today = Date.utc_today() |> Date.to_iso8601()
-    Enum.filter(events, fn e -> (e.date || "") >= today end)
-  end
-
-  defp count_month_events(events, month) do
-    events_for_month(events, month) |> length()
-  end
-
-  defp count_type(events, type) do
-    Enum.count(events, &(&1.type == type))
-  end
-
-  defp format_month(date) do
-    Calendar.strftime(date, "%B %Y")
-  end
-
-  defp format_amount(nil, _), do: "N/A"
-
-  defp format_amount(amount, currency) do
-    formatted =
-      Money.abs(amount)
-      |> Money.round(0)
-      |> Decimal.to_string()
-      |> String.reverse()
-      |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
-      |> String.reverse()
-
-    "#{currency} #{formatted}"
-  end
+  defp row_urgency_style(nil, _status), do: ""
+  defp row_urgency_style(_days, "completed"), do: ""
+  defp row_urgency_style(days, _status) when days < 0, do: "background: rgba(198, 40, 40, 0.06);"
+  defp row_urgency_style(days, _status) when days <= 7, do: "background: rgba(245, 200, 66, 0.12);"
+  defp row_urgency_style(_days, _status), do: ""
 end

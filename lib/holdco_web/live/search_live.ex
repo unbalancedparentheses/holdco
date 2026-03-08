@@ -55,21 +55,13 @@ defmodule HoldcoWeb.SearchLive do
       {"/budgets/variance", "Budget Variance"}
     ]},
     {"Tax", [
-      {"/tax-provisions", "Tax Provisions"}, {"/deferred-taxes", "Deferred Taxes"},
-      {"/transfer-pricing", "Transfer Pricing"}, {"/tax/capital-gains", "Capital Gains"},
-      {"/tax-calendar", "Tax Calendar"}
+      {"/tax", "Tax"}
     ]},
     {"Risk & Analysis", [
-      {"/risk/concentration", "Concentration"}, {"/stress-test", "Stress Testing"},
-      {"/cash-forecast", "Cash Forecast"}, {"/debt-maturity", "Debt Maturity"},
       {"/anomalies", "Anomalies"}
     ]},
-    {"Reports", [
-      {"/reports", "Overview"},
-      {"/compare", "Entity Comparison"}, {"/scheduled-reports", "Scheduled Reports"}
-    ]},
     {"Admin", [
-      {"/settings", "Settings"}, {"/settings/notifications", "Notification Settings"},
+      {"/settings", "Settings"},
       {"/audit-log", "Audit Log"}, {"/approvals", "Approvals"},
       {"/notifications", "Notifications"}, {"/alerts", "Alerts"}, {"/import", "Import"}
     ]}

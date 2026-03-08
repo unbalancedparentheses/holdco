@@ -177,53 +177,6 @@ defmodule HoldcoWeb.CompanyLive.ShowTabs do
           </table>
         </div>
 
-        <div class="section-head" style="margin-top: 1rem;">
-          <h2>Service Providers</h2>
-          <%= if @can_write do %>
-            <button
-              class="btn btn-sm btn-primary"
-              phx-click="show_form"
-              phx-value-form="service_provider"
-            >
-              Add
-            </button>
-          <% end %>
-        </div>
-        <div class="panel">
-          <table>
-            <thead>
-              <tr>
-                <th>Role</th>
-                <th>Name</th>
-                <th>Firm</th>
-                <th>Email</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <%= for sp <- @company.service_providers do %>
-                <tr>
-                  <td>{sp.role}</td>
-                  <td class="td-name">{sp.name}</td>
-                  <td>{sp.firm}</td>
-                  <td>{sp.email}</td>
-                  <td>
-                    <%= if @can_write do %>
-                      <button
-                        phx-click="delete_service_provider"
-                        phx-value-id={sp.id}
-                        class="btn btn-danger btn-sm"
-                        data-confirm="Delete?"
-                      >
-                        Del
-                      </button>
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
 

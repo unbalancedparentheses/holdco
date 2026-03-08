@@ -1,7 +1,7 @@
 defmodule HoldcoWeb.DashboardLive do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Corporate, Banking, Assets, Platform, Portfolio, Compliance, AI}
+  alias Holdco.{Corporate, Banking, Assets, Platform, Portfolio, Compliance, AI, Finance, Integrations}
   alias Holdco.Money
 
   @currencies ~w(USD EUR GBP ARS BRL CHF JPY CAD AUD)
@@ -28,6 +28,28 @@ defmodule HoldcoWeb.DashboardLive do
       end)
       |> Enum.sort_by(& &1.due_date)
       |> Enum.take(5)
+
+    # Action items
+    unreconciled_count = Integrations.count_unmatched_bank_feed_transactions()
+    due_recurring_count = length(Finance.list_due_recurring_transactions())
+
+    today = Date.utc_today()
+    first_of_month = Date.beginning_of_month(today)
+    prev_month_end = Date.add(first_of_month, -1)
+    prev_month_start = Date.beginning_of_month(prev_month_end)
+    company_count = length(companies)
+
+    locked_count =
+      if company_count > 0 do
+        companies
+        |> Enum.count(fn c ->
+          Finance.is_period_locked?(c.id, prev_month_start)
+        end)
+      else
+        0
+      end
+
+    open_periods = company_count - locked_count
 
     ai_configured = AI.configured?()
 
@@ -61,7 +83,10 @@ defmodule HoldcoWeb.DashboardLive do
        period_comp: period_comp,
        ratios: ratios,
        cash_forecast: cash_forecast,
-       entities: entities
+       entities: entities,
+       unreconciled_count: unreconciled_count,
+       due_recurring_count: due_recurring_count,
+       open_periods: open_periods
      )}
   end
 
@@ -127,6 +152,36 @@ defmodule HoldcoWeb.DashboardLive do
         <.link navigate={~p"/transactions"} class="btn btn-secondary">+ Transaction</.link>
         <.link navigate={~p"/holdings"} class="btn btn-secondary">+ Position</.link>
         <.link navigate={~p"/import"} class="btn btn-secondary">Import CSV</.link>
+      </div>
+    <% end %>
+
+    <%!-- === Action Items === --%>
+    <%= if @unreconciled_count > 0 or @open_periods > 0 or @due_recurring_count > 0 or @pending_approvals > 0 do %>
+      <div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <%= if @unreconciled_count > 0 do %>
+          <.link navigate={~p"/bank-reconciliation"} class="panel" style="padding: 0.75rem 1rem; text-decoration: none; color: inherit; border-left: 3px solid var(--color-crimson, #c0392b); flex: 1; min-width: 200px;">
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--color-crimson, #c0392b);">{@unreconciled_count}</div>
+            <div style="font-size: 0.8rem; color: var(--ink-faint);">Unreconciled transactions</div>
+          </.link>
+        <% end %>
+        <%= if @open_periods > 0 do %>
+          <.link navigate={~p"/period-close"} class="panel" style="padding: 0.75rem 1rem; text-decoration: none; color: inherit; border-left: 3px solid var(--color-lemon, #b8860b); flex: 1; min-width: 200px;">
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--color-lemon, #b8860b);">{@open_periods}</div>
+            <div style="font-size: 0.8rem; color: var(--ink-faint);">Periods open (prev month)</div>
+          </.link>
+        <% end %>
+        <%= if @due_recurring_count > 0 do %>
+          <.link navigate={~p"/recurring-transactions"} class="panel" style="padding: 0.75rem 1rem; text-decoration: none; color: inherit; border-left: 3px solid var(--color-lemon, #b8860b); flex: 1; min-width: 200px;">
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--color-lemon, #b8860b);">{@due_recurring_count}</div>
+            <div style="font-size: 0.8rem; color: var(--ink-faint);">Recurring entries due</div>
+          </.link>
+        <% end %>
+        <%= if @pending_approvals > 0 do %>
+          <.link navigate={~p"/approvals"} class="panel" style="padding: 0.75rem 1rem; text-decoration: none; color: inherit; border-left: 3px solid var(--color-crimson, #c0392b); flex: 1; min-width: 200px;">
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--color-crimson, #c0392b);">{@pending_approvals}</div>
+            <div style="font-size: 0.8rem; color: var(--ink-faint);">Pending approvals</div>
+          </.link>
+        <% end %>
       </div>
     <% end %>
 
@@ -336,7 +391,7 @@ defmodule HoldcoWeb.DashboardLive do
       <div class="section">
         <div class="section-head">
           <h2>90-Day Cash Forecast</h2>
-          <.link navigate={~p"/cash-forecast"} class="count" style="text-decoration: none;">Full Forecast &rarr;</.link>
+          <span class="count">90 days</span>
         </div>
         <div class="panel" style="padding: 1.25rem;">
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
@@ -605,18 +660,6 @@ defmodule HoldcoWeb.DashboardLive do
         <.link navigate={~p"/anomalies"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
           <div style="font-weight: 600; font-size: 0.85rem;">Anomalies</div>
           <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Fraud detection</div>
-        </.link>
-        <.link navigate={~p"/risk/concentration"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
-          <div style="font-weight: 600; font-size: 0.85rem;">Concentration</div>
-          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Risk exposure</div>
-        </.link>
-        <.link navigate={~p"/stress-test"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
-          <div style="font-weight: 600; font-size: 0.85rem;">Stress Test</div>
-          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">Monte Carlo shocks</div>
-        </.link>
-        <.link navigate={~p"/cash-forecast"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
-          <div style="font-weight: 600; font-size: 0.85rem;">Cash Forecast</div>
-          <div style="font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.25rem;">12-month projection</div>
         </.link>
         <.link navigate={~p"/consolidated"} class="panel" style="padding: 1rem; text-decoration: none; color: inherit;">
           <div style="font-weight: 600; font-size: 0.85rem;">Consolidated</div>

@@ -56,7 +56,8 @@ background jobs.
 A real scoring engine matches book entries against bank feed transactions:
 50 points for exact amount match (partial credit within 5%), 30 points for
 date proximity, 20 points for Jaro-Winkler description similarity. Auto-match
-at 60+ points. Manual override for exceptions. Bank feeds sync via Plaid.
+at 60+ points. Manual override for exceptions. Import bank statements via CSV
+upload with AI-powered parsing, or connect directly via bank APIs.
 
 ### Risk and Analytics
 
@@ -90,7 +91,9 @@ at 60+ points. Manual override for exceptions. Bank feeds sync via Plaid.
 
 - **QuickBooks Online** — OAuth2 connection with automatic token refresh. Sync
   chart of accounts and journal entries per company.
-- **Plaid** — bank feed sync for automatic transaction import.
+- **Xero** — OAuth2 connection for accounting sync.
+- **Bank Statement Import** — upload CSV bank statements, AI-powered parsing
+  (via Anthropic or OpenAI), automatic dedup via content hashing.
 - **Yahoo Finance** — live prices for any ticker (stocks, ETFs, crypto,
   commodities, FX pairs). ETS-cached with configurable TTL.
 
@@ -113,7 +116,6 @@ Oban-powered scheduled jobs that run automatically:
 | `BackupWorker` | `pg_dump` to disk with retention cleanup, optional S3/R2 upload |
 | `RecurringTransactionWorker` | Posts journal entries for due recurring transactions |
 | `InterestAccrualWorker` | Generates interest accrual entries for intercompany loans |
-| `BankFeedSyncWorker` | Syncs transactions from Plaid-connected bank accounts |
 | `AlertEngineWorker` | Evaluates alert rules against live metrics |
 | `SanctionsCheckWorker` | Screens company names against sanctions lists (Jaro similarity) |
 | `TaxReminderWorker` | Sends notifications for tax deadlines due within 14 days |
@@ -341,14 +343,14 @@ lib/holdco/              Bounded contexts and Ecto schemas
   tax/                   Tax provisions, deferred taxes, capital gains
   pricing/               Price history, Yahoo Finance client (ETS cache)
   platform/              Settings, audit log, approvals, alerts
-  integrations/          QuickBooks sync, Xero sync, Plaid bank feeds, reconciliation
+  integrations/          QuickBooks sync, Xero sync, bank feeds, reconciliation
   ai/                    LLM client, data context, conversations
   notifications/         In-app notification system
   analytics/             Anomaly detection, stress testing
   portfolio.ex           NAV, returns, ratios, cash forecast, entity performance
   money.ex               Decimal arithmetic helpers
   search.ex              Cross-table search
-  workers/               11 Oban workers
+  workers/               10 Oban workers
 lib/holdco_web/
   controllers/api/       JSON API controllers
   controllers/           Health, CSV export, auth, reports, QBO/Xero OAuth
@@ -360,7 +362,54 @@ lib/holdco_web/
 
 ## Roadmap
 
-### Automation
+Development follows user workflows — build the daily/monthly core loop first,
+then expand outward.
+
+### Phase 1: "I can see what I own" (done)
+
+Portfolio dashboard with NAV, returns, allocation, ratios, entity performance,
+corporate structure tree, and live FX. CSV import/export for all major tables.
+
+### Phase 2: "I can track my money" (done)
+
+Bank statement import (CSV upload with AI parsing), bank reconciliation with
+scoring engine and inline one-click matching, reconciliation status on bank
+account pages. The import → reconcile pipeline works end-to-end.
+
+### Phase 3: "I can close my books" (done)
+
+Period close checklist that ties reconciliation → journal entries → period lock
+into one guided flow per entity. Consolidated financial statements with
+intercompany eliminations and NCI, exportable to CSV. Recurring transaction
+auto-posting via background worker.
+
+### Phase 4: "I can stay compliant" (partially done)
+
+Tax provisions, deferred taxes, capital gains with lot tracking, tax calendar,
+transfer pricing. Audit log and approval workflows. Still needed:
+
+- **Audit package improvements.** Include consolidated statements in the
+  zip export.
+- **Tax loss harvesting.** Identify positions to sell based on cost basis
+  lots and wash sale rules.
+
+### Phase 5: "I can manage risk" (partially done)
+
+Concentration risk, stress testing, anomaly detection, debt maturity ladder,
+cash forecast. Still needed:
+
+- **Scheduled anomaly detection.** Run nightly via Oban instead of manual.
+- **Monte Carlo simulation.** Probabilistic stress testing beyond linear shocks.
+
+### Phase 6: "I can report to stakeholders" (partially done)
+
+Scheduled reports, print-friendly views, JSON API. Still needed:
+
+- **Streaming AI responses.** Token-by-token output.
+- **Write API.** Full read-write REST API.
+- **Mobile-responsive dashboard.**
+
+### Integrations Roadmap
 
 - **Open banking (PSD2).** EU bank connections for automatic balance and
   transaction retrieval.
@@ -368,29 +417,6 @@ lib/holdco_web/
 - **Intercompany netting.** Net payables/receivables across entities before
   settling.
 - **Slack integration.** Push alerts to channels.
-- **Scheduled anomaly detection.** Run statistical detection nightly via Oban
-  instead of requiring manual trigger.
-
-### Analytics
-
-- **Valuation models.** DCF, comparables, and cap rate for illiquid holdings.
-- **Point-in-time snapshots.** View corporate structure and portfolio as of any
-  historical date.
-- **Tax loss harvesting.** Identify positions to sell based on cost basis lots
-  and wash sale rules.
-- **FX hedging tracker.** Forward contracts, options, and swaps against
-  exposures.
-- **Time-weighted returns.** IRR and TWR calculations per holding and portfolio.
-- **Monte Carlo simulation.** Probabilistic stress testing beyond linear shocks.
-
-### Platform
-
-- **Write API.** Full read-write REST API for programmatic data entry.
-- **Mobile-responsive dashboard.**
-- **Keyboard shortcuts.**
-- **Double-entry validation.** Enforce debits = credits at the UI layer.
-- **Streaming AI responses.** Token-by-token output instead of waiting for full
-  response.
 
 ## License
 

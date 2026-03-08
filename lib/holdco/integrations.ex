@@ -158,6 +158,16 @@ defmodule Holdco.Integrations do
     |> Repo.all()
   end
 
+  def count_unmatched_bank_feed_transactions do
+    from(bft in BankFeedTransaction,
+      join: bfc in BankFeedConfig,
+      on: bft.feed_config_id == bfc.id,
+      where: bfc.is_active == true and bft.is_matched == false,
+      select: count(bft.id)
+    )
+    |> Repo.one() || 0
+  end
+
   def list_unmatched_bank_feed_transactions(feed_config_id) do
     from(bft in BankFeedTransaction,
       where: bft.feed_config_id == ^feed_config_id and bft.is_matched == false,

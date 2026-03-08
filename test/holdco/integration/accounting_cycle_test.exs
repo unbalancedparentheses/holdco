@@ -3,7 +3,7 @@ defmodule Holdco.Integration.AccountingCycleTest do
   Integration tests for the full accounting cycle:
   chart of accounts -> journal entries -> trial balance -> period locks ->
   bank reconciliation -> recurring transactions -> financial reports ->
-  multi-book accounting -> trust accounts.
+  multi-book accounting.
   """
   use Holdco.DataCase, async: true
 
@@ -573,124 +573,7 @@ defmodule Holdco.Integration.AccountingCycleTest do
   end
 
   # ===========================================================================
-  # 7. Trust Accounts
-  # ===========================================================================
-
-  describe "trust accounts" do
-    test "create trust account and record transactions" do
-      company = setup_accounting_company()
-
-      {:ok, trust} =
-        Finance.create_trust_account(%{
-          company_id: company.id,
-          trust_name: "Family Trust A",
-          trust_type: "revocable",
-          trustee_name: "First National Bank"
-        })
-
-      assert trust.trust_name == "Family Trust A"
-
-      {:ok, _deposit} =
-        Finance.create_trust_transaction(%{
-          trust_account_id: trust.id,
-          transaction_type: "contribution",
-          amount: 500_000.0,
-          transaction_date: "2025-01-15",
-          description: "Initial funding"
-        })
-
-      {:ok, _income} =
-        Finance.create_trust_transaction(%{
-          trust_account_id: trust.id,
-          transaction_type: "income",
-          amount: 25_000.0,
-          transaction_date: "2025-06-15",
-          description: "Dividend income"
-        })
-
-      {:ok, _withdrawal} =
-        Finance.create_trust_transaction(%{
-          trust_account_id: trust.id,
-          transaction_type: "distribution",
-          amount: 50_000.0,
-          transaction_date: "2025-09-01",
-          description: "Beneficiary distribution"
-        })
-
-      balance = Finance.trust_balance(trust.id)
-      # 500K + 25K - 50K = 475K
-      assert Decimal.equal?(balance, Decimal.from_float(475_000.0))
-    end
-
-    test "trust income summary" do
-      company = setup_accounting_company()
-
-      {:ok, trust} =
-        Finance.create_trust_account(%{
-          company_id: company.id,
-          trust_name: "Income Trust",
-          trustee_name: "Trust Bank LLC"
-        })
-
-      {:ok, _} =
-        Finance.create_trust_transaction(%{
-          trust_account_id: trust.id,
-          transaction_type: "income",
-          amount: 10_000.0,
-          transaction_date: "2025-03-15",
-          description: "Bond interest"
-        })
-
-      {:ok, _} =
-        Finance.create_trust_transaction(%{
-          trust_account_id: trust.id,
-          transaction_type: "income",
-          amount: 5_000.0,
-          transaction_date: "2025-06-15",
-          description: "Dividend income"
-        })
-      summary_rows = Finance.trust_income_summary(trust.id)
-      income_row = Enum.find(summary_rows, fn row -> row.transaction_type == "income" end)
-      assert income_row != nil
-      assert Decimal.equal?(income_row.total, Decimal.from_float(15_000.0))
-
-
-
-    end
-  end
-
-  # ===========================================================================
-  # 8. Goodwill and Impairment Testing
-  # ===========================================================================
-
-  describe "goodwill and impairment" do
-    test "create goodwill and run impairment test" do
-      company = setup_accounting_company()
-
-      {:ok, goodwill} =
-        Finance.create_goodwill(%{
-          company_id: company.id,
-          acquisition_name: "Target Corp Acquisition",
-          acquisition_date: "2024-06-01",
-          original_amount: 3_000_000.0,
-          carrying_value: 3_000_000.0
-        })
-
-      assert Decimal.equal?(goodwill.original_amount, Decimal.from_float(3_000_000.0))
-
-      {:ok, test_result} =
-        Finance.run_impairment_test(goodwill.id, %{
-          test_date: "2025-12-31",
-          fair_value: 2_500_000.0,
-          method: "income_approach"
-        })
-
-      assert test_result.test.method == "income_approach"
-    end
-  end
-
-  # ===========================================================================
-  # 9. Cross-Context Accounting Flow
+  # 7. Cross-Context Accounting Flow
   # ===========================================================================
 
   describe "cross-context accounting flow" do
@@ -801,39 +684,4 @@ defmodule Holdco.Integration.AccountingCycleTest do
     end
   end
 
-  # ===========================================================================
-  # 10. Charitable Gifts
-  # ===========================================================================
-
-  describe "charitable giving" do
-    test "track charitable gifts and total giving" do
-      company = setup_accounting_company()
-
-      {:ok, _g1} =
-        Finance.create_charitable_gift(%{
-          company_id: company.id,
-          recipient_name: "Red Cross",
-          amount: 10_000.0,
-          gift_date: "2025-06-01",
-          tax_year: 2025,
-          gift_type: "cash"
-        })
-
-      {:ok, _g2} =
-        Finance.create_charitable_gift(%{
-          company_id: company.id,
-          recipient_name: "Local School",
-          amount: 5_000.0,
-          gift_date: "2025-09-01",
-          tax_year: 2025,
-          gift_type: "cash"
-        })
-
-      total = Finance.total_giving(company.id)
-      assert Decimal.equal?(total, Decimal.from_float(15_000.0))
-
-      gifts_2025 = Finance.gifts_by_year(company.id, 2025)
-      assert length(gifts_2025) == 2
-    end
-  end
 end

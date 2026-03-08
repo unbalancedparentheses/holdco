@@ -82,22 +82,6 @@ defmodule Holdco.Config do
     end
   end
 
-  # ── Plaid ───────────────────────────────────────────────
-
-  def plaid do
-    if db_has_any?(~w(plaid_client_id plaid_secret)) do
-      env = get("plaid_environment", "sandbox")
-
-      [
-        client_id: get("plaid_client_id"),
-        secret: get("plaid_secret"),
-        environment: if(env == "production", do: :production, else: :sandbox)
-      ]
-    else
-      Application.get_env(:holdco, Holdco.Integrations.Plaid, [])
-    end
-  end
-
   # ── S3 / R2 ─────────────────────────────────────────────
 
   def s3 do

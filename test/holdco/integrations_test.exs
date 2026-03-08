@@ -39,7 +39,7 @@ defmodule Holdco.IntegrationsTest do
     test "CRUD operations" do
       company = company_fixture()
       ba = bank_account_fixture(%{company: company})
-      {:ok, bfc} = Integrations.create_bank_feed_config(%{company_id: company.id, bank_account_id: ba.id, provider: "plaid"})
+      {:ok, bfc} = Integrations.create_bank_feed_config(%{company_id: company.id, bank_account_id: ba.id, provider: "csv_import"})
 
       assert Enum.any?(Integrations.list_bank_feed_configs(), &(&1.id == bfc.id))
       assert Integrations.get_bank_feed_config!(bfc.id).id == bfc.id

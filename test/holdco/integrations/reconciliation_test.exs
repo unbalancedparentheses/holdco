@@ -16,7 +16,7 @@ defmodule Holdco.Integrations.ReconciliationTest do
       Integrations.create_bank_feed_config(%{
         company_id: company.id,
         bank_account_id: ba.id,
-        provider: "plaid"
+        provider: "csv_import"
       })
 
     {company, bfc}

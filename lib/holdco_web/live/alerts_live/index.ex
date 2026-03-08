@@ -413,7 +413,6 @@ defmodule HoldcoWeb.AlertsLive.Index do
       <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
         <.link navigate={~p"/anomalies"} class="td-link" style="font-size: 0.85rem;">Anomalies</.link>
         <.link navigate={~p"/notifications"} class="td-link" style="font-size: 0.85rem;">Notifications</.link>
-        <.link navigate={~p"/risk/concentration"} class="td-link" style="font-size: 0.85rem;">Concentration Risk</.link>
       </div>
     </div>
 

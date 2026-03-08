@@ -160,6 +160,67 @@ defmodule HoldcoWeb.ExportControllerTest do
     end
   end
 
+  describe "financials CSV" do
+    test "GET /export/financials.csv returns CSV", %{conn: conn} do
+      company = company_fixture(%{name: "FinExportCo"})
+      financial_fixture(%{company_id: company.id, period: "2025-Q1", revenue: 100_000.0, expenses: 50_000.0, currency: "USD"})
+
+      conn = get(conn, ~p"/export/financials.csv")
+      body = response(conn, 200)
+
+      assert get_resp_header(conn, "content-type") |> hd() =~ "csv"
+      assert body =~ "FinExportCo"
+      assert body =~ "2025-Q1"
+    end
+
+    test "filters by company_id", %{conn: conn} do
+      c1 = company_fixture(%{name: "FinA"})
+      c2 = company_fixture(%{name: "FinB"})
+      financial_fixture(%{company_id: c1.id, period: "2025-Q1", revenue: 100.0, expenses: 50.0})
+      financial_fixture(%{company_id: c2.id, period: "2025-Q2", revenue: 200.0, expenses: 100.0})
+
+      conn = get(conn, ~p"/export/financials.csv?company_id=#{c1.id}")
+      body = response(conn, 200)
+
+      assert body =~ "FinA"
+    end
+  end
+
+  describe "consolidated CSV" do
+    test "GET /export/consolidated.csv returns CSV with headers", %{conn: conn} do
+      conn = get(conn, ~p"/export/consolidated.csv")
+      body = response(conn, 200)
+
+      assert get_resp_header(conn, "content-type") |> hd() =~ "csv"
+      assert body =~ "Section"
+      assert body =~ "Account"
+      assert body =~ "Elimination"
+      assert body =~ "NCI"
+      assert body =~ "Consolidated"
+    end
+
+    test "includes entity data in consolidated export", %{conn: conn} do
+      company = company_fixture(%{name: "ConsolCo"})
+      account_fixture(%{company: company, name: "Cash", code: "1000", account_type: "asset"})
+
+      Holdco.Finance.create_journal_entry(%{
+        company_id: company.id,
+        date: Date.to_iso8601(Date.utc_today()),
+        description: "Test entry",
+        debit_account: "Cash",
+        credit_account: "Revenue",
+        amount: 1000
+      })
+
+      conn = get(conn, ~p"/export/consolidated.csv")
+      body = response(conn, 200)
+
+      assert body =~ "ConsolCo"
+      assert body =~ "Total Assets"
+      assert body =~ "Net Income"
+    end
+  end
+
   describe "audit_package with company_id" do
     test "audit package with empty company_id", %{conn: conn} do
       conn = get(conn, ~p"/export/audit-package.zip?company_id=")

@@ -51,15 +51,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ "51.0%"
     end
 
-    test "displays service provider data when present", %{conn: conn, company: company} do
-      service_provider_fixture(%{company: company, role: "Legal", name: "Big Law LLP"})
-
-      {:ok, _view, html} = live(conn, ~p"/companies/#{company.id}")
-
-      assert html =~ "Big Law LLP"
-      assert html =~ "Legal"
-    end
-
     test "shows Subsidiaries section when subsidiaries exist", %{conn: conn, company: company} do
       _child = company_fixture(%{name: "SubCo Inc", parent_id: company.id, country: "UK"})
 
@@ -1310,35 +1301,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
       assert html =~ "Beneficial owner deleted"
     end
 
-    test "editor can add service provider", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      view |> element(~s(button[phx-value-form="service_provider"])) |> render_click()
-
-      html =
-        view
-        |> form(~s(form[phx-submit="save_service_provider"]), %{service_provider: %{role: "Auditor", name: "Big Four"}})
-        |> render_submit()
-
-      assert html =~ "Service provider added"
-    end
-
-    test "editor can delete service provider", %{conn: conn, company: company, user: user} do
-      Holdco.Accounts.set_user_role(user, "editor")
-      sp = service_provider_fixture(%{company: company, name: "To Delete SP"})
-
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html =
-        view
-        |> element(~s(button[phx-click="delete_service_provider"][phx-value-id="#{sp.id}"]))
-        |> render_click()
-
-      assert html =~ "Service provider deleted"
-    end
-
     test "editor can update company", %{conn: conn, company: company, user: user} do
       Holdco.Accounts.set_user_role(user, "editor")
 
@@ -1626,13 +1588,6 @@ defmodule HoldcoWeb.CompanyLiveShowTest do
 
       html = render_hook(view, :save_board_meeting, %{"board_meeting" => %{"scheduled_date" => ""}})
       assert html =~ "Failed to add board meeting"
-    end
-
-    test "save_service_provider with invalid data shows error", %{conn: conn, company: company} do
-      {:ok, view, _html} = live(conn, ~p"/companies/#{company.id}")
-
-      html = render_hook(view, :save_service_provider, %{"service_provider" => %{"name" => ""}})
-      assert html =~ "Failed to add service provider"
     end
 
     test "save_key_personnel with invalid data shows error", %{conn: conn, company: company} do

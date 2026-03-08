@@ -25,7 +25,7 @@ defmodule HoldcoWeb.CompanyLive.Show do
   @write_events ~w(
     save_holding delete_holding save_bank_account delete_bank_account
     save_transaction delete_transaction save_document delete_document
-    save_board_meeting delete_board_meeting save_service_provider delete_service_provider
+    save_board_meeting delete_board_meeting
     save_key_personnel delete_key_personnel save_beneficial_owner delete_beneficial_owner
     save_tax_deadline delete_tax_deadline save_financial delete_financial
     save_insurance_policy delete_insurance_policy save_account delete_account
@@ -217,29 +217,6 @@ defmodule HoldcoWeb.CompanyLive.Show do
     bm = Governance.get_board_meeting!(id)
     Governance.delete_board_meeting(bm)
     {:noreply, reload_company(socket) |> put_flash(:info, "Board meeting deleted")}
-  end
-
-  # --- Service Providers ---
-
-  def handle_event("save_service_provider", %{"service_provider" => params}, socket) do
-    params = Map.put(params, "company_id", socket.assigns.company.id)
-
-    case Corporate.create_service_provider(params) do
-      {:ok, _} ->
-        {:noreply,
-         reload_company(socket)
-         |> put_flash(:info, "Service provider added")
-         |> assign(show_form: nil)}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to add service provider")}
-    end
-  end
-
-  def handle_event("delete_service_provider", %{"id" => id}, socket) do
-    sp = Corporate.get_service_provider!(id)
-    Corporate.delete_service_provider(sp)
-    {:noreply, reload_company(socket) |> put_flash(:info, "Service provider deleted")}
   end
 
   # --- Key Personnel ---

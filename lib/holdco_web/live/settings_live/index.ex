@@ -1,13 +1,19 @@
 defmodule HoldcoWeb.SettingsLive.Index do
   use HoldcoWeb, :live_view
 
-  alias Holdco.{Platform, Accounts, AI, Config}
+  alias Holdco.{Platform, Accounts, AI, Config, Notifications, Analytics, Corporate}
+  alias Holdco.Notifications.Dispatcher
+  alias Holdco.Analytics.ScheduledReport
 
-  @tabs ~w(settings services categories webhooks backups users ai)
+  @tabs ~w(settings services categories webhooks backups users ai notifications reports)
+  @notification_event_types ~w(alert task approval report system)
+  @notification_providers Holdco.Notifications.NotificationChannel.valid_providers()
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: Platform.subscribe("platform")
+    user_id = socket.assigns.current_scope.user.id
+    if connected?(socket), do: Notifications.subscribe(user_id)
 
     {:ok,
      assign(socket,
@@ -23,7 +29,17 @@ defmodule HoldcoWeb.SettingsLive.Index do
        ai_provider: Platform.get_setting_value("llm_provider", ""),
        ai_api_key: Platform.get_setting_value("llm_api_key", ""),
        ai_model: Platform.get_setting_value("llm_model", ""),
-       ai_test_result: nil
+       ai_test_result: nil,
+       channels: Notifications.list_channels(user_id),
+       deliveries: Notifications.list_recent_deliveries(user_id, 20),
+       notification_stats: Notifications.delivery_stats(user_id),
+       editing_channel: nil,
+       selected_provider: nil,
+       notification_event_types: @notification_event_types,
+       notification_providers: @notification_providers,
+       scheduled_reports: Analytics.list_scheduled_reports(),
+       report_companies: Corporate.list_companies(),
+       editing_report: nil
      )}
   end
 
@@ -198,7 +214,6 @@ defmodule HoldcoWeb.SettingsLive.Index do
       "xero_client_id", "xero_client_secret", "xero_redirect_uri",
       "quickbooks_client_id", "quickbooks_client_secret", "quickbooks_redirect_uri",
       "quickbooks_environment",
-      "plaid_client_id", "plaid_secret", "plaid_environment",
       "s3_bucket", "s3_endpoint", "s3_region", "s3_access_key_id", "s3_secret_access_key"
     ]
 
@@ -227,16 +242,180 @@ defmodule HoldcoWeb.SettingsLive.Index do
     end
   end
 
+  # --- Notification Channels ---
+  def handle_event("save_channel", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("delete_channel", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("toggle_channel", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("test_channel", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("select_provider", %{"provider" => provider}, socket) do
+    {:noreply, assign(socket, selected_provider: provider)}
+  end
+
+  def handle_event("edit_channel", %{"id" => id}, socket) do
+    channel = Notifications.get_channel!(String.to_integer(id))
+    {:noreply, assign(socket, show_form: true, editing_channel: channel, selected_provider: channel.provider)}
+  end
+
+  def handle_event("save_channel", %{"channel" => params} = full_params, socket) do
+    user_id = socket.assigns.current_scope.user.id
+    selected_events = Map.get(full_params, "event_types", [])
+    selected_events = if is_list(selected_events), do: selected_events, else: [selected_events]
+
+    channel_attrs = %{
+      user_id: user_id,
+      provider: params["provider"],
+      config: build_channel_config(params),
+      event_types: selected_events,
+      notes: params["notes"] || ""
+    }
+
+    result =
+      case socket.assigns.editing_channel do
+        nil -> Notifications.create_channel(channel_attrs)
+        channel -> Notifications.update_channel(channel, channel_attrs)
+      end
+
+    case result do
+      {:ok, _} ->
+        action = if socket.assigns.editing_channel, do: "updated", else: "created"
+
+        {:noreply,
+         reload(socket)
+         |> put_flash(:info, "Channel #{action}")
+         |> assign(show_form: false, editing_channel: nil, selected_provider: nil)}
+
+      {:error, changeset} ->
+        errors = format_changeset_errors(changeset)
+        {:noreply, put_flash(socket, :error, "Failed: #{errors}")}
+    end
+  end
+
+  def handle_event("delete_channel", %{"id" => id}, socket) do
+    channel = Notifications.get_channel!(String.to_integer(id))
+    {:ok, _} = Notifications.delete_channel(channel)
+    {:noreply, reload(socket) |> put_flash(:info, "Channel deleted")}
+  end
+
+  def handle_event("toggle_channel", %{"id" => id}, socket) do
+    channel = Notifications.get_channel!(String.to_integer(id))
+    {:ok, _} = Notifications.update_channel(channel, %{is_active: !channel.is_active})
+    {:noreply, reload(socket)}
+  end
+
+  def handle_event("test_channel", %{"id" => id}, socket) do
+    channel = Notifications.get_channel!(String.to_integer(id))
+
+    {:ok, test_notif} =
+      Notifications.create_notification(%{
+        user_id: socket.assigns.current_scope.user.id,
+        title: "Test Notification",
+        body: "Test from Holdco to verify your #{channel.provider} channel.",
+        type: "info"
+      })
+
+    provider_mod = Dispatcher.get_provider(channel.provider)
+
+    case provider_mod && provider_mod.send_notification(channel, test_notif) do
+      {:ok, _} ->
+        {:noreply, put_flash(socket, :info, "Test sent to #{channel.provider}!")}
+
+      {:error, msg} ->
+        {:noreply, put_flash(socket, :error, "Test failed: #{msg}")}
+
+      nil ->
+        {:noreply, put_flash(socket, :error, "No provider for #{channel.provider}")}
+    end
+  end
+
+  # --- Scheduled Reports ---
+  def handle_event("save_report", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("delete_report", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("toggle_report", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("send_now", _params, %{assigns: %{can_admin: false}} = socket),
+    do: {:noreply, put_flash(socket, :error, "Admin access required")}
+
+  def handle_event("edit_report", %{"id" => id}, socket) do
+    report = Analytics.get_scheduled_report!(String.to_integer(id))
+    {:noreply, assign(socket, show_form: true, editing_report: report)}
+  end
+
+  def handle_event("save_report", %{"report" => params}, socket) do
+    result =
+      case socket.assigns.editing_report do
+        nil -> Analytics.create_scheduled_report(params)
+        report -> Analytics.update_scheduled_report(report, params)
+      end
+
+    case result do
+      {:ok, _} ->
+        action = if socket.assigns.editing_report, do: "updated", else: "created"
+
+        {:noreply,
+         reload(socket)
+         |> put_flash(:info, "Report #{action}")
+         |> assign(show_form: false, editing_report: nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to save report")}
+    end
+  end
+
+  def handle_event("delete_report", %{"id" => id}, socket) do
+    report = Analytics.get_scheduled_report!(String.to_integer(id))
+    {:ok, _} = Analytics.delete_scheduled_report(report)
+    {:noreply, reload(socket) |> put_flash(:info, "Report deleted")}
+  end
+
+  def handle_event("toggle_report", %{"id" => id}, socket) do
+    report = Analytics.get_scheduled_report!(String.to_integer(id))
+    {:ok, _} = Analytics.update_scheduled_report(report, %{is_active: !report.is_active})
+    status = if report.is_active, do: "paused", else: "activated"
+    {:noreply, reload(socket) |> put_flash(:info, "Report #{status}")}
+  end
+
+  def handle_event("send_now", %{"id" => id}, socket) do
+    report = Analytics.get_scheduled_report!(String.to_integer(id))
+
+    case Oban.insert(Holdco.Workers.ScheduledReportWorker.new(%{"report_id" => report.id})) do
+      {:ok, _} ->
+        {:noreply, put_flash(socket, :info, "Report '#{report.name}' queued")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to queue report")}
+    end
+  end
+
   @impl true
+  def handle_info({:new_notification, _}, socket), do: {:noreply, reload(socket)}
   def handle_info(_, socket), do: {:noreply, reload(socket)}
 
   defp reload(socket) do
+    user_id = socket.assigns.current_scope.user.id
+
     assign(socket,
       settings: Platform.list_settings(),
       categories: Platform.list_categories(),
       webhooks: Platform.list_webhooks(),
       backups: Platform.list_backup_configs(),
-      users: Accounts.list_users()
+      users: Accounts.list_users(),
+      channels: Notifications.list_channels(user_id),
+      deliveries: Notifications.list_recent_deliveries(user_id, 20),
+      notification_stats: Notifications.delivery_stats(user_id),
+      scheduled_reports: Analytics.list_scheduled_reports()
     )
   end
 
@@ -289,6 +468,8 @@ defmodule HoldcoWeb.SettingsLive.Index do
   defp tab_label("backups"), do: "Backups"
   defp tab_label("users"), do: "Users"
   defp tab_label("ai"), do: "AI"
+  defp tab_label("notifications"), do: "Notifications"
+  defp tab_label("reports"), do: "Reports"
 
   defp render_tab(%{active_tab: "settings"} = assigns) do
     ~H"""
@@ -456,27 +637,6 @@ defmodule HoldcoWeb.SettingsLive.Index do
             </div>
           </div>
 
-          <h3>Plaid</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div class="form-group">
-              <label class="form-label">Client ID</label>
-              <input type="text" name="services[plaid_client_id]" class="form-input"
-                value={sv("plaid_client_id")} />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Secret</label>
-              <input type="password" name="services[plaid_secret]" class="form-input"
-                value={sv("plaid_secret")} autocomplete="off" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Environment</label>
-              <select name="services[plaid_environment]" class="form-select">
-                <option value="sandbox" selected={sv("plaid_environment") != "production"}>Sandbox</option>
-                <option value="production" selected={sv("plaid_environment") == "production"}>Production</option>
-              </select>
-            </div>
-          </div>
-
           <h3>S3 / R2 Backup Storage</h3>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div class="form-group">
@@ -519,8 +679,6 @@ defmodule HoldcoWeb.SettingsLive.Index do
     </div>
     """
   end
-
-  defp sv(key), do: Platform.get_setting_value(key, "")
 
   defp render_tab(%{active_tab: "categories"} = assigns) do
     ~H"""
@@ -918,5 +1076,341 @@ defmodule HoldcoWeb.SettingsLive.Index do
       </div>
     </div>
     """
+  end
+
+  defp render_tab(%{active_tab: "notifications"} = assigns) do
+    ~H"""
+    <%!-- Stats bar --%>
+    <div style="display: flex; gap: 2rem; margin-bottom: 1.5rem;">
+      <div><strong>{@notification_stats.total}</strong> total deliveries</div>
+      <div style="color: #2e7d32;"><strong>{@notification_stats.sent}</strong> sent</div>
+      <div style="color: #c62828;"><strong>{@notification_stats.failed}</strong> failed</div>
+      <div><strong>{length(@channels)}</strong> channels</div>
+    </div>
+
+    <%!-- Channels --%>
+    <div class="section">
+      <div class="section-head">
+        <h2>Notification Channels</h2>
+        <%= if @can_admin do %>
+          <button class="btn btn-sm btn-primary" phx-click="show_form">Add Channel</button>
+        <% end %>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr><th>Provider</th><th>Status</th><th>Events</th><th>Notes</th><th></th></tr>
+          </thead>
+          <tbody>
+            <%= for ch <- @channels do %>
+              <tr>
+                <td class="td-name">{provider_label(ch.provider)}</td>
+                <td>
+                  <%= if ch.is_active do %>
+                    <span style="color: #2e7d32;">Active</span>
+                  <% else %>
+                    <span style="color: #757575;">Inactive</span>
+                  <% end %>
+                </td>
+                <td>
+                  {if ch.event_types == [], do: "All events", else: Enum.join(ch.event_types, ", ")}
+                </td>
+                <td>{ch.notes || ""}</td>
+                <td style="white-space: nowrap;">
+                  <%= if @can_admin do %>
+                    <button phx-click="test_channel" phx-value-id={ch.id} class="btn btn-sm btn-secondary" title="Send test">Test</button>
+                    <button phx-click="toggle_channel" phx-value-id={ch.id} class="btn btn-sm btn-secondary">
+                      {if ch.is_active, do: "Disable", else: "Enable"}
+                    </button>
+                    <button phx-click="edit_channel" phx-value-id={ch.id} class="btn btn-sm btn-secondary">Edit</button>
+                    <button phx-click="delete_channel" phx-value-id={ch.id} class="btn btn-danger btn-sm" data-confirm="Delete?">Del</button>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <%= if @channels == [] do %>
+          <div class="empty-state">No channels configured. Add a channel to receive notifications via Slack, Telegram, or Email.</div>
+        <% end %>
+      </div>
+    </div>
+
+    <%!-- Recent Deliveries --%>
+    <div class="section" style="margin-top: 1.5rem;">
+      <div class="section-head">
+        <h2>Recent Deliveries</h2>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr><th>Provider</th><th>Status</th><th>Notification</th><th>Sent At</th><th>Attempts</th><th>Error</th></tr>
+          </thead>
+          <tbody>
+            <%= for d <- @deliveries do %>
+              <tr>
+                <td>{provider_label(d.provider)}</td>
+                <td style={notif_status_color(d.status)}><strong>{d.status}</strong></td>
+                <td>{if d.notification, do: d.notification.title, else: "-"}</td>
+                <td class="td-mono">{if d.sent_at, do: Calendar.strftime(d.sent_at, "%Y-%m-%d %H:%M"), else: "-"}</td>
+                <td>{d.attempts}</td>
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">{d.error_message || "-"}</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <%= if @deliveries == [] do %>
+          <div class="empty-state">No delivery history yet.</div>
+        <% end %>
+      </div>
+    </div>
+
+    <%!-- Add/Edit Channel Dialog --%>
+    <%= if @show_form do %>
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop" style="max-width: 500px;">
+          <div class="dialog-header">
+            <h3>{if @editing_channel, do: "Edit Channel", else: "Add Channel"}</h3>
+          </div>
+          <div class="dialog-body">
+            <form phx-submit="save_channel">
+              <div class="form-group">
+                <label class="form-label">Provider *</label>
+                <select name="channel[provider]" class="form-select" phx-change="select_provider" required>
+                  <option value="">Select provider...</option>
+                  <%= for p <- @notification_providers do %>
+                    <option value={p} selected={@selected_provider == p}>{provider_label(p)}</option>
+                  <% end %>
+                </select>
+              </div>
+              <%= if @selected_provider == "slack" do %>
+                <div class="form-group">
+                  <label class="form-label">Webhook URL *</label>
+                  <input type="url" name="channel[webhook_url]" class="form-input"
+                    placeholder="https://hooks.slack.com/services/..."
+                    value={(@editing_channel && @editing_channel.config["webhook_url"]) || ""} required />
+                </div>
+              <% end %>
+              <%= if @selected_provider == "telegram" do %>
+                <div class="form-group">
+                  <label class="form-label">Bot Token *</label>
+                  <input type="text" name="channel[bot_token]" class="form-input"
+                    placeholder="123456:ABC-DEF..."
+                    value={(@editing_channel && @editing_channel.config["bot_token"]) || ""} required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Chat ID *</label>
+                  <input type="text" name="channel[chat_id]" class="form-input"
+                    placeholder="-1001234567890"
+                    value={(@editing_channel && @editing_channel.config["chat_id"]) || ""} required />
+                </div>
+              <% end %>
+              <%= if @selected_provider == "email" do %>
+                <div class="form-group">
+                  <label class="form-label">Email Address *</label>
+                  <input type="email" name="channel[email]" class="form-input"
+                    placeholder="user@example.com"
+                    value={(@editing_channel && @editing_channel.config["email"]) || ""} required />
+                </div>
+              <% end %>
+              <div class="form-group">
+                <label class="form-label">Event Subscriptions</label>
+                <p style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">
+                  Select which events trigger this channel. Leave all unchecked for all events.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                  <%= for evt <- @notification_event_types do %>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                      <input type="checkbox" name="event_types[]" value={evt}
+                        checked={@editing_channel && evt in (@editing_channel.event_types || [])} />
+                      <span><strong>{evt}</strong></span>
+                    </label>
+                  <% end %>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea name="channel[notes]" class="form-input">{(@editing_channel && @editing_channel.notes) || ""}</textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{if @editing_channel, do: "Update", else: "Add Channel"}</button>
+                <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+
+  defp render_tab(%{active_tab: "reports"} = assigns) do
+    ~H"""
+    <div class="section">
+      <div class="section-head">
+        <h2>Scheduled Reports</h2>
+        <span class="count">{length(@scheduled_reports)} configured</span>
+        <%= if @can_admin do %>
+          <button class="btn btn-sm btn-primary" phx-click="show_form">New Report</button>
+        <% end %>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Type</th><th>Frequency</th><th>Recipients</th><th>Format</th><th>Next Run</th><th>Active</th><th></th></tr>
+          </thead>
+          <tbody>
+            <%= for r <- @scheduled_reports do %>
+              <tr>
+                <td class="td-name">{r.name}</td>
+                <td><span class="tag tag-ink">{report_type_label(r.report_type)}</span></td>
+                <td>{r.frequency}</td>
+                <td class="td-mono" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">{r.recipients}</td>
+                <td>{r.format}</td>
+                <td class="td-mono">{r.next_run_date || "Not set"}</td>
+                <td>
+                  <%= if @can_admin do %>
+                    <button phx-click="toggle_report" phx-value-id={r.id}
+                      class={"tag #{if r.is_active, do: "tag-jade", else: "tag-crimson"}"} style="cursor: pointer; border: none;">
+                      {if r.is_active, do: "Active", else: "Paused"}
+                    </button>
+                  <% else %>
+                    <span class={"tag #{if r.is_active, do: "tag-jade", else: "tag-crimson"}"}>{if r.is_active, do: "Active", else: "Paused"}</span>
+                  <% end %>
+                </td>
+                <td style="white-space: nowrap;">
+                  <%= if @can_admin do %>
+                    <button phx-click="send_now" phx-value-id={r.id} class="btn btn-sm btn-secondary">Send Now</button>
+                    <button phx-click="edit_report" phx-value-id={r.id} class="btn btn-sm btn-secondary">Edit</button>
+                    <button phx-click="delete_report" phx-value-id={r.id} class="btn btn-danger btn-sm" data-confirm="Delete?">Del</button>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <%= if @scheduled_reports == [] do %>
+          <div class="empty-state">No scheduled reports configured yet. Create one to automate report delivery.</div>
+        <% end %>
+      </div>
+    </div>
+
+    <%= if @show_form do %>
+      <div class="dialog-overlay" phx-click="close_form">
+        <div class="dialog-panel" phx-click="noop">
+          <div class="dialog-header">
+            <h3>{if @editing_report, do: "Edit Report", else: "New Scheduled Report"}</h3>
+          </div>
+          <div class="dialog-body">
+            <form phx-submit="save_report">
+              <div class="form-group">
+                <label class="form-label">Name *</label>
+                <input type="text" name="report[name]" class="form-input"
+                  value={if @editing_report, do: @editing_report.name} required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Report Type *</label>
+                <select name="report[report_type]" class="form-select" required>
+                  <option value="">Select type...</option>
+                  <%= for rt <- ScheduledReport.report_types() do %>
+                    <option value={rt} selected={@editing_report && @editing_report.report_type == rt}>
+                      {report_type_label(rt)}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Frequency *</label>
+                <select name="report[frequency]" class="form-select" required>
+                  <%= for f <- ScheduledReport.frequencies() do %>
+                    <option value={f} selected={@editing_report && @editing_report.frequency == f}>
+                      {String.capitalize(f)}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Recipients * (comma-separated)</label>
+                <input type="text" name="report[recipients]" class="form-input"
+                  value={if @editing_report, do: @editing_report.recipients}
+                  placeholder="alice@example.com, bob@example.com" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Format</label>
+                <select name="report[format]" class="form-select">
+                  <%= for f <- ScheduledReport.formats() do %>
+                    <option value={f} selected={@editing_report && @editing_report.format == f}>{String.upcase(f)}</option>
+                  <% end %>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Company (optional)</label>
+                <select name="report[company_id]" class="form-select">
+                  <option value="">All companies</option>
+                  <%= for c <- @report_companies do %>
+                    <option value={c.id} selected={@editing_report && @editing_report.company_id == c.id}>{c.name}</option>
+                  <% end %>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Next Run Date</label>
+                <input type="date" name="report[next_run_date]" class="form-input"
+                  value={if @editing_report, do: @editing_report.next_run_date, else: Date.to_iso8601(Date.utc_today())} />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea name="report[notes]" class="form-input">{if @editing_report, do: @editing_report.notes}</textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{if @editing_report, do: "Update", else: "Create"}</button>
+                <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+
+  defp sv(key), do: Platform.get_setting_value(key, "")
+
+  defp build_channel_config(params) do
+    for {key, val} <- [
+          {"webhook_url", params["webhook_url"]},
+          {"bot_token", params["bot_token"]},
+          {"chat_id", params["chat_id"]},
+          {"email", params["email"]}
+        ],
+        val && val != "",
+        into: %{},
+        do: {key, val}
+  end
+
+  defp provider_label("slack"), do: "Slack"
+  defp provider_label("telegram"), do: "Telegram"
+  defp provider_label("email"), do: "Email"
+  defp provider_label("in_app"), do: "In-App"
+  defp provider_label(other), do: other
+
+  defp notif_status_color("sent"), do: "color: #2e7d32"
+  defp notif_status_color("failed"), do: "color: #c62828"
+  defp notif_status_color("pending"), do: "color: #e65100"
+  defp notif_status_color(_), do: ""
+
+  defp report_type_label("portfolio_summary"), do: "Portfolio Summary"
+  defp report_type_label("financial_report"), do: "Financial Report"
+  defp report_type_label("compliance_report"), do: "Compliance Report"
+  defp report_type_label("board_pack"), do: "Board Pack"
+  defp report_type_label(other), do: other
+
+  defp format_changeset_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Regex.replace(~r"%{(\w+)}", msg, fn _, key ->
+        opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+      end)
+    end)
+    |> Enum.map(fn {k, v} -> "#{k} #{Enum.join(v, ", ")}" end)
+    |> Enum.join("; ")
   end
 end

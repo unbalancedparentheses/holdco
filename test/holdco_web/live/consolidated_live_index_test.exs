@@ -184,6 +184,14 @@ defmodule HoldcoWeb.ConsolidatedLiveIndexTest do
     end
   end
 
+  describe "export button" do
+    test "renders Export CSV link", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/consolidated")
+      assert html =~ "Export CSV"
+      assert html =~ "/export/consolidated.csv"
+    end
+  end
+
   describe "with intercompany transfers and account data" do
     setup do
       c1 = company_fixture(%{name: "ICT Parent", ownership_pct: 100})

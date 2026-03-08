@@ -30,32 +30,6 @@ defmodule Holdco.SchemaHelpersTest do
     end
   end
 
-  # ── CompensationRecord ───────────────────────────────
-
-  describe "Holdco.Finance.CompensationRecord helpers" do
-    test "compensation_types/0 returns known types" do
-      types = Holdco.Finance.CompensationRecord.compensation_types()
-      assert is_list(types)
-      assert "salary" in types
-      assert "bonus" in types
-      assert "equity" in types
-    end
-
-    test "frequencies/0 returns known frequencies" do
-      freqs = Holdco.Finance.CompensationRecord.frequencies()
-      assert is_list(freqs)
-      assert "monthly" in freqs
-      assert "annual" in freqs
-    end
-
-    test "statuses/0 returns known statuses" do
-      statuses = Holdco.Finance.CompensationRecord.statuses()
-      assert is_list(statuses)
-      assert "active" in statuses
-      assert "terminated" in statuses
-    end
-  end
-
   # ── ConflictOfInterest ───────────────────────────────
 
   describe "Holdco.Governance.ConflictOfInterest helpers" do

@@ -4,8 +4,6 @@ defmodule Holdco.Collaboration do
   alias Holdco.Collaboration.Comment
   alias Holdco.Collaboration.Contact
   alias Holdco.Collaboration.ContactInteraction
-  alias Holdco.Collaboration.Project
-  alias Holdco.Collaboration.ProjectMilestone
   alias Holdco.Collaboration.Task
 
   def list_comments(entity_type, entity_id) do
@@ -124,107 +122,6 @@ defmodule Holdco.Collaboration do
         :ok
     end)
   end
-
-  # --- Projects ---
-
-  def list_projects(opts \\ %{}) do
-    query = from(p in Project, order_by: [asc: p.name], preload: [:contact, :companies])
-
-    query =
-      case Map.get(opts, :status) do
-        nil -> query
-        "" -> query
-        status -> from(p in query, where: p.status == ^status)
-      end
-
-    Repo.all(query)
-  end
-
-  def get_project!(id) do
-    Project
-    |> Repo.get!(id)
-    |> Repo.preload([:contact, :companies])
-  end
-
-  def create_project(attrs) do
-    %Project{}
-    |> Project.changeset(attrs)
-    |> Repo.insert()
-    |> tap(fn
-      {:ok, project} ->
-        Phoenix.PubSub.broadcast(
-          Holdco.PubSub,
-          "projects",
-          {:project_created, project}
-        )
-
-      _ ->
-        :ok
-    end)
-  end
-
-  def update_project(%Project{} = project, attrs) do
-    project
-    |> Project.changeset(attrs)
-    |> Repo.update()
-    |> tap(fn
-      {:ok, project} ->
-        Phoenix.PubSub.broadcast(
-          Holdco.PubSub,
-          "projects",
-          {:project_updated, project}
-        )
-
-      _ ->
-        :ok
-    end)
-  end
-
-  def delete_project(%Project{} = project) do
-    Repo.delete(project)
-    |> tap(fn
-      {:ok, project} ->
-        Phoenix.PubSub.broadcast(
-          Holdco.PubSub,
-          "projects",
-          {:project_deleted, project}
-        )
-
-      _ ->
-        :ok
-    end)
-  end
-
-  # --- Project Milestones ---
-
-  def list_milestones(project_id) do
-    from(m in ProjectMilestone,
-      where: m.project_id == ^project_id,
-      order_by: [asc: m.due_date, asc: m.inserted_at]
-    )
-    |> Repo.all()
-  end
-
-  def create_milestone(attrs) do
-    %ProjectMilestone{}
-    |> ProjectMilestone.changeset(attrs)
-    |> Repo.insert()
-    |> audit_and_broadcast("project_milestones", "create")
-  end
-
-  def update_milestone(%ProjectMilestone{} = m, attrs) do
-    m
-    |> ProjectMilestone.changeset(attrs)
-    |> Repo.update()
-    |> audit_and_broadcast("project_milestones", "update")
-  end
-
-  def delete_milestone(%ProjectMilestone{} = m) do
-    Repo.delete(m)
-    |> audit_and_broadcast("project_milestones", "delete")
-  end
-
-  def get_milestone!(id), do: Repo.get!(ProjectMilestone, id)
 
   # --- Contact Interactions ---
 

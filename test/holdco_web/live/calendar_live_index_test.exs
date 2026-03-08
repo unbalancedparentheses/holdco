@@ -6,201 +6,177 @@ defmodule HoldcoWeb.CalendarLiveIndexTest do
 
   setup :register_and_log_in_user
 
-  describe "Index" do
-    test "shows tax deadline events", %{conn: conn} do
-      company = company_fixture(%{name: "Tax Company"})
-      today = Date.utc_today()
-      today_str = Date.to_iso8601(today)
+  # ── Show/Close Form ─────────────────────────────────────
 
-      tax_deadline_fixture(%{
-        company: company,
-        due_date: today_str,
-        jurisdiction: "US",
-        description: "Quarterly filing"
-      })
-
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "Quarterly filing"
+  describe "show_form and close_form events" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
     end
 
-    test "shows board meeting events", %{conn: conn} do
-      company = company_fixture(%{name: "Meeting Corp"})
-      today_str = Date.utc_today() |> Date.to_iso8601()
+    test "show_form opens Add Tax Deadline modal", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/calendar")
 
-      board_meeting_fixture(%{company: company, scheduled_date: today_str})
+      html = view |> element("button", "Add Deadline") |> render_click()
 
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "Meeting Corp"
+      assert html =~ "dialog-overlay"
+      assert html =~ "Add Tax Deadline"
+      assert html =~ ~s(phx-submit="save")
+      assert html =~ ~s(name="tax_deadline[jurisdiction]")
+      assert html =~ ~s(name="tax_deadline[description]")
+      assert html =~ ~s(name="tax_deadline[due_date]")
     end
 
-    test "shows liability maturity events", %{conn: conn} do
-      company = company_fixture(%{name: "Liability Co"})
-      future_date = Date.utc_today() |> Date.add(30) |> Date.to_iso8601()
+    test "close_form via Cancel button", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/calendar")
 
-      liability_fixture(%{
-        company: company,
-        maturity_date: future_date,
-        principal: 50_000.0,
-        creditor: "Maturity Bank"
-      })
+      view |> element("button", "Add Deadline") |> render_click()
+      html = view |> element(~s(button[phx-click="close_form"]), "Cancel") |> render_click()
 
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "Maturity Bank"
+      refute html =~ "dialog-overlay"
     end
 
-    test "shows insurance renewal events", %{conn: conn} do
-      company = company_fixture(%{name: "Insurance Co"})
-      future_date = Date.utc_today() |> Date.add(60) |> Date.to_iso8601()
+    test "close_form via overlay click", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/calendar")
 
-      insurance_policy_fixture(%{
-        company: company,
-        expiry_date: future_date,
-        policy_type: "D&O",
-        provider: "Insurer XYZ"
-      })
+      view |> element("button", "Add Deadline") |> render_click()
+      html = view |> element(".dialog-overlay") |> render_click()
 
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "Insurer XYZ"
+      refute html =~ "dialog-overlay"
+    end
+  end
+
+  # ── Save Tax Deadline ───────────────────────────────────
+
+  describe "save event" do
+    test "creates a tax deadline and shows flash", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture(%{name: "SaveTaxCo"})
+
+      {:ok, view, _html} = live(conn, ~p"/calendar")
+      view |> element("button", "Add Deadline") |> render_click()
+
+      html =
+        view
+        |> form(~s(form[phx-submit="save"]), %{
+          "tax_deadline" => %{
+            "company_id" => company.id,
+            "jurisdiction" => "New York",
+            "description" => "Franchise tax",
+            "due_date" => "2025-09-15"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Deadline added"
+      assert html =~ "New York"
+      assert html =~ "Franchise tax"
+      refute html =~ "dialog-overlay"
     end
 
-    test "shows regulatory filing events", %{conn: conn} do
-      company = company_fixture(%{name: "Filing Co"})
-      today_str = Date.utc_today() |> Date.to_iso8601()
+  end
 
-      regulatory_filing_fixture(%{
-        company: company,
-        due_date: today_str,
-        jurisdiction: "UK",
-        filing_type: "Annual Return"
-      })
+  # ── Mark Complete ───────────────────────────────────────
 
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "Annual Return"
-    end
-
-    test "filters events by tax type", %{conn: conn} do
+  describe "mark_complete event" do
+    test "editor sees Complete button for pending deadlines", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
       company = company_fixture()
-      today_str = Date.utc_today() |> Date.to_iso8601()
+      tax_deadline_fixture(%{company_id: company.id, status: "pending", description: "Pending deadline"})
 
-      tax_deadline_fixture(%{company: company, due_date: today_str})
-      board_meeting_fixture(%{company: company, scheduled_date: today_str})
+      {:ok, _view, html} = live(conn, ~p"/calendar")
 
-      {:ok, live, _html} = live(conn, ~p"/calendar")
-      html = render_click(live, "filter_type", %{"type" => "tax"})
-      assert html =~ "tax"
+      assert html =~ "pending"
+      assert html =~ "Complete"
+      assert html =~ ~s(phx-click="mark_complete")
     end
 
-    test "filters events by meeting type", %{conn: conn} do
+  end
+
+  # ── Delete Tax Deadline ─────────────────────────────────
+
+  describe "delete event" do
+    test "deletes a tax deadline", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
       company = company_fixture()
-      today_str = Date.utc_today() |> Date.to_iso8601()
+      td = tax_deadline_fixture(%{company_id: company.id, jurisdiction: "Delaware", description: "Del test"})
 
-      board_meeting_fixture(%{company: company, scheduled_date: today_str})
+      {:ok, view, html} = live(conn, ~p"/calendar")
+      assert html =~ "Delaware"
 
-      {:ok, live, _html} = live(conn, ~p"/calendar")
-      html = render_click(live, "filter_type", %{"type" => "meeting"})
-      assert html =~ "meeting"
+      view |> element(~s(button[phx-click="delete"][phx-value-id="#{td.id}"])) |> render_click()
+
+      html = render(view)
+      assert html =~ "Deadline deleted"
+      refute html =~ "Del test"
     end
 
-    test "filters events by liability type", %{conn: conn} do
-      liab_co = company_fixture(%{name: "LiabFilterCo"})
-      meet_co = company_fixture(%{name: "MeetFilterCo"})
-      # Both events in current month; the "Next 7 Days" section uses @all_events (unfiltered)
-      # so push excluded event far away so its company name doesn't appear anywhere
-      future_date = Date.utc_today() |> Date.add(3) |> Date.to_iso8601()
-      far_date = Date.utc_today() |> Date.add(90) |> Date.to_iso8601()
-      liability_fixture(%{company: liab_co, maturity_date: future_date, principal: 10_000.0, creditor: "Liability Filter Bank"})
-      board_meeting_fixture(%{company: meet_co, scheduled_date: far_date})
+  end
 
-      {:ok, live, _html} = live(conn, ~p"/calendar")
-      html = render_click(live, "filter_type", %{"type" => "liability"})
-      assert html =~ "Liability Filter Bank"
-      refute html =~ "MeetFilterCo"
+  # ── Mark Complete (editor) ─────────────────────────────
+
+  describe "mark_complete by editor" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
     end
 
-    test "filters events by insurance type", %{conn: conn} do
-      ins_co = company_fixture(%{name: "InsFilterCo"})
-      tax_co = company_fixture(%{name: "TaxFilterCo"})
-      future_date = Date.utc_today() |> Date.add(3) |> Date.to_iso8601()
-      far_date = Date.utc_today() |> Date.add(90) |> Date.to_iso8601()
-      insurance_policy_fixture(%{company: ins_co, expiry_date: future_date, policy_type: "D&O", provider: "Insurance Filter Co"})
-      tax_deadline_fixture(%{company: tax_co, due_date: far_date})
+    test "completed deadline does not show Complete button", %{conn: conn} do
+      company = company_fixture(%{name: "AlreadyDoneCo"})
+      tax_deadline_fixture(%{company_id: company.id, status: "completed", description: "Already done"})
 
-      {:ok, live, _html} = live(conn, ~p"/calendar")
-      html = render_click(live, "filter_type", %{"type" => "insurance"})
-      assert html =~ "Insurance Filter Co"
-      refute html =~ "TaxFilterCo"
+      {:ok, _view, html} = live(conn, ~p"/calendar")
+
+      assert html =~ "Already done"
+      # The Complete button should not appear for completed deadlines
+      refute html =~ ~s(phx-click="mark_complete")
+    end
+  end
+
+  # ── Save failure ───────────────────────────────────────
+
+  describe "save deadline failure" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
     end
 
-    test "filters events by filing type", %{conn: conn} do
-      file_co = company_fixture(%{name: "FileFilterCo"})
-      meet_co = company_fixture(%{name: "MeetFilterCo2"})
-      today_str = Date.utc_today() |> Date.to_iso8601()
-      far_date = Date.utc_today() |> Date.add(90) |> Date.to_iso8601()
-      regulatory_filing_fixture(%{company: file_co, due_date: today_str, jurisdiction: "UK", filing_type: "Filing Filter Return"})
-      board_meeting_fixture(%{company: meet_co, scheduled_date: far_date})
+    test "save with missing required fields shows error flash", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/calendar")
+      view |> element("button", "Add Deadline") |> render_click()
 
-      {:ok, live, _html} = live(conn, ~p"/calendar")
-      html = render_click(live, "filter_type", %{"type" => "filing"})
-      assert html =~ "Filing Filter Return"
-      refute html =~ "MeetFilterCo2"
+      html =
+        view
+        |> form(~s(form[phx-submit="save"]), %{
+          "tax_deadline" => %{
+            "company_id" => "",
+            "jurisdiction" => "",
+            "description" => "",
+            "due_date" => ""
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Failed to add deadline"
+    end
+  end
+
+  # ── Form fields in modal ───────────────────────────────
+
+  describe "form modal details" do
+    setup %{user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      :ok
     end
 
-    test "filter back to all events shows everything", %{conn: conn} do
-      tax_co = company_fixture(%{name: "AllTaxEvtCo"})
-      meet_co = company_fixture(%{name: "AllMeetEvtCo"})
-      today_str = Date.utc_today() |> Date.to_iso8601()
-      tax_deadline_fixture(%{company: tax_co, due_date: today_str, description: "All Events Tax"})
-      board_meeting_fixture(%{company: meet_co, scheduled_date: today_str})
+    test "modal form has company selector with existing companies", %{conn: conn} do
+      company_fixture(%{name: "FormTestCo"})
+      {:ok, view, _html} = live(conn, ~p"/calendar")
 
-      {:ok, live, _html} = live(conn, ~p"/calendar")
-      render_click(live, "filter_type", %{"type" => "tax"})
-      html = render_click(live, "filter_type", %{"type" => "all"})
-      assert html =~ "All Events Tax"
-      assert html =~ "AllMeetEvtCo"
-    end
+      html = view |> element("button", "Add Deadline") |> render_click()
 
-    test "navigates months with prev/next", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/calendar")
-      today = Date.utc_today()
-      current_month_name = Calendar.strftime(today, "%B %Y")
-      assert html =~ current_month_name
-
-      html = render_click(live, "next_month", %{})
-      next_month = Date.utc_today() |> Date.add(Date.days_in_month(today)) |> Date.beginning_of_month()
-      assert html =~ Calendar.strftime(next_month, "%B %Y")
-
-      html = render_click(live, "prev_month", %{})
-      assert html =~ current_month_name
-    end
-
-    test "navigating to next month changes displayed month name", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/calendar")
-      today = Date.utc_today()
-      current_month_name = Calendar.strftime(today, "%B %Y")
-      assert html =~ current_month_name
-
-      html = render_click(live, "next_month", %{})
-      next_month = Date.utc_today() |> Date.add(Date.days_in_month(today)) |> Date.beginning_of_month()
-      next_month_name = Calendar.strftime(next_month, "%B %Y")
-      assert html =~ next_month_name
-    end
-
-    test "navigating to previous month changes displayed month", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/calendar")
-
-      html = render_click(live, "prev_month", %{})
-      prev_month = Date.utc_today() |> Date.add(-1) |> Date.beginning_of_month()
-      prev_month_name = Calendar.strftime(prev_month, "%B %Y")
-      assert html =~ prev_month_name
-    end
-
-    test "shows company link for events with company", %{conn: conn} do
-      company = company_fixture(%{name: "EventLink Corp"})
-      today_str = Date.utc_today() |> Date.to_iso8601()
-      tax_deadline_fixture(%{company: company, due_date: today_str})
-
-      {:ok, _live, html} = live(conn, ~p"/calendar")
-      assert html =~ "EventLink Corp"
+      assert html =~ "FormTestCo"
+      assert html =~ ~s(name="tax_deadline[company_id]")
     end
   end
 end

@@ -99,6 +99,59 @@ defmodule HoldcoWeb.RecurringTransactionsLive.Index do
     end
   end
 
+  def handle_event("run_all_due", _params, %{assigns: %{can_write: false}} = socket) do
+    {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
+  end
+
+  def handle_event("run_all_due", _params, socket) do
+    due = Finance.list_due_recurring_transactions()
+
+    results =
+      Enum.map(due, fn rt ->
+        if rt.debit_account_id && rt.credit_account_id do
+          today = Date.utc_today() |> Date.to_iso8601()
+
+          entry_attrs = %{
+            "company_id" => rt.company_id,
+            "date" => today,
+            "description" => "Recurring: #{rt.description}",
+            "reference" => "RT-#{rt.id}"
+          }
+
+          lines_attrs = [
+            %{"account_id" => rt.debit_account_id, "debit" => rt.amount, "credit" => Decimal.new(0)},
+            %{"account_id" => rt.credit_account_id, "debit" => Decimal.new(0), "credit" => rt.amount}
+          ]
+
+          case Finance.create_journal_entry_with_lines(entry_attrs, lines_attrs) do
+            {:ok, _} ->
+              Finance.advance_next_run_date(rt)
+              :ok
+
+            {:error, _} ->
+              Finance.advance_next_run_date(rt)
+              :error
+          end
+        else
+          Finance.advance_next_run_date(rt)
+          :skipped
+        end
+      end)
+
+    posted = Enum.count(results, &(&1 == :ok))
+    skipped = Enum.count(results, &(&1 == :skipped))
+
+    msg =
+      cond do
+        posted > 0 and skipped > 0 -> "Posted #{posted} entries, skipped #{skipped} (no accounts)"
+        posted > 0 -> "Posted #{posted} journal entries"
+        skipped > 0 -> "Skipped #{skipped} (no accounts configured)"
+        true -> "No recurring transactions were due"
+      end
+
+    {:noreply, reload(socket) |> put_flash(:info, msg)}
+  end
+
   def handle_event("run_now", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
@@ -205,6 +258,18 @@ defmodule HoldcoWeb.RecurringTransactionsLive.Index do
     |> Decimal.round(2)
   end
 
+  defp overdue_count(transactions) do
+    today = Date.utc_today()
+
+    Enum.count(transactions, fn rt ->
+      rt.is_active && rt.next_run_date &&
+        case parse_date(rt.next_run_date) do
+          {:ok, d} -> Date.compare(d, today) == :lt
+          _ -> false
+        end
+    end)
+  end
+
   defp due_soon_count(transactions) do
     today = Date.utc_today()
     seven_days = Date.add(today, 7)
@@ -286,6 +351,7 @@ defmodule HoldcoWeb.RecurringTransactionsLive.Index do
             </select>
           </form>
           <%= if @can_write do %>
+            <button class="btn btn-secondary" phx-click="run_all_due" data-confirm="Post journal entries for all due recurring transactions?">Run All Due</button>
             <button class="btn btn-primary" phx-click="show_form">New Recurring Transaction</button>
           <% end %>
         </div>
@@ -309,6 +375,10 @@ defmodule HoldcoWeb.RecurringTransactionsLive.Index do
       <div class="metric-cell">
         <div class="metric-label">Total Monthly Volume</div>
         <div class="metric-value">${format_number(total_monthly_volume(@transactions))}</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Overdue</div>
+        <div class="metric-value" style="color: var(--color-crimson, #c0392b);">{overdue_count(@transactions)}</div>
       </div>
       <div class="metric-cell">
         <div class="metric-label">Due Soon (7d)</div>

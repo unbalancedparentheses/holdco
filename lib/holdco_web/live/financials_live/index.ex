@@ -250,6 +250,7 @@ defmodule HoldcoWeb.FinancialsLive.Index do
               <% end %>
             </select>
           </form>
+          <a href={"/export/financials.csv" <> if(@selected_company_id != "", do: "?company_id=#{@selected_company_id}", else: "")} class="btn btn-secondary">Export CSV</a>
           <%= if @can_write do %>
             <button class="btn btn-primary" phx-click="show_form">Add Period</button>
           <% end %>

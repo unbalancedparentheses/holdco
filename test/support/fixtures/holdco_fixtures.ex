@@ -39,63 +39,6 @@ defmodule Holdco.HoldcoFixtures do
     kp
   end
 
-  def ownership_change_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, oc} =
-      Holdco.Corporate.create_ownership_change(
-        Enum.into(attrs, %{company_id: company.id, date: "2024-01-01", from_owner: "Alice", to_owner: "Bob"})
-      )
-
-    oc
-  end
-
-  def service_provider_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, sp} =
-      Holdco.Corporate.create_service_provider(
-        Enum.into(attrs, %{company_id: company.id, role: "Legal", name: "Law Firm #{System.unique_integer([:positive])}"})
-      )
-
-    sp
-  end
-
-  def tenant_group_fixture(attrs \\ %{}) do
-    slug = "slug-#{System.unique_integer([:positive])}"
-
-    {:ok, tg} =
-      Holdco.Corporate.create_tenant_group(
-        Enum.into(attrs, %{name: "Tenant #{System.unique_integer([:positive])}", slug: slug})
-      )
-
-    tg
-  end
-
-  def tenant_membership_fixture(attrs \\ %{}) do
-    tenant = Map.get_lazy(attrs, :tenant, fn -> tenant_group_fixture() end)
-    user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
-
-    {:ok, tm} =
-      Holdco.Corporate.create_tenant_membership(
-        Enum.into(attrs, %{tenant_id: tenant.id, user_id: user.id, role: "member"})
-      )
-
-    tm
-  end
-
-  def entity_permission_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
-
-    {:ok, ep} =
-      Holdco.Corporate.create_entity_permission(
-        Enum.into(attrs, %{company_id: company.id, user_id: user.id, permission_level: "view"})
-      )
-
-    ep
-  end
-
   # ── Banking ────────────────────────────────────────────
 
   def bank_account_fixture(attrs \\ %{}) do
@@ -159,17 +102,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     cbl
-  end
-
-  def crypto_wallet_fixture(attrs \\ %{}) do
-    holding = Map.get_lazy(attrs, :holding, fn -> holding_fixture() end)
-
-    {:ok, cw} =
-      Holdco.Assets.create_crypto_wallet(
-        Enum.into(attrs, %{holding_id: holding.id, wallet_address: "0x#{System.unique_integer([:positive])}"})
-      )
-
-    cw
   end
 
   def real_estate_property_fixture(attrs \\ %{}) do
@@ -335,17 +267,6 @@ defmodule Holdco.HoldcoFixtures do
     td
   end
 
-  def annual_filing_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, af} =
-      Holdco.Compliance.create_annual_filing(
-        Enum.into(attrs, %{company_id: company.id, jurisdiction: "US", filing_type: "annual_return", due_date: "2024-03-31"})
-      )
-
-    af
-  end
-
   def regulatory_filing_fixture(attrs \\ %{}) do
     company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
 
@@ -368,17 +289,6 @@ defmodule Holdco.HoldcoFixtures do
     rl
   end
 
-  def compliance_checklist_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, cc} =
-      Holdco.Compliance.create_compliance_checklist(
-        Enum.into(attrs, %{company_id: company.id, jurisdiction: "US", item: "KYC verification"})
-      )
-
-    cc
-  end
-
   def insurance_policy_fixture(attrs \\ %{}) do
     company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
 
@@ -388,18 +298,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     ip
-  end
-
-  def transfer_pricing_doc_fixture(attrs \\ %{}) do
-    from_co = Map.get_lazy(attrs, :from_company, fn -> company_fixture() end)
-    to_co = Map.get_lazy(attrs, :to_company, fn -> company_fixture() end)
-
-    {:ok, tp} =
-      Holdco.Compliance.create_transfer_pricing_doc(
-        Enum.into(attrs, %{from_company_id: from_co.id, to_company_id: to_co.id, description: "Management fees"})
-      )
-
-    tp
   end
 
   def withholding_tax_fixture(attrs \\ %{}) do
@@ -436,26 +334,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     es
-  end
-
-  def sanctions_list_fixture(attrs \\ %{}) do
-    {:ok, sl} =
-      Holdco.Compliance.create_sanctions_list(
-        Enum.into(attrs, %{name: "OFAC SDN #{System.unique_integer([:positive])}", list_type: "SDN"})
-      )
-
-    sl
-  end
-
-  def sanctions_entry_fixture(attrs \\ %{}) do
-    list = Map.get_lazy(attrs, :sanctions_list, fn -> sanctions_list_fixture() end)
-
-    {:ok, se} =
-      Holdco.Compliance.create_sanctions_entry(
-        Enum.into(attrs, %{sanctions_list_id: list.id, name: "Sanctioned Entity #{System.unique_integer([:positive])}"})
-      )
-
-    se
   end
 
   def sanctions_check_fixture(attrs \\ %{}) do
@@ -526,17 +404,6 @@ defmodule Holdco.HoldcoFixtures do
     eip
   end
 
-  def equity_grant_fixture(attrs \\ %{}) do
-    plan = Map.get_lazy(attrs, :plan, fn -> equity_incentive_plan_fixture() end)
-
-    {:ok, eg} =
-      Holdco.Governance.create_equity_grant(
-        Enum.into(attrs, %{plan_id: plan.id, recipient: "Employee A", grant_date: "2024-01-01"})
-      )
-
-    eg
-  end
-
   def deal_fixture(attrs \\ %{}) do
     company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
 
@@ -559,18 +426,6 @@ defmodule Holdco.HoldcoFixtures do
     jv
   end
 
-  def investor_access_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    user = Map.get_lazy(attrs, :user, fn -> Holdco.AccountsFixtures.user_fixture() end)
-
-    {:ok, ia} =
-      Holdco.Governance.create_investor_access(
-        Enum.into(attrs, %{company_id: company.id, user_id: user.id})
-      )
-
-    ia
-  end
-
   # ── Documents ──────────────────────────────────────────
 
   def document_fixture(attrs \\ %{}) do
@@ -584,17 +439,6 @@ defmodule Holdco.HoldcoFixtures do
     d
   end
 
-  def document_version_fixture(attrs \\ %{}) do
-    doc = Map.get_lazy(attrs, :document, fn -> document_fixture() end)
-
-    {:ok, dv} =
-      Holdco.Documents.create_document_version(
-        Enum.into(attrs, %{document_id: doc.id, version_number: 1})
-      )
-
-    dv
-  end
-
   def document_upload_fixture(attrs \\ %{}) do
     doc = Map.get_lazy(attrs, :document, fn -> document_fixture() end)
 
@@ -604,28 +448,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     du
-  end
-
-  # ── Scenarios ──────────────────────────────────────────
-
-  def scenario_fixture(attrs \\ %{}) do
-    {:ok, s} =
-      Holdco.Scenarios.create_scenario(
-        Enum.into(attrs, %{name: "Scenario #{System.unique_integer([:positive])}"})
-      )
-
-    s
-  end
-
-  def scenario_item_fixture(attrs \\ %{}) do
-    scenario = Map.get_lazy(attrs, :scenario, fn -> scenario_fixture() end)
-
-    {:ok, si} =
-      Holdco.Scenarios.create_scenario_item(
-        Enum.into(attrs, %{scenario_id: scenario.id, name: "Revenue Stream", item_type: "revenue", amount: 10000.0})
-      )
-
-    si
   end
 
   # ── Platform ───────────────────────────────────────────
@@ -807,18 +629,6 @@ defmodule Holdco.HoldcoFixtures do
     cp
   end
 
-  def cash_pool_entry_fixture(attrs \\ %{}) do
-    pool = Map.get_lazy(attrs, :pool, fn -> cash_pool_fixture() end)
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, cpe} =
-      Holdco.Treasury.create_cash_pool_entry(
-        Enum.into(attrs, %{pool_id: pool.id, company_id: company.id, allocated_amount: 1000.0})
-      )
-
-    cpe
-  end
-
   # ── Pricing ────────────────────────────────────────────
 
   def price_history_fixture(attrs \\ %{}) do
@@ -851,7 +661,7 @@ defmodule Holdco.HoldcoFixtures do
 
     {:ok, bfc} =
       Holdco.Integrations.create_bank_feed_config(
-        Enum.into(attrs, %{company_id: company.id, bank_account_id: ba.id, provider: "plaid"})
+        Enum.into(attrs, %{company_id: company.id, bank_account_id: ba.id, provider: "csv_import"})
       )
 
     bfc
@@ -868,20 +678,6 @@ defmodule Holdco.HoldcoFixtures do
     edc
   end
 
-  def integration_fixture(attrs \\ %{}) do
-    provider = attrs[:provider] || "quickbooks_#{System.unique_integer([:positive])}"
-    company_id = attrs[:company_id] || company_fixture().id
-
-    {:ok, i} =
-      Holdco.Integrations.upsert_integration(
-        provider,
-        company_id,
-        Enum.into(attrs, %{"status" => "connected"})
-      )
-
-    i
-  end
-
   def contact_fixture(attrs \\ %{}) do
     {:ok, contact} =
       Holdco.Collaboration.create_contact(
@@ -896,68 +692,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     contact
-  end
-
-  def project_fixture(attrs \\ %{}) do
-    {:ok, project} =
-      Holdco.Collaboration.create_project(
-        Enum.into(attrs, %{
-          name: "Project #{System.unique_integer([:positive])}",
-          status: "planned",
-          project_type: "fundraise",
-          description: "A test project",
-          budget: Decimal.new("100000"),
-          currency: "USD"
-        })
-      )
-
-    project
-  end
-
-
-  # ── Transfer Pricing Studies ────────────────────────────
-
-  def transfer_pricing_study_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, tps} =
-      Holdco.Compliance.create_transfer_pricing_study(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          study_name: "TP Study #{System.unique_integer([:positive])}",
-          fiscal_year: 2025,
-          related_party_name: "Related Corp #{System.unique_integer([:positive])}"
-        })
-      )
-
-    tps
-  end
-
-  # ── Partnership Bases ───────────────────────────────────
-
-  def partnership_basis_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, pb} =
-      Holdco.Fund.create_partnership_basis(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          partner_name: "Partner #{System.unique_integer([:positive])}",
-          tax_year: 2025,
-          beginning_basis: 100_000.0,
-          capital_contributions: 50_000.0,
-          share_of_income: 25_000.0,
-          share_of_losses: 5_000.0,
-          distributions_received: 10_000.0,
-          special_allocations: 2_000.0,
-          section_754_adjustments: 1_000.0,
-          ending_basis: 163_000.0,
-          at_risk_amount: 150_000.0,
-          passive_activity_amount: 20_000.0
-        })
-      )
-
-    pb
   end
 
   # ── Depreciation ────────────────────────────────────────
@@ -981,44 +715,7 @@ defmodule Holdco.HoldcoFixtures do
     fa
   end
 
-  # ── Leases ──────────────────────────────────────────────
-
-  def lease_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, lease} =
-      Holdco.Finance.create_lease(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          lessor: "Lessor #{System.unique_integer([:positive])}",
-          asset_description: "Office Space",
-          start_date: "2024-01-01",
-          end_date: "2028-12-31",
-          monthly_payment: 5_000.0,
-          discount_rate: 0.05,
-          lease_type: "operating"
-        })
-      )
-
-    lease
-  end
-
   # ── Analytics ───────────────────────────────────────────
-
-  def segment_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, seg} =
-      Holdco.Finance.create_segment(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          name: "Segment #{System.unique_integer([:positive])}",
-          segment_type: "business"
-        })
-      )
-
-    seg
-  end
 
   def scheduled_report_fixture(attrs \\ %{}) do
     company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
@@ -1076,36 +773,6 @@ defmodule Holdco.HoldcoFixtures do
     task
   end
 
-  def stress_test_fixture(attrs \\ %{}) do
-    {:ok, st} =
-      Holdco.Analytics.create_stress_test(
-        Enum.into(attrs, %{
-          name: "Stress Test #{System.unique_integer([:positive])}",
-          shocks: %{"equity" => -0.20}
-        })
-      )
-
-    st
-  end
-
-  def liquidity_coverage_fixture(attrs \\ %{}) do
-    {:ok, lc} =
-      Holdco.Analytics.create_liquidity_coverage(
-        Enum.into(attrs, %{
-          calculation_date: Date.utc_today(),
-          hqla_level1: 500_000.0,
-          hqla_level2a: 100_000.0,
-          hqla_level2b: 50_000.0,
-          total_hqla: 650_000.0,
-          net_cash_outflows_30d: 400_000.0,
-          lcr_ratio: 162.5,
-          status: "adequate"
-        })
-      )
-
-    lc
-  end
-
   # ── Anomalies ────────────────────────────────────────
 
   def anomaly_fixture(attrs \\ %{}) do
@@ -1127,200 +794,39 @@ defmodule Holdco.HoldcoFixtures do
     anomaly
   end
 
-  # ── Fund Management ──────────────────────────────────────
+  # ── Accounting Books ───────────────────────────────────
 
-  def capital_call_fixture(attrs \\ %{}) do
+  def accounting_book_fixture(attrs \\ %{}) do
     company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
 
-    {:ok, cc} =
-      Holdco.Fund.create_capital_call(
+    {:ok, book} =
+      Holdco.Finance.create_accounting_book(
         Enum.into(attrs, %{
           company_id: company.id,
-          call_number: System.unique_integer([:positive]),
-          call_date: "2025-01-15",
-          due_date: "2025-02-15",
-          total_amount: 500_000.0,
-          purpose: "investment",
-          status: "pending"
+          name: "Book #{System.unique_integer([:positive])}",
+          book_type: "ifrs",
+          base_currency: "USD"
         })
       )
 
-    cc
+    book
   end
 
-  def capital_call_line_fixture(attrs \\ %{}) do
-    call = Map.get_lazy(attrs, :capital_call, fn -> capital_call_fixture() end)
+  def book_adjustment_fixture(attrs \\ %{}) do
+    book = Map.get_lazy(attrs, :book, fn -> accounting_book_fixture() end)
 
-    {:ok, line} =
-      Holdco.Fund.create_capital_call_line(
+    {:ok, adjustment} =
+      Holdco.Finance.create_book_adjustment(
         Enum.into(attrs, %{
-          capital_call_id: call.id,
-          investor_name: "Investor #{System.unique_integer([:positive])}",
-          commitment_amount: 1_000_000.0,
-          call_amount: 250_000.0
+          book_id: book.id,
+          adjustment_type: "reclassification",
+          amount: 1000.0,
+          effective_date: "2026-01-15",
+          description: "Test adjustment"
         })
       )
 
-    line
-  end
-
-  def distribution_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, dist} =
-      Holdco.Fund.create_distribution(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          distribution_number: System.unique_integer([:positive]),
-          distribution_date: "2025-06-15",
-          total_amount: 200_000.0,
-          distribution_type: "profit",
-          status: "pending"
-        })
-      )
-
-    dist
-  end
-
-  def distribution_line_fixture(attrs \\ %{}) do
-    dist = Map.get_lazy(attrs, :distribution, fn -> distribution_fixture() end)
-
-    {:ok, line} =
-      Holdco.Fund.create_distribution_line(
-        Enum.into(attrs, %{
-          distribution_id: dist.id,
-          investor_name: "Investor #{System.unique_integer([:positive])}",
-          ownership_pct: 25.0,
-          gross_amount: 50_000.0,
-          withholding_tax: 5_000.0,
-          net_amount: 45_000.0
-        })
-      )
-
-    line
-  end
-
-  def waterfall_tier_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, tier} =
-      Holdco.Fund.create_waterfall_tier(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          tier_order: attrs[:tier_order] || 1,
-          name: "Tier #{System.unique_integer([:positive])}",
-          tier_type: "return_of_capital",
-          split_lp_pct: 100.0,
-          split_gp_pct: 0.0
-        })
-      )
-
-    tier
-  end
-
-  def k1_report_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, k1} =
-      Holdco.Fund.create_k1_report(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          tax_year: 2025,
-          investor_name: "Investor #{System.unique_integer([:positive])}",
-          ordinary_income: 50_000.0,
-          long_term_capital_gains: 25_000.0,
-          total_distributions: 75_000.0,
-          status: "draft"
-        })
-      )
-
-    k1
-  end
-
-  # ── Fund NAV / Statements / Fees ─────────────────────
-
-  def fund_nav_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, nav} =
-      Holdco.Fund.create_fund_nav(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          nav_date: attrs[:nav_date] || Date.utc_today(),
-          total_assets: 1_000_000.0,
-          total_liabilities: 200_000.0,
-          net_asset_value: 800_000.0,
-          nav_per_unit: 100.0,
-          units_outstanding: 8_000.0,
-          currency: "USD"
-        })
-      )
-
-    nav
-  end
-
-  def investor_statement_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, stmt} =
-      Holdco.Fund.create_investor_statement(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          investor_name: "Investor #{System.unique_integer([:positive])}",
-          period_start: ~D[2024-01-01],
-          period_end: ~D[2024-12-31],
-          beginning_balance: 100_000.0,
-          contributions: 50_000.0,
-          distributions: 10_000.0,
-          ending_balance: 140_000.0,
-          ownership_pct: 25.0,
-          moic: 1.4,
-          status: "draft"
-        })
-      )
-
-    stmt
-  end
-
-  def fund_fee_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, fee} =
-      Holdco.Fund.create_fund_fee(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          fee_type: "management",
-          description: "Annual management fee",
-          amount: 20_000.0,
-          currency: "USD",
-          period_start: ~D[2024-01-01],
-          period_end: ~D[2024-12-31],
-          basis: "nav",
-          rate_pct: 2.0,
-          status: "accrued"
-        })
-      )
-
-    fee
-  end
-
-  # ── Dividend Policies ────────────────────────────────────
-
-  def dividend_policy_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, dp} =
-      Holdco.Fund.create_dividend_policy(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          name: "Policy #{System.unique_integer([:positive])}",
-          policy_type: "payout_ratio",
-          target_payout_ratio: 50.0,
-          frequency: "quarterly"
-        })
-      )
-
-    dp
+    adjustment
   end
 
   # ── Tax Provisions ──────────────────────────────────────
@@ -1368,76 +874,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     dt
-  end
-
-  # ── Service Agreements ──────────────────────────────────
-
-  def service_agreement_fixture(attrs \\ %{}) do
-    provider = Map.get_lazy(attrs, :provider_company, fn -> company_fixture() end)
-    recipient = Map.get_lazy(attrs, :recipient_company, fn -> company_fixture() end)
-
-    {:ok, sa} =
-      Holdco.Finance.create_service_agreement(
-        Enum.into(attrs, %{
-          provider_company_id: provider.id,
-          recipient_company_id: recipient.id,
-          agreement_type: "management_fee",
-          description: "Management services agreement",
-          amount: 10_000.0,
-          currency: "USD",
-          frequency: "monthly",
-          start_date: "2024-01-01",
-          end_date: "2024-12-31",
-          status: "active",
-          transfer_pricing_method: "cost_plus",
-          markup_pct: 5.0
-        })
-      )
-
-    sa
-  end
-
-  # ── Goodwill ────────────────────────────────────────────
-
-  def goodwill_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, gw} =
-      Holdco.Finance.create_goodwill(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          acquisition_name: "Acquisition #{System.unique_integer([:positive])}",
-          acquisition_date: "2024-01-01",
-          original_amount: 1_000_000.0,
-          accumulated_impairment: 0.0,
-          carrying_value: 1_000_000.0,
-          reporting_unit: "North America",
-          status: "active"
-        })
-      )
-
-    gw
-  end
-
-  def impairment_test_fixture(attrs \\ %{}) do
-    goodwill = Map.get_lazy(attrs, :goodwill, fn -> goodwill_fixture() end)
-
-    {:ok, it} =
-      Holdco.Finance.create_impairment_test(
-        Enum.into(attrs, %{
-          goodwill_id: goodwill.id,
-          test_date: "2024-06-30",
-          fair_value: 900_000.0,
-          carrying_amount: 1_000_000.0,
-          impairment_amount: 100_000.0,
-          method: "income_approach",
-          discount_rate: 10.0,
-          growth_rate: 3.0,
-          result: "impairment_recognized"
-        })
-      )
-
-    it
   end
 
   # ── Tax Jurisdictions/Reclaims/Repatriation ────────────
@@ -1500,269 +936,6 @@ defmodule Holdco.HoldcoFixtures do
     plan
   end
 
-  # ── Fundraising Pipeline ───────────────────────────────
-
-  def fundraising_pipeline_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, pipeline} =
-      Holdco.Fund.create_fundraising_pipeline(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          fund_name: "Fund #{System.unique_integer([:positive])}",
-          target_amount: 10_000_000.0,
-          currency: "USD",
-          status: "prospecting"
-        })
-      )
-
-    pipeline
-  end
-
-  def prospect_fixture(attrs \\ %{}) do
-    pipeline = Map.get_lazy(attrs, :pipeline, fn -> fundraising_pipeline_fixture() end)
-
-    {:ok, prospect} =
-      Holdco.Fund.create_prospect(
-        Enum.into(attrs, %{
-          pipeline_id: pipeline.id,
-          investor_name: "Investor #{System.unique_integer([:positive])}",
-          contact_email: "investor#{System.unique_integer([:positive])}@example.com",
-          commitment_amount: 500_000.0,
-          status: "identified"
-        })
-      )
-
-    prospect
-  end
-
-  # ── Accounting Books ───────────────────────────────────
-
-  def accounting_book_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, book} =
-      Holdco.Finance.create_accounting_book(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          name: "Book #{System.unique_integer([:positive])}",
-          book_type: "ifrs",
-          base_currency: "USD"
-        })
-      )
-
-    book
-  end
-
-  def book_adjustment_fixture(attrs \\ %{}) do
-    book = Map.get_lazy(attrs, :book, fn -> accounting_book_fixture() end)
-
-    {:ok, adjustment} =
-      Holdco.Finance.create_book_adjustment(
-        Enum.into(attrs, %{
-          book_id: book.id,
-          adjustment_type: "reclassification",
-          amount: 1000.0,
-          effective_date: "2026-01-15",
-          description: "Test adjustment"
-        })
-      )
-
-    adjustment
-  end
-
-  # ── Entity Lifecycle ───────────────────────────────────
-
-  def entity_lifecycle_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, lifecycle} =
-      Holdco.Corporate.create_entity_lifecycle(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          event_type: "incorporation",
-          event_date: "2024-01-15",
-          effective_date: "2024-01-15",
-          jurisdiction: "Delaware",
-          filing_reference: "REF-" <> to_string(System.unique_integer([:positive])),
-          description: "Company incorporation",
-          status: "completed"
-        })
-      )
-
-    lifecycle
-  end
-
-  # ── Register Entries ───────────────────────────────────
-
-  def register_entry_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, entry} =
-      Holdco.Corporate.create_register_entry(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          register_type: "directors",
-          entry_date: "2024-01-15",
-          person_name: "Director " <> to_string(System.unique_integer([:positive])),
-          role_or_description: "Executive Director",
-          appointment_date: "2024-01-15",
-          status: "current"
-        })
-      )
-
-    entry
-  end
-
-  # ── Corporate Actions ──────────────────────────────────
-
-  def corporate_action_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, action} =
-      Holdco.Corporate.create_corporate_action(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          action_type: "stock_split",
-          announcement_date: "2024-01-01",
-          record_date: "2024-01-15",
-          effective_date: "2024-02-01",
-          description: "2-for-1 stock split",
-          ratio_numerator: 2,
-          ratio_denominator: 1,
-          status: "announced",
-          currency: "USD"
-        })
-      )
-
-    action
-  end
-
-  # ── KYC Records ────────────────────────────────────────
-
-  def kyc_record_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, record} =
-      Holdco.Compliance.create_kyc_record(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          entity_name: "Entity #{System.unique_integer([:positive])}",
-          entity_type: "individual",
-          risk_level: "low",
-          verification_status: "not_started",
-          country_of_residence: "US",
-          nationality: "US"
-        })
-      )
-
-    record
-  end
-
-  # ── Reporting Templates ────────────────────────────────
-
-  def reporting_template_fixture(attrs \\ %{}) do
-    {:ok, template} =
-      Holdco.Compliance.create_reporting_template(
-        Enum.into(attrs, %{
-          name: "Template #{System.unique_integer([:positive])}",
-          template_type: "crs",
-          jurisdiction: "US",
-          frequency: "annual",
-          due_date_formula: "+90d",
-          is_active: true
-        })
-      )
-
-    template
-  end
-
-  # ── AML Alerts ─────────────────────────────────────────
-
-  def aml_alert_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, alert} =
-      Holdco.Compliance.create_aml_alert(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          alert_type: "large_transaction",
-          severity: "medium",
-          amount: 100_000,
-          currency: "USD",
-          description: "Large transaction detected",
-          rule_triggered: "amount_threshold",
-          status: "open"
-        })
-      )
-
-    alert
-  end
-
-  # ── IP Assets ──────────────────────────────────────────
-
-  def ip_asset_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, ip} =
-      Holdco.Corporate.create_ip_asset(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          name: "IP Asset #{System.unique_integer([:positive])}",
-          asset_type: "patent",
-          status: "active",
-          jurisdiction: "US",
-          registration_number: "REG-#{System.unique_integer([:positive])}",
-          filing_date: "2024-01-01",
-          expiry_date: "2034-01-01",
-          annual_cost: 5000,
-          currency: "USD",
-          valuation: 100_000
-        })
-      )
-
-    ip
-  end
-
-  # ── Shareholder Communications ─────────────────────────
-
-  def shareholder_communication_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, sc} =
-      Holdco.Governance.create_shareholder_communication(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          communication_type: "notice",
-          title: "Communication #{System.unique_integer([:positive])}"
-        })
-      )
-
-    sc
-  end
-
-  # ── Signature Workflows ───────────────────────────────
-
-  def signature_workflow_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, sw} =
-      Holdco.Documents.create_signature_workflow(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          title: "Workflow #{System.unique_integer([:positive])}",
-          status: "draft",
-          created_by: "admin@test.com",
-          signers: [
-            %{"name" => "Alice", "email" => "alice@test.com", "role" => "CEO", "status" => "pending"},
-            %{"name" => "Bob", "email" => "bob@test.com", "role" => "CFO", "status" => "pending"}
-          ]
-        })
-      )
-
-    sw
-  end
-
   # ── Contracts ─────────────────────────────────────────
 
   def contract_fixture(attrs \\ %{}) do
@@ -1779,337 +952,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     contract
-  end
-
-  # ── LEI Records ───────────────────────────────────────
-
-  def lei_record_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    code = Map.get(attrs, :lei_code, String.pad_trailing("LEI#{System.unique_integer([:positive])}", 20, "0"))
-
-    {:ok, lei} =
-      Holdco.Corporate.create_lei_record(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          lei_code: code
-        })
-      )
-
-    lei
-  end
-
-  # ── Related Party Transactions ────────────────────────
-
-  def related_party_transaction_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, rpt} =
-      Holdco.Corporate.create_related_party_transaction(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          related_party_name: "Related Co #{System.unique_integer([:positive])}",
-          relationship: "subsidiary",
-          transaction_type: "service",
-          transaction_date: "2024-06-15",
-          amount: "50000.00"
-        })
-      )
-
-    rpt
-  end
-
-  # ── Conflicts of Interest ─────────────────────────────
-
-  def conflict_of_interest_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, coi} =
-      Holdco.Governance.create_conflict_of_interest(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          declarant_name: "John Doe #{System.unique_integer([:positive])}",
-          declarant_role: "director",
-          conflict_type: "financial",
-          description: "Owns shares in competing company",
-          declared_date: "2024-06-15"
-        })
-      )
-
-    coi
-  end
-  # ── ESG Reports ───────────────────────────────────────
-
-  def esg_report_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, report} =
-      Holdco.Compliance.create_esg_report(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          framework: "gri",
-          reporting_period_start: "2025-01-01",
-          reporting_period_end: "2025-12-31",
-          title: "ESG Report #{System.unique_integer([:positive])}",
-          score: "85.5",
-          status: "draft"
-        })
-      )
-
-    report
-  end
-
-  # ── Emissions Records ─────────────────────────────────
-
-  def emissions_record_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, record} =
-      Holdco.Compliance.create_emissions_record(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          reporting_year: 2025,
-          scope: "scope_1",
-          category: "energy",
-          source_description: "Natural gas heating",
-          quantity: "1000.0",
-          unit: "tonnes_co2e",
-          co2_equivalent: "1000.0",
-          verification_status: "unverified"
-        })
-      )
-
-    record
-  end
-
-  # ── Regulatory Capital ────────────────────────────────
-
-  def regulatory_capital_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, record} =
-      Holdco.Compliance.create_regulatory_capital(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          reporting_date: "2025-12-31",
-          framework: "basel_iii",
-          tier1_capital: "500000.00",
-          tier2_capital: "100000.00",
-          total_capital: "600000.00",
-          risk_weighted_assets: "4000000.00",
-          capital_ratio: "15.0",
-          minimum_required_ratio: "8.0",
-          surplus_or_deficit: "280000.00",
-          currency: "USD",
-          status: "compliant"
-        })
-      )
-
-    record
-  end
-
-  # ── BCP Plans ─────────────────────────────────────────
-
-  def bcp_plan_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, plan} =
-      Holdco.Compliance.create_bcp_plan(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          plan_name: "BCP Plan #{System.unique_integer([:positive])}",
-          plan_type: "business_continuity",
-          version: "1.0",
-          status: "active",
-          test_result: "not_tested",
-          rto_hours: 4,
-          rpo_hours: 1
-        })
-      )
-
-    plan
-  end
-
-  # ── Ethics Reports ────────────────────────────────────
-
-  def ethics_report_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, report} =
-      Holdco.Governance.create_ethics_report(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          report_type: "whistleblower",
-          reporter_type: "anonymous",
-          severity: "medium",
-          description: "Ethics concern #{System.unique_integer([:positive])}",
-          reported_date: "2025-06-15",
-          status: "received"
-        })
-      )
-
-    report
-  end
-
-
-  # ── Share Classes ─────────────────────────────────────
-
-  def share_class_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    n = System.unique_integer([:positive])
-
-    {:ok, sc} =
-      Holdco.Corporate.create_share_class(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          name: "Class #{n}",
-          class_code: "C#{n}",
-          shares_authorized: "10000",
-          shares_issued: "5000",
-          shares_outstanding: "4500",
-          par_value: "0.01",
-          currency: "USD",
-          voting_rights_per_share: "1",
-          dividend_preference: "none",
-          status: "active"
-        })
-      )
-
-    sc
-  end
-
-  # ── Insurance Claims ─────────────────────────────────
-
-  def insurance_claim_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    n = System.unique_integer([:positive])
-
-    {:ok, ic} =
-      Holdco.Compliance.create_insurance_claim(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          claim_number: "CLM-#{n}",
-          claim_type: "property",
-          incident_date: "2024-06-01",
-          filing_date: "2024-06-15",
-          claimed_amount: "50000.00",
-          status: "filed"
-        })
-      )
-
-    ic
-  end
-
-  # ── Compensation Records ─────────────────────────────
-
-  def compensation_record_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    n = System.unique_integer([:positive])
-
-    {:ok, cr} =
-      Holdco.Finance.create_compensation_record(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          employee_name: "Employee #{n}",
-          role: "Engineer",
-          department: "Engineering",
-          compensation_type: "salary",
-          amount: "120000.00",
-          currency: "USD",
-          frequency: "annual",
-          effective_date: "2024-01-01",
-          status: "active"
-        })
-      )
-
-    cr
-  end
-
-  # ── Litigation ────────────────────────────────────────
-
-  def litigation_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    n = System.unique_integer([:positive])
-
-    {:ok, lit} =
-      Holdco.Compliance.create_litigation(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          case_name: "Case #{n}",
-          case_number: "CV-2024-#{n}",
-          case_type: "civil",
-          party_role: "defendant",
-          opposing_party: "Plaintiff Corp #{n}",
-          filing_date: "2024-03-15",
-          status: "active",
-          estimated_exposure: "500000.00",
-          currency: "USD"
-        })
-      )
-
-    lit
-  end
-
-  # ── Bank Guarantees ──────────────────────────────────
-
-  def bank_guarantee_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    n = System.unique_integer([:positive])
-
-    {:ok, bg} =
-      Holdco.Finance.create_bank_guarantee(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          guarantee_type: "performance",
-          issuing_bank: "Bank #{n}",
-          beneficiary: "Beneficiary #{n}",
-          reference_number: "BG-#{n}",
-          amount: "1000000.00",
-          currency: "USD",
-          issue_date: "2024-01-01",
-          expiry_date: "2025-01-01",
-          status: "active"
-        })
-      )
-
-    bg
-  end
-
-  # ── Data Rooms ─────────────────────────────────────────
-
-  def data_room_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-
-    {:ok, room} =
-      Holdco.Documents.create_data_room(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          name: "Data Room #{System.unique_integer([:positive])}",
-          description: "Test data room",
-          access_level: "restricted",
-          status: "active",
-          watermark_enabled: true,
-          download_allowed: true
-        })
-      )
-
-    room
-  end
-
-  def data_room_document_fixture(attrs \\ %{}) do
-    data_room = Map.get_lazy(attrs, :data_room, fn -> data_room_fixture() end)
-    document = Map.get_lazy(attrs, :document, fn -> document_fixture() end)
-
-    {:ok, drd} =
-      Holdco.Documents.add_document_to_room(
-        Enum.into(attrs, %{
-          data_room_id: data_room.id,
-          document_id: document.id,
-          section_name: "General",
-          sort_order: 0
-        })
-      )
-
-    drd
   end
 
   # ── SSO Configs ──────────────────────────────────────────
@@ -2287,46 +1129,6 @@ defmodule Holdco.HoldcoFixtures do
     log
   end
 
-  # ── Extractions (Document Intelligence) ─────────────────────
-
-  def extraction_fixture(attrs \\ %{}) do
-    doc = Map.get_lazy(attrs, :document, fn -> document_fixture() end)
-
-    {:ok, extraction} =
-      Holdco.Documents.create_extraction(
-        Enum.into(attrs, %{
-          document_id: doc.id,
-          extraction_type: "invoice",
-          status: "completed",
-          extracted_data: %{"total" => "1000.00", "vendor" => "Test Corp"},
-          confidence_score: "0.95",
-          model_used: "gpt-4"
-        })
-      )
-
-    extraction
-  end
-
-  # ── Regulatory Changes ──────────────────────────────────────
-
-  def regulatory_change_fixture(attrs \\ %{}) do
-    n = System.unique_integer([:positive])
-
-    {:ok, change} =
-      Holdco.Compliance.create_regulatory_change(
-        Enum.into(attrs, %{
-          title: "Regulation #{n}",
-          jurisdiction: "US",
-          change_type: "new_regulation",
-          impact_assessment: "medium",
-          status: "monitoring",
-          description: "New regulation regarding #{n}"
-        })
-      )
-
-    change
-  end
-
   # ── Collaboration Sessions ─────────────────────────────────
 
   def collaboration_session_fixture(attrs \\ %{}) do
@@ -2342,162 +1144,6 @@ defmodule Holdco.HoldcoFixtures do
       )
 
     session
-  end
-
-  # ── Trust Accounts ───────────────────────────────────
-
-  def trust_account_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    n = System.unique_integer([:positive])
-
-    {:ok, ta} =
-      Holdco.Finance.create_trust_account(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          trust_name: "Trust #{n}",
-          trust_type: "revocable",
-          trustee_name: "Trustee #{n}",
-          grantor_name: "Grantor #{n}",
-          jurisdiction: "Delaware",
-          date_established: "2024-01-01",
-          corpus_value: "1000000.00",
-          currency: "USD",
-          distribution_schedule: "quarterly",
-          status: "active"
-        })
-      )
-
-    ta
-  end
-
-  def trust_transaction_fixture(attrs \\ %{}) do
-    trust_account = Map.get_lazy(attrs, :trust_account, fn -> trust_account_fixture() end)
-    n = System.unique_integer([:positive])
-
-    {:ok, tt} =
-      Holdco.Finance.create_trust_transaction(
-        Enum.into(attrs, %{
-          trust_account_id: trust_account.id,
-          transaction_type: "contribution",
-          amount: "50000.00",
-          currency: "USD",
-          description: "Transaction #{n}",
-          transaction_date: "2024-06-01",
-          category: "principal"
-        })
-      )
-
-    tt
-  end
-
-  # ── Charitable Gifts ─────────────────────────────────
-
-  def charitable_gift_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    n = System.unique_integer([:positive])
-
-    {:ok, cg} =
-      Holdco.Finance.create_charitable_gift(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          recipient_name: "Charity #{n}",
-          recipient_type: "501c3",
-          amount: "10000.00",
-          currency: "USD",
-          gift_type: "cash",
-          gift_date: "2024-06-01",
-          tax_year: 2024,
-          tax_deductible: true
-        })
-      )
-
-    cg
-  end
-
-  # ── Family Charters ─────────────────────────────────
-
-  def family_charter_fixture(attrs \\ %{}) do
-    n = System.unique_integer([:positive])
-
-    {:ok, fc} =
-      Holdco.Governance.create_family_charter(
-        Enum.into(attrs, %{
-          family_name: "Family #{n}",
-          version: "1.0",
-          status: "draft",
-          mission_statement: "Preserve and grow family wealth for future generations",
-          values: ["integrity", "stewardship", "education"],
-          meeting_schedule: "Quarterly"
-        })
-      )
-
-    fc
-  end
-
-  # ── Family Members ──────────────────────────────────
-
-  def family_member_fixture(attrs \\ %{}) do
-    charter = Map.get_lazy(attrs, :family_charter, fn -> family_charter_fixture() end)
-    n = System.unique_integer([:positive])
-
-    {:ok, fm} =
-      Holdco.Governance.create_family_member(
-        Enum.into(attrs, %{
-          family_charter_id: charter.id,
-          full_name: "Member #{n}",
-          relationship: "Child",
-          generation: 2,
-          role_in_family_office: "member",
-          voting_rights: false,
-          board_eligible: false,
-          employment_status: "not_employed"
-        })
-      )
-
-    fm
-  end
-
-  # ── Estate Plans ────────────────────────────────────
-
-  def estate_plan_fixture(attrs \\ %{}) do
-    n = System.unique_integer([:positive])
-
-    {:ok, ep} =
-      Holdco.Governance.create_estate_plan(
-        Enum.into(attrs, %{
-          plan_name: "Estate Plan #{n}",
-          plan_type: "will",
-          principal_name: "Principal #{n}",
-          attorney_name: "Attorney #{n}",
-          executor_name: "Executor #{n}",
-          status: "draft",
-          estimated_estate_value: "5000000.00",
-          currency: "USD"
-        })
-      )
-
-    ep
-  end
-
-  # ── Succession Plans ────────────────────────────────
-
-  def succession_plan_fixture(attrs \\ %{}) do
-    company = Map.get_lazy(attrs, :company, fn -> company_fixture() end)
-    n = System.unique_integer([:positive])
-
-    {:ok, sp} =
-      Holdco.Governance.create_succession_plan(
-        Enum.into(attrs, %{
-          company_id: company.id,
-          position_title: "CEO #{n}",
-          current_holder: "Holder #{n}",
-          successor_candidates: [%{"name" => "Candidate A", "readiness" => "ready", "development_plan" => "None needed"}],
-          timeline: "long_term",
-          status: "active"
-        })
-      )
-
-    sp
   end
 
   # ── Activity Events ──────────────────────────────────

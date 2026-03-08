@@ -11,26 +11,33 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
 
     configs = Integrations.list_active_bank_feed_configs()
 
-    selected_config_id =
-      case configs do
-        [first | _] -> first.id
-        [] -> nil
+    {:ok,
+     assign(socket,
+       page_title: "Bank Reconciliation",
+       configs: configs,
+       selected_config_id: nil,
+       filter_status: "unmatched",
+       filter_date_from: "",
+       filter_date_to: "",
+       selected_feed_txn_id: nil,
+       best_matches: %{}
+     )}
+  end
+
+  @impl true
+  def handle_params(params, _uri, socket) do
+    # Support ?config_id=X from bank account import flow
+    config_id =
+      case params["config_id"] do
+        nil -> List.first(socket.assigns.configs) && List.first(socket.assigns.configs).id
+        "" -> nil
+        id -> String.to_integer(id)
       end
 
-    socket =
-      socket
-      |> assign(
-        page_title: "Bank Reconciliation",
-        configs: configs,
-        selected_config_id: selected_config_id,
-        filter_status: "unmatched",
-        filter_date_from: "",
-        filter_date_to: "",
-        selected_feed_txn_id: nil
-      )
-      |> load_data()
-
-    {:ok, socket}
+    {:noreply,
+     socket
+     |> assign(selected_config_id: config_id)
+     |> load_data()}
   end
 
   @impl true
@@ -81,7 +88,6 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
 
     candidates =
       if socket.assigns.selected_feed_txn_id == feed_txn_id do
-        # Deselect
         []
       else
         Reconciliation.candidates(feed_txn_id)
@@ -96,11 +102,11 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
      )}
   end
 
-  def handle_event("manual_match", _params, %{assigns: %{can_write: false}} = socket) do
+  def handle_event("quick_match", _params, %{assigns: %{can_write: false}} = socket) do
     {:noreply, put_flash(socket, :error, "You don't have permission to do that")}
   end
 
-  def handle_event("manual_match", %{"feed_id" => feed_id, "book_id" => book_id}, socket) do
+  def handle_event("quick_match", %{"feed_id" => feed_id, "book_id" => book_id}, socket) do
     feed_id = String.to_integer(feed_id)
     book_id = String.to_integer(book_id)
 
@@ -115,6 +121,10 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
       {:error, _reason} ->
         {:noreply, put_flash(socket, :error, "Failed to match transaction")}
     end
+  end
+
+  def handle_event("manual_match", params, socket) do
+    handle_event("quick_match", params, socket)
   end
 
   def handle_event("unmatch", _params, %{assigns: %{can_write: false}} = socket) do
@@ -155,16 +165,32 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
         end
         |> filter_by_dates(socket.assigns.filter_date_from, socket.assigns.filter_date_to)
 
+      # Pre-compute best match for each unmatched transaction
+      best_matches =
+        feed_txns
+        |> Enum.filter(&(!&1.is_matched))
+        |> Enum.reduce(%{}, fn txn, acc ->
+          case Reconciliation.candidates(txn.id) do
+            [{book_txn, score} | _] when score >= 60 ->
+              Map.put(acc, txn.id, {book_txn, score})
+
+            _ ->
+              acc
+          end
+        end)
+
       assign(socket,
         summary: summary,
         feed_txns: feed_txns,
-        candidates: []
+        candidates: [],
+        best_matches: best_matches
       )
     else
       assign(socket,
         summary: %{total: 0, matched: 0, unmatched: 0},
         feed_txns: [],
-        candidates: []
+        candidates: [],
+        best_matches: %{}
       )
     end
   end
@@ -181,21 +207,14 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
   end
 
   defp filter_by_dates(txns, "", ""), do: txns
+
   defp filter_by_dates(txns, from, to) do
     txns
     |> then(fn list ->
-      if from != "" do
-        Enum.filter(list, fn t -> t.date >= from end)
-      else
-        list
-      end
+      if from != "", do: Enum.filter(list, fn t -> t.date >= from end), else: list
     end)
     |> then(fn list ->
-      if to != "" do
-        Enum.filter(list, fn t -> t.date <= to end)
-      else
-        list
-      end
+      if to != "", do: Enum.filter(list, fn t -> t.date <= to end), else: list
     end)
   end
 
@@ -223,7 +242,7 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
             <option value="">Select feed...</option>
             <%= for c <- @configs do %>
               <option value={c.id} selected={c.id == @selected_config_id}>
-                {c.institution_name || c.provider} - {if c.bank_account, do: c.bank_account.bank_name, else: "N/A"}
+                {config_label(c)}
               </option>
             <% end %>
           </select>
@@ -271,6 +290,17 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
       </div>
     </div>
 
+    <%= if @selected_config_id && @summary.total > 0 && @summary.unmatched == 0 do %>
+      <div style="padding: 1rem; background: #e8f5e9; border-radius: 4px; color: #2e7d32; margin-bottom: 1rem;">
+        <div style="font-weight: 600; margin-bottom: 0.25rem;">All transactions matched!</div>
+        <div style="font-size: 0.9rem;">
+          This account is fully reconciled. Next steps:
+          <.link navigate={~p"/accounts/journal"} class="td-link" style="font-weight: 600;">Post adjusting entries</.link> |
+          <.link navigate={~p"/period-locks"} class="td-link" style="font-weight: 600;">Lock the period</.link>
+        </div>
+      </div>
+    <% end %>
+
     <div class="grid-2">
       <div class="section">
         <div class="section-head">
@@ -308,10 +338,23 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
                     <% end %>
                   </td>
                   <td>
-                    <%= if txn.is_matched and @can_write do %>
-                      <button phx-click="unmatch" phx-value-id={txn.id} class="btn btn-danger btn-sm" data-confirm="Remove match?">
-                        Unmatch
-                      </button>
+                    <%= cond do %>
+                      <% txn.is_matched and @can_write -> %>
+                        <button phx-click="unmatch" phx-value-id={txn.id} class="btn btn-danger btn-sm" data-confirm="Remove match?">
+                          Unmatch
+                        </button>
+                      <% !txn.is_matched and @can_write and Map.has_key?(@best_matches, txn.id) -> %>
+                        <% {best_book, best_score} = @best_matches[txn.id] %>
+                        <button
+                          phx-click="quick_match"
+                          phx-value-feed_id={txn.id}
+                          phx-value-book_id={best_book.id}
+                          class="btn btn-primary btn-sm"
+                          title={"Match: #{truncate(best_book.description, 25)} (#{format_amount(best_book.amount, best_book.currency)}, score #{best_score})"}
+                        >
+                          Match ({best_score})
+                        </button>
+                      <% true -> %>
                     <% end %>
                   </td>
                 </tr>
@@ -406,6 +449,17 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
     """
   end
 
+  defp config_label(config) do
+    bank_name = if config.bank_account, do: config.bank_account.bank_name, else: "N/A"
+
+    case config.provider do
+      "csv_import" -> bank_name <> " (CSV import)"
+      _ ->
+        label = config.institution_name || config.provider
+        label <> " - " <> bank_name
+    end
+  end
+
   defp truncate(nil, _), do: ""
   defp truncate(str, max) when byte_size(str) <= max, do: str
   defp truncate(str, max), do: String.slice(str, 0, max) <> "..."
@@ -420,6 +474,7 @@ defmodule HoldcoWeb.BankReconciliationLive.Index do
   end
 
   defp amount_class(nil), do: ""
+
   defp amount_class(amount) do
     if Money.negative?(amount), do: "num-negative", else: "num-positive"
   end

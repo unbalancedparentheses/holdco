@@ -289,4 +289,58 @@ defmodule HoldcoWeb.RecurringTransactionsLiveIndexTest do
       assert html =~ "PubSub RT"
     end
   end
+
+  describe "run_all_due" do
+    test "posts journal entries for all due recurring transactions", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+      company = company_fixture()
+      debit = account_fixture(%{company: company, code: "1000", name: "Cash", account_type: "asset"})
+      credit = account_fixture(%{company: company, code: "5000", name: "Rent", account_type: "expense"})
+
+      {:ok, _} =
+        Holdco.Finance.create_recurring_transaction(%{
+          company_id: company.id,
+          description: "Monthly rent",
+          amount: 2000,
+          frequency: "monthly",
+          start_date: "2025-01-01",
+          next_run_date: Date.utc_today() |> Date.add(-1) |> Date.to_iso8601(),
+          debit_account_id: debit.id,
+          credit_account_id: credit.id,
+          is_active: true
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/recurring-transactions")
+      html = render_click(view, "run_all_due")
+      assert html =~ "Posted 1 journal entries"
+    end
+
+    test "shows message when no transactions are due", %{conn: conn, user: user} do
+      Holdco.Accounts.set_user_role(user, "editor")
+
+      {:ok, view, _html} = live(conn, ~p"/recurring-transactions")
+      html = render_click(view, "run_all_due")
+      assert html =~ "No recurring transactions were due"
+    end
+  end
+
+  describe "overdue count" do
+    test "shows overdue count in metrics", %{conn: conn} do
+      company = company_fixture()
+
+      {:ok, _} =
+        Holdco.Finance.create_recurring_transaction(%{
+          company_id: company.id,
+          description: "Overdue RT",
+          amount: 500,
+          frequency: "monthly",
+          start_date: "2025-01-01",
+          next_run_date: Date.utc_today() |> Date.add(-5) |> Date.to_iso8601(),
+          is_active: true
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/recurring-transactions")
+      assert html =~ "Overdue"
+    end
+  end
 end

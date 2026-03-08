@@ -322,15 +322,36 @@ defmodule HoldcoWeb.BankReconciliationLiveIndexTest do
   # Config dropdown
   # ------------------------------------------------------------------
 
+  describe "query param pre-selection" do
+    test "pre-selects config when config_id query param is present", %{conn: conn} do
+      config = bank_feed_config_fixture(%{is_active: true})
+
+      {:ok, bft} =
+        Holdco.Integrations.create_bank_feed_transaction(%{
+          feed_config_id: config.id,
+          external_id: "ext_param_#{System.unique_integer([:positive])}",
+          date: "2025-05-01",
+          description: "Pre-selected txn",
+          amount: 100.00,
+          currency: "USD"
+        })
+
+      {:ok, _view, html} = live(conn, "/bank-reconciliation?config_id=#{config.id}")
+
+      assert html =~ "Pre-selected txn"
+    end
+  end
+
   describe "config dropdown" do
     test "shows available bank feed configs in dropdown", %{conn: conn} do
-      config = bank_feed_config_fixture(%{is_active: true, institution_name: "Chase Bank"})
+      company = company_fixture()
+      ba = bank_account_fixture(%{company: company, bank_name: "Chase Bank"})
+      _config = bank_feed_config_fixture(%{company: company, bank_account: ba, is_active: true})
 
       {:ok, _view, html} = live(conn, ~p"/bank-reconciliation")
 
       assert html =~ "Chase Bank"
     end
-
   end
 
   # ------------------------------------------------------------------

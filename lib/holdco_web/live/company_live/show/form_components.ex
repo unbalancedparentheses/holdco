@@ -356,46 +356,6 @@ defmodule HoldcoWeb.CompanyLive.ShowForms do
     """
   end
 
-  def render_inline_form(%{show_form: "service_provider"} = assigns) do
-    ~H"""
-    <div class="dialog-overlay" phx-click="close_form">
-      <div class="dialog-panel" phx-click="noop">
-        <div class="dialog-header">
-          <h3>Add Service Provider</h3>
-        </div>
-        <div class="dialog-body">
-          <form phx-submit="save_service_provider">
-            <div class="form-group">
-              <label class="form-label">Role *</label>
-              <input type="text" name="service_provider[role]" class="form-input" required />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Name *</label>
-              <input type="text" name="service_provider[name]" class="form-input" required />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Firm</label>
-              <input type="text" name="service_provider[firm]" class="form-input" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Email</label>
-              <input type="email" name="service_provider[email]" class="form-input" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Phone</label>
-              <input type="text" name="service_provider[phone]" class="form-input" />
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary">Add</button>
-              <button type="button" phx-click="close_form" class="btn btn-secondary">Cancel</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
   def render_inline_form(%{show_form: "tax_deadline"} = assigns) do
     ~H"""
     <div class="dialog-overlay" phx-click="close_form">
