@@ -10,6 +10,21 @@ that in a single self-hosted application.
 
 No SaaS, no vendor lock-in, no subscription. You own your data.
 
+## Product Focus
+
+Holdco is focused first on the operational core of a multi-entity holding
+company:
+
+- trusted financial data
+- reconciliation and close
+- consolidated reporting
+- approvals and auditability
+
+AI, tax, compliance, and integrations matter, but they should strengthen that
+core workflow rather than compete with it.
+
+For the current priority order, see [ROADMAP.md](ROADMAP.md).
+
 ## What It Actually Does
 
 ### Portfolio Intelligence
@@ -362,61 +377,74 @@ lib/holdco_web/
 
 ## Roadmap
 
-Development follows user workflows — build the daily/monthly core loop first,
-then expand outward.
+Holdco is built around one core wedge:
 
-### Phase 1: "I can see what I own" (done)
+`multi-entity monthly close + consolidated reporting + auditability`
 
-Portfolio dashboard with NAV, returns, allocation, ratios, entity performance,
-corporate structure tree, and live FX. CSV import/export for all major tables.
+The roadmap is intentionally ordered by priority rather than dates.
 
-### Phase 2: "I can track my money" (done)
+### 1. Trusted Financial Core
 
-Bank statement import (CSV upload with AI parsing), bank reconciliation with
-scoring engine and inline one-click matching, reconciliation status on bank
-account pages. The import → reconcile pipeline works end-to-end.
+Make top-level metrics defensible and consistent across the dashboard, reports,
+exports, and APIs.
 
-### Phase 3: "I can close my books" (done)
+- define canonical rules for NAV, gains, FX conversion, liabilities, and
+  consolidated balances
+- surface stale prices, missing FX, duplicate transactions, and incomplete
+  classifications
+- expand financial correctness tests and metric provenance
 
-Period close checklist that ties reconciliation → journal entries → period lock
-into one guided flow per entity. Consolidated financial statements with
-intercompany eliminations and NCI, exportable to CSV. Recurring transaction
-auto-posting via background worker.
+### 2. Monthly Close Workflow
 
-### Phase 4: "I can stay compliant" (partially done)
+Make Holdco the place where operators close books across entities.
 
-Tax provisions, deferred taxes, capital gains with lot tracking, tax calendar,
-transfer pricing. Audit log and approval workflows. Still needed:
+- strengthen period close, period locks, approvals, and exports as one flow
+- add clear entity-level and group-level close states
+- make close blockers visible: unreconciled items, draft journals, pending
+  approvals, missing inputs
 
-- **Audit package improvements.** Include consolidated statements in the
-  zip export.
-- **Tax loss harvesting.** Identify positions to sell based on cost basis
-  lots and wash sale rules.
+### 3. Reconciliation and Ingestion Reliability
 
-### Phase 5: "I can manage risk" (partially done)
+Make imported and synced data dependable enough for recurring operational use.
 
-Concentration risk, stress testing, anomaly detection, debt maturity ladder,
-cash forecast. Still needed:
+- improve bank import review and exception handling
+- make QuickBooks, Xero, and bank feed sync state visible and traceable
+- strengthen reconciliation queues for unmatched and low-confidence items
 
-- **Scheduled anomaly detection.** Run nightly via Oban instead of manual.
-- **Monte Carlo simulation.** Probabilistic stress testing beyond linear shocks.
+### 4. Operator UX Simplification
 
-### Phase 6: "I can report to stakeholders" (partially done)
+Reduce cognitive load on the main workflows.
 
-Scheduled reports, print-friendly views, JSON API. Still needed:
+- turn the dashboard into an action center for close and exceptions
+- simplify company operations into clearer task-based flows
+- defer non-critical page data and improve performance on heavy screens
 
-- **Streaming AI responses.** Token-by-token output.
-- **Write API.** Full read-write REST API.
-- **Mobile-responsive dashboard.**
+### 5. Intelligence Layer
 
-### Integrations Roadmap
+Use AI and analytics to accelerate operators after the data foundation is
+trusted.
 
-- **Open banking (PSD2).** EU bank connections for automatic balance and
-  transaction retrieval.
-- **Mercury, Wise, Revolut Business APIs.** Direct bank balance sync.
-- **Intercompany netting.** Net payables/receivables across entities before
-  settling.
-- **Slack integration.** Push alerts to channels.
+- explain changes in NAV, cash movement, performance, and anomalies
+- draft report commentary and stakeholder summaries from grounded data
+- improve anomaly triage and finance Q&A
+
+### 6. Adjacent Workflows
+
+Deepen secondary workflows only where they reinforce the core operating loop.
+
+- tie tax workflows more directly into close and reporting
+- tie compliance deadlines into approvals, calendars, and action tracking
+- improve audit packages and stakeholder-ready reporting
+
+### Not Prioritized Yet
+
+- white-labeling
+- broad plugin or platform work
+- AI-first workflows that bypass operator review
+- net-new feature families that do not strengthen close, reporting, or control
+
+For the fuller version, including strategic principles and operating KPIs, see
+[ROADMAP.md](ROADMAP.md).
 
 ## License
 
